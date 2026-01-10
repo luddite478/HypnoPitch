@@ -410,25 +410,27 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                         const SizedBox(width: 8),
                         
                         // Share button (disabled if still uploading or invalid URL)
-                        IconButton(
-                          icon: Icon(
-                            Icons.share,
-                            color: (item.uploadStatus == RenderUploadStatus.uploading || 
-                                   item.url.isEmpty || 
-                                   !item.url.startsWith('http'))
-                                ? AppColors.sequencerLightText.withOpacity(0.3)
-                                : AppColors.sequencerLightText,
-                            size: 20,
-                          ),
-                          onPressed: (item.uploadStatus == RenderUploadStatus.uploading || 
+                        Builder(
+                          builder: (buttonContext) => IconButton(
+                            icon: Icon(
+                              Icons.share,
+                              color: (item.uploadStatus == RenderUploadStatus.uploading || 
                                      item.url.isEmpty || 
                                      !item.url.startsWith('http'))
-                              ? null
-                              : () => _sharePlaylistItem(item),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 40,
-                            minHeight: 40,
+                                  ? AppColors.sequencerLightText.withOpacity(0.3)
+                                  : AppColors.sequencerLightText,
+                              size: 20,
+                            ),
+                            onPressed: (item.uploadStatus == RenderUploadStatus.uploading || 
+                                       item.url.isEmpty || 
+                                       !item.url.startsWith('http'))
+                                ? null
+                                : () => _sharePlaylistItem(item, buttonContext),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
                           ),
                         ),
                       ],
@@ -554,7 +556,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     }
   }
   
-  Future<void> _sharePlaylistItem(PlaylistItem item) async {
+  Future<void> _sharePlaylistItem(PlaylistItem item, BuildContext buttonContext) async {
     try {
       // Check if track is still uploading
       if (item.uploadStatus == RenderUploadStatus.uploading) {
@@ -627,12 +629,19 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         }
       }
       
+      // Calculate the share button position for iOS
+      final box = buttonContext.findRenderObject() as RenderBox?;
+      final Rect sharePositionOrigin = box == null
+          ? Rect.fromLTWH(0, 0, 100, 100) // Fallback position
+          : box.localToGlobal(Offset.zero) & box.size;
+      
       // Share the actual audio file (not just URL)
       final xFile = XFile(localPath);
       await Share.shareXFiles(
         [xFile],
         subject: item.name,
         text: item.name,
+        sharePositionOrigin: sharePositionOrigin,
       );
       
       debugPrint('✅ [LIBRARY] Shared file: $localPath');

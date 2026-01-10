@@ -9,6 +9,7 @@ class PatternPreviewWidget extends StatelessWidget {
   final List<Color> Function(Map<String, dynamic>) getSampleBankColors;
   final Color? fadeOverlayColor; // Background color to use for fade overlays (defaults to white)
   final EdgeInsets innerPadding; // Padding between widget border and cells
+  final int workingStateVersion; // Version number to force rebuild when working state changes
   
   // ============================================================================
   // CELL DIMENSIONS CONTROL
@@ -25,7 +26,7 @@ class PatternPreviewWidget extends StatelessWidget {
   static const double layerBoundaryWidth = 2.0;
   static const Color layerBoundaryColor = Color.fromARGB(255, 65, 65, 65);
   
-  // Empty cell colors
+  // Empty cell colors (now uses AppColors for consistency)
   static const Color patternEmptyCellColor = Color.fromARGB(255, 101, 101, 101);
   
   // ============================================================================
@@ -61,13 +62,30 @@ class PatternPreviewWidget extends StatelessWidget {
     required this.getSampleBankColors,
     this.fadeOverlayColor,
     this.innerPadding = EdgeInsets.zero,
+    required this.workingStateVersion,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🎨 [PATTERN_PREVIEW] Building for project ${project.id}, workingStateVersion=$workingStateVersion');
+    
     return FutureBuilder<Map<String, dynamic>?>(
       future: getProjectSnapshot(project.id),
       builder: (context, snapshot) {
+        debugPrint('🎨 [PATTERN_PREVIEW] FutureBuilder state for ${project.id}: ${snapshot.connectionState}');
+        
+        // Prioritize showing data if available (prevents flicker on rebuild)
+        // Even if connectionState is waiting, if we have data, show it
+        if (snapshot.hasData && snapshot.data != null) {
+          // Wrap in LayoutBuilder to get available height for responsive row calculation
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return _buildPatternPreviewFromSnapshot(snapshot.data!, constraints.maxHeight);
+            },
+          );
+        }
+        
+        // Only show loading if we're actually waiting AND don't have data yet
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
             decoration: BoxDecoration(
@@ -88,26 +106,18 @@ class PatternPreviewWidget extends StatelessWidget {
           );
         }
 
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-          return Container(
-            decoration: BoxDecoration(
-              color: AppColors.sequencerCellEmpty.withOpacity(0.3),
+        // Error or no data (fallback)
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.sequencerCellEmpty.withOpacity(0.3),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.error_outline,
+              color: AppColors.menuLightText.withOpacity(0.5),
+              size: 16,
             ),
-            child: Center(
-              child: Icon(
-                Icons.error_outline,
-                color: AppColors.menuLightText.withOpacity(0.5),
-                size: 16,
-              ),
-            ),
-          );
-        }
-
-        // Wrap in LayoutBuilder to get available height for responsive row calculation
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            return _buildPatternPreviewFromSnapshot(snapshot.data!, constraints.maxHeight);
-          },
+          ),
         );
       },
     );

@@ -60,7 +60,7 @@ class _ThreadViewWidgetState extends State<ThreadViewWidget> {
   static const int chainDividerSpacingLayers = 4; // Number of layers to use for calculating divider spacing (default: 4 layers)
     
   // Padding controls
-  static const double chainInternalVerticalPadding = 2.0; // Vertical padding inside chain rectangles (top and bottom of numbers)
+  static const double chainInternalVerticalPadding = 0.0; // Vertical padding inside chain rectangles (top and bottom of numbers)
   static const double chainContainerHeight = 40.0; // Height of the chain container
   
   // Padding controls for chain element inside yellow container (top, left, bottom, right)

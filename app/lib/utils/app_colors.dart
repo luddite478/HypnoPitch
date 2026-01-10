@@ -17,8 +17,8 @@ class AppColors {
   static const Color sequencerAccent = Color(0xFF8B7355); // Brown accent for highlights
   static const Color sequencerBorder = Color(0xFF5A5A57); // Subtle borders
   static const Color sequencerShadow = Color(0xFF2A2A2A); // Dark shadows for depth
-  static const Color sequencerCellEmpty = Color(0xFF3E3E3B); // Empty grid cells
-  static const Color sequencerCellEmptyAlternate = Color(0xFF3E3E3B); // Same as cellEmpty for consistency
+  static const Color sequencerCellEmpty = Color.fromARGB(255, 67, 67, 64); // Empty grid cells (matches pattern preview)
+  static const Color sequencerCellEmptyAlternate = Color.fromARGB(255, 70, 70, 67); // Same as cellEmpty for consistency
   static const Color sequencerCellFilled = Color(0xFF5C5A55); // Filled grid cells
   static const Color sequencerSecondaryButton = Color(0xFF6A6A67); // Grayed out secondary buttons
   static const Color sequencerSecondaryButtonAlt = Color(0xFF5A5A57); // Alternative secondary button
@@ -26,6 +26,9 @@ class AppColors {
   
   // Selection visuals
   static const Color sequencerSelectionBorder = Color(0xFFFFFFFF); // White border for selected items
+  
+  // Icon backgrounds
+  static const Color sequencerIconBackground = Color(0xFF545454); // Background for FAB and icons
   
   // Menu colors - black-white/dark-light gray theme for navigation and content screens
   static const Color menuPageBackground = Color(0xFFF8F8F8); // Light gray background
@@ -51,4 +54,35 @@ class AppColors {
   // Checkpoint-specific colors
   static const Color menuCheckpointBackground = Color(0xFFF5F5F5); // Checkpoint cards
   static const Color menuCurrentUserCheckpoint = Color(0xFFEEEEEE); // Current user checkpoints
+  
+  // Sample Bank Colors - Vibrant Diverse Palette (26 unique colors for slots A-Z)
+  // High color diversity with vibrant saturation across full spectrum
+  static const List<Color> sampleBankPalette = [
+    Color(0xFF8B3A28), // A - Burnt Sienna
+    Color(0xFF2A6B4A), // B - Emerald
+    Color(0xFFB54A28), // C - Rust Orange
+    Color(0xFF2A4A7B), // D - Royal Blue
+    Color(0xFF8B8B28), // E - Golden Olive
+    Color(0xFF8B2A5A), // F - Burgundy
+    Color(0xFF2A6B8B), // G - Teal
+    Color(0xFF4A8B2A), // H - Lime Green
+    Color(0xFFA53A3A), // I - Crimson
+    Color(0xFF2A8B6B), // J - Jade
+    Color(0xFF6B2A8B), // K - Purple
+    Color(0xFF3A6B3A), // L - Forest Green
+    Color(0xFFB56B2A), // M - Amber
+    Color(0xFF2A5A7B), // N - Ocean Blue
+    Color(0xFFC59B3A), // O - Gold
+    Color(0xFF4A3A8B), // P - Indigo
+    Color(0xFF2A7B7B), // Q - Cyan
+    Color(0xFF8B3A7B), // R - Orchid
+    Color(0xFF6B8B2A), // S - Chartreuse
+    Color(0xFF2A5A3A), // T - Deep Green
+    Color(0xFFB55A3A), // U - Terracotta
+    Color(0xFF3A4A8B), // V - Sapphire
+    Color(0xFF6B4A8B), // W - Violet
+    Color(0xFF2A8B5A), // X - Sea Green
+    Color(0xFFB58B3A), // Y - Honey
+    Color(0xFF3A6B6B), // Z - Seafoam
+  ];
 } 

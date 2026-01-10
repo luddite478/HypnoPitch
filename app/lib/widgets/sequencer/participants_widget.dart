@@ -6,6 +6,7 @@ import '../../utils/app_colors.dart';
 import '../../models/thread/thread.dart';
 import '../../models/thread/thread_user.dart';
 import '../../state/user_state.dart';
+import '../../state/threads_state.dart';
 
 /// Widget displaying participants in the sequencer header
 /// Shows first participant with online status, stacked chips for multiple participants
@@ -13,7 +14,10 @@ import '../../state/user_state.dart';
 /// 
 /// Online status comes directly from ThreadUser.isOnline field, which is updated via:
 /// - HTTP API responses (GET /threads)
-/// - WebSocket notifications (invitation_accepted, etc)
+/// - WebSocket notifications (user_status_changed, invitation_accepted, etc)
+/// 
+/// The participants menu dialog uses Consumer<ThreadsState> for real-time updates,
+/// so online status changes are reflected immediately without reopening the dialog
 class ParticipantsWidget extends StatelessWidget {
   final Thread? thread;
   final VoidCallback onTap;
@@ -157,8 +161,6 @@ class ParticipantsMenuDialog extends StatelessWidget {
     final userState = context.read<UserState>();
     final currentUserId = userState.currentUser?.id ?? '';
     
-    final allParticipants = thread.users;
-    
     return Material(
       type: MaterialType.transparency,
       child: Center(
@@ -205,92 +207,103 @@ class ParticipantsMenuDialog extends StatelessWidget {
                     ),
                   ),
                   
-                  // Participants list
+                  // Participants list - wrapped in Consumer for real-time updates
                   Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      itemCount: allParticipants.length,
-                      itemBuilder: (context, index) {
-                        final participant = allParticipants[index];
-                        final isMe = participant.id == currentUserId;
-                        final isOnline = participant.isOnline;
+                    child: Consumer<ThreadsState>(
+                      builder: (context, threadsState, _) {
+                        // Get the latest thread data from state
+                        final latestThread = threadsState.threads.firstWhere(
+                          (t) => t.id == thread.id,
+                          orElse: () => thread, // Fallback to initial thread if not found
+                        );
+                        final allParticipants = latestThread.users;
                         
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isMe 
-                                ? AppColors.sequencerAccent.withOpacity(0.15)
-                                : AppColors.sequencerSurfaceBase,
-                            borderRadius: BorderRadius.circular(0), // Squared corners
-                            border: Border.all(
-                              color: isMe 
-                                  ? AppColors.sequencerAccent.withOpacity(0.3)
-                                  : AppColors.sequencerBorder,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              // Online status dot
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: isOnline 
-                                      ? AppColors.menuOnlineIndicator 
-                                      : AppColors.sequencerLightText.withOpacity(0.3),
-                                  shape: BoxShape.circle,
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          itemCount: allParticipants.length,
+                          itemBuilder: (context, index) {
+                            final participant = allParticipants[index];
+                            final isMe = participant.id == currentUserId;
+                            final isOnline = participant.isOnline;
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isMe 
+                                    ? AppColors.sequencerAccent.withOpacity(0.15)
+                                    : AppColors.sequencerSurfaceBase,
+                                borderRadius: BorderRadius.circular(0), // Squared corners
+                                border: Border.all(
+                                  color: isMe 
+                                      ? AppColors.sequencerAccent.withOpacity(0.3)
+                                      : AppColors.sequencerBorder,
+                                  width: 0.5,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              
-                              // Username
-                              Expanded(
-                                child: Text(
-                                  participant.username,
-                                  style: GoogleFonts.sourceSans3(
-                                    color: AppColors.sequencerText,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              
-                              // "You" badge
-                              if (isMe)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.sequencerAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(0), // Squared corners
-                                  ),
-                                  child: Text(
-                                    'You',
-                                    style: GoogleFonts.sourceSans3(
-                                      color: AppColors.sequencerAccent,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                              child: Row(
+                                children: [
+                                  // Online status dot
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: isOnline 
+                                          ? AppColors.menuOnlineIndicator 
+                                          : AppColors.sequencerLightText.withOpacity(0.3),
+                                      shape: BoxShape.circle,
                                     ),
                                   ),
-                                ),
-                              
-                              // Online status text
-                              if (!isMe)
-                                Text(
-                                  isOnline ? 'Online' : 'Offline',
-                                  style: GoogleFonts.sourceSans3(
-                                    color: isOnline 
-                                        ? AppColors.menuOnlineIndicator 
-                                        : AppColors.sequencerLightText,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w400,
+                                  const SizedBox(width: 12),
+                                  
+                                  // Username
+                                  Expanded(
+                                    child: Text(
+                                      participant.username,
+                                      style: GoogleFonts.sourceSans3(
+                                        color: AppColors.sequencerText,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                ),
-                            ],
-                          ),
+                                  
+                                  // "You" badge
+                                  if (isMe)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.sequencerAccent.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(0), // Squared corners
+                                      ),
+                                      child: Text(
+                                        'You',
+                                        style: GoogleFonts.sourceSans3(
+                                          color: AppColors.sequencerAccent,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  
+                                  // Online status text
+                                  if (!isMe)
+                                    Text(
+                                      isOnline ? 'Online' : 'Offline',
+                                      style: GoogleFonts.sourceSans3(
+                                        color: isOnline 
+                                            ? AppColors.menuOnlineIndicator 
+                                            : AppColors.sequencerLightText,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

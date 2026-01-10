@@ -49,8 +49,11 @@ class SimplifiedHeaderWidget extends StatelessWidget {
             },
             icon: Icon(
               Icons.folder_outlined,
-              color: AppColors.sequencerAccent,
+              color: AppColors.sequencerText,
               size: 28,
+            ),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.transparent,
             ),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),

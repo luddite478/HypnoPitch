@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../state/threads_state.dart';
 import '../state/audio_player_state.dart';
 import '../state/user_state.dart';
+import '../state/sequencer/sample_bank.dart';
 import '../models/thread/thread.dart';
 import '../models/thread/thread_user.dart';
 import '../services/threads_api.dart';
@@ -33,12 +34,25 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   final Set<String> _deletingThreadIds = {}; // Prevent double deletion
   Timer? _timestampUpdateTimer; // Periodic timer to update relative timestamps
   final ValueNotifier<int> _timestampTick = ValueNotifier<int>(0); // Tick counter for timestamp updates
+  
+  // Cache snapshot Futures to prevent recreation on rebuilds (eliminates flicker)
+  final Map<String, Future<Map<String, dynamic>?>> _snapshotFutureCache = {};
+  int _previousWorkingStateVersion = 0;
+  
+  // Track last seen version for each project to detect changes during build
+  final Map<String, int> _projectVersionCache = {};
 
   // ============================================================================
   // LAYOUT CONTROL VARIABLES - CENTRALIZED CONFIGURATION
   // ============================================================================
   // All adjustable layout parameters in one place. Change these to customize appearance.
   // Using 2-column grid layout similar to Google Docs
+  
+  // ----------------------------------------------------------------------------
+  // TESTING & DEBUG CONTROLS
+  // ----------------------------------------------------------------------------
+  // Enable/disable mock projects for testing layer boundaries and UI layout
+  static const bool _showMockProjects = false;  // Set to true to show mock test projects
   
   // ----------------------------------------------------------------------------
   // LIST LAYOUT CONTROL
@@ -61,8 +75,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   // ----------------------------------------------------------------------------
   // Controls the background color of the entire project tile
   static const Color _tileBackgroundColor = AppColors.sequencerSurfaceRaised;
-  static const double _tileBorderRadius = 8.0;  // Rounded corners to match sequencer
+  static const double _tileBorderRadius = 1.0;  // Rounded corners to match sequencer
   static const double _tileElevation = 2.0;
+  
+  // Collaborator update highlight (blue tint for unviewed updates)
+  // When a collaborator updates a project:
+  // 1. Tile background changes to bright blue (25% opacity)
+  // 2. "MODIFIED" label and timestamp in footer turn bright blue (full opacity)
+  static const Color _collaboratorUpdateColor = Color(0xFF4A7BA7); // Bright blue (#4A7BA7)
+  static const double _collaboratorUpdateOpacity = 0.25; // 25% opacity for background tint
   
   // ----------------------------------------------------------------------------
   // OVERLAY CONTROLS (Participants & Steps)
@@ -100,6 +121,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   static const double _participantsOverlayHorizontalOffset = 5.0; // Horizontal spacing from right edge
   static const double _participantsOverlayVerticalOffset = 5.0;   // Vertical spacing from top edge
   static const double _participantsOverlayFontSize = 12.0; // Font size for participant names
+  static const double _participantsOnlineIndicatorSize = 6.0; // Size of online status dot
+  static const double _participantsOnlineIndicatorSpacing = 6.0; // Space between dot and name
   // Metadata overlay (top left) - shows LEN, STP, HST
   static const double _metadataOverlayHorizontalOffset = 5.0; // Horizontal spacing from left edge
   static const double _metadataOverlayVerticalOffset = 5.0;   // Vertical spacing from top edge
@@ -129,6 +152,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   // Vertical gradient (top-bottom fade on both overlays)
   static const double _overlayVerticalFadeHeight = 0.5; // 0.0-1.0, percentage of overlay height to fade
   
+  // ----------------------------------------------------------------------------
+  // CREATE NEW PATTERN BUTTON (FAB) CONTROLS
+  // ----------------------------------------------------------------------------
+  // Floating Action Button appearance settings
+  static const double _fabCornerRadius = 11.0; // Corner radius (0.0 = square, larger = more rounded)
+  static const Color _fabBackgroundColor = Color.fromARGB(255, 66, 66, 66); // Button background color
+  static Color _fabIconColor = Color.fromARGB(255, 185, 185, 185); // Plus sign color
+  static const double _fabElevation = 4.0; // Shadow elevation
+  static const double _fabIconSize = 50.0; // Size of plus icon
 
   // Helper method to get font family based on font family string
   static TextStyle _getFontStyle(String fontFamily, {
@@ -200,6 +232,116 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     }
   }
 
+  /// Build projects list - extracted to eliminate nested Consumer
+  Widget _buildProjectsList(BuildContext context, ThreadsState threadsState) {
+    // Use pre-computed sorted threads (no async, no flicker!)
+    final sortedProjects = threadsState.sortedThreads;
+    final projects = [...sortedProjects];
+    
+    // Add mock projects for testing layer boundaries (controlled by _showMockProjects flag)
+    if (_showMockProjects) {
+      _addMockProject(projects);
+    }
+    
+    if (projects.isEmpty) {
+      return const SizedBox.shrink(); // Show nothing when no projects
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Invites section (if current user has pending invites)
+        _buildInvitesSection(context, threadsState),
+        
+        // Header with sorting controls
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Text(
+            'PATTERNS',
+            style: GoogleFonts.sourceSans3(
+              color: AppColors.sequencerText,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        
+        // Projects list (single column)
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.all(_listPadding),
+            itemCount: projects.length,
+            separatorBuilder: (context, index) => SizedBox(height: _tileSpacing),
+            itemBuilder: (context, index) {
+              return _buildProjectCard(projects[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+  
+  /// Build invites section - extracted to eliminate Consumer2
+  Widget _buildInvitesSection(BuildContext context, ThreadsState threadsState) {
+    final userState = context.read<UserState>();
+    final invites = userState.currentUser?.pendingInvitesToThreads ?? const [];
+    
+    if (invites.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    // Ensure missing invite thread summaries are loaded
+    final existingIds = threadsState.threads.map((t) => t.id).toSet();
+    final missing = invites.where((id) => !existingIds.contains(id)).toList();
+    
+    if (missing.isNotEmpty) {
+      // Load missing invites once (not in postFrameCallback to avoid setState loop)
+      Future.microtask(() async {
+        for (final id in missing) {
+          try {
+            await threadsState.ensureThreadSummary(id);
+          } catch (e) {
+            debugPrint('⚠️ [PROJECTS] Failed to load invite $id: $e');
+          }
+        }
+      });
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Text(
+            'INVITES',
+            style: GoogleFonts.sourceSans3(
+              color: AppColors.sequencerText,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        ...invites.map((id) {
+          final t = threadsState.threads.firstWhere(
+            (x) => x.id == id,
+            orElse: () => Thread(
+              id: id,
+              name: ThreadNameGenerator.generate(id),
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+              users: const [],
+              messageIds: const [],
+              invites: const [],
+            ),
+          );
+          return _buildInviteCard(t.users.isEmpty ? null : t, userState, id);
+        }).toList(),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -232,6 +374,42 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Monitor working state version changes to invalidate snapshot cache
+    // (Fallback for cases where working state updates while on projects screen)
+    final threadsState = context.read<ThreadsState>();
+    debugPrint('🔍 [PROJECTS] didChangeDependencies: current version=${threadsState.workingStateVersion}, previous=$_previousWorkingStateVersion');
+    
+    if (threadsState.workingStateVersion != _previousWorkingStateVersion) {
+      debugPrint('🔄 [PROJECTS] Version changed! Old: $_previousWorkingStateVersion, New: ${threadsState.workingStateVersion}');
+      
+      // Working state changed - invalidate cache for active thread
+      if (threadsState.activeThread != null) {
+        final threadId = threadsState.activeThread!.id;
+        final hadCache = _snapshotFutureCache.containsKey(threadId);
+        _snapshotFutureCache.remove(threadId);
+        debugPrint('📸 [PROJECTS] Invalidated snapshot cache for $threadId (had cache: $hadCache)');
+      } else {
+        debugPrint('⚠️ [PROJECTS] No active thread to invalidate cache for');
+      }
+      
+      _previousWorkingStateVersion = threadsState.workingStateVersion;
+      
+      // Force rebuild to show updated pattern preview
+      if (mounted) {
+        debugPrint('🔨 [PROJECTS] Calling setState() to trigger rebuild');
+        setState(() {});
+      } else {
+        debugPrint('⚠️ [PROJECTS] Widget not mounted, skipping setState()');
+      }
+    } else {
+      debugPrint('✅ [PROJECTS] Version unchanged, no action needed');
+    }
+  }
+
+  @override
   void dispose() {
     // Cancel timestamp update timer
     _timestampUpdateTimer?.cancel();
@@ -253,6 +431,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       final userState = Provider.of<UserState>(context, listen: false);
       final threadsState = Provider.of<ThreadsState>(context, listen: false);
       
+      // Invalidate snapshot cache for active thread (if any)
+      // This ensures pattern preview shows latest working state when returning from sequencer
+      bool cacheInvalidated = false;
+      if (threadsState.activeThread != null) {
+        final threadId = threadsState.activeThread!.id;
+        _snapshotFutureCache.remove(threadId);
+        cacheInvalidated = true;
+        debugPrint('📸 [PROJECTS] Invalidated snapshot cache for active thread: $threadId');
+      }
+      
       // Load threads (returns cached data immediately if available)
       await threadsState.loadThreads();
       
@@ -268,6 +456,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       setState(() {
         _error = null;
       });
+      
+      // Force rebuild if cache was invalidated to show updated pattern preview
+      if (cacheInvalidated && mounted) {
+        debugPrint('🔄 [PROJECTS] Forcing rebuild to show updated pattern preview');
+        setState(() {});
+      }
     } catch (e) {
       setState(() {
         _error = 'Failed to load projects: $e';
@@ -298,29 +492,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     }
   }
 
-  /// Sort projects by most recently modified timestamp
-  /// Considers both thread.updatedAt and working state timestamps
-  Future<List<Thread>> _sortProjectsByModifiedTime(
-    List<Thread> projects,
-    ThreadsState threadsState,
-  ) async {
-    // Create list of (project, modifiedAt) tuples
-    final projectsWithTimestamps = <MapEntry<Thread, DateTime>>[];
-    
-    for (final project in projects) {
-      final modifiedAt = await threadsState.getThreadModifiedAt(
-        project.id,
-        project.updatedAt,
-      );
-      projectsWithTimestamps.add(MapEntry(project, modifiedAt));
-    }
-    
-    // Sort by timestamp (descending - newest first)
-    projectsWithTimestamps.sort((a, b) => b.value.compareTo(a.value));
-    
-    // Return sorted projects
-    return projectsWithTimestamps.map((e) => e.key).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -391,103 +562,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                             ],
                                           ),
                                         )
-                                      : Consumer<ThreadsState>(
-                                            builder: (context, threadsState, child) {
-                                              final projects = [...threadsState.threads];
-                                              
-                                              // Add mock project for testing layer boundaries
-                                              _addMockProject(projects);
-                                              
-                                              // Sort by most recently modified (descending)
-                                              // This will be done asynchronously below to consider working state timestamps
-                                              
-                                              if (projects.isEmpty) {
-                                                return const SizedBox.shrink(); // Show nothing when no projects
-                                              }
-                                              
-                                              // Use FutureBuilder to sort projects asynchronously
-                                              // This allows us to consider working state timestamps
-                                              return FutureBuilder<List<Thread>>(
-                                                future: _sortProjectsByModifiedTime(projects, threadsState),
-                                                builder: (context, snapshot) {
-                                                  final sortedProjects = snapshot.data ?? projects;
-                                                  
-                                                  return Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      // Invites section (if current user has pending invites)
-                                                      Consumer2<UserState, ThreadsState>(
-                                                        builder: (context, userState, threadsState, _) {
-                                                          final invites = userState.currentUser?.pendingInvitesToThreads ?? const [];
-                                                          if (invites.isEmpty) return const SizedBox.shrink();
-                                                          // Ensure missing invite thread summaries are loaded
-                                                          final existingIds = threadsState.threads.map((t) => t.id).toSet();
-                                                          final missing = invites.where((id) => !existingIds.contains(id)).toList();
-                                                          if (missing.isNotEmpty) {
-                                                            WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                                              for (final id in missing) {
-                                                                try { await threadsState.ensureThreadSummary(id); } catch (_) {}
-                                                              }
-                                                              if (mounted) setState(() {});
-                                                            });
-                                                          }
-                                                          return Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              Padding(
-                                                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                                                                child: Text(
-                                                                  'INVITES',
-                                                                  style: GoogleFonts.sourceSans3(
-                                                                    color: AppColors.sequencerText,
-                                                                    fontSize: 13,
-                                                                    fontWeight: FontWeight.w600,
-                                                                    letterSpacing: 1.5,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              ...invites.map((id) {
-                                                                final t = threadsState.threads.firstWhere(
-                                                                  (x) => x.id == id,
-                                                                  orElse: () => Thread(id: id, name: ThreadNameGenerator.generate(id), createdAt: DateTime.now(), updatedAt: DateTime.now(), users: const [], messageIds: const [], invites: const []),
-                                                                );
-                                                                return _buildInviteCard(t.users.isEmpty ? null : t, userState, id);
-                                                              }).toList(),
-                                                            ],
-                                                          );
-                                                        },
-                                                      ),
-                                      // Header with sorting controls
-                                                      Padding(
-                                                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                                                            child: Text(
-                                                              'PATTERNS',
-                                                              style: GoogleFonts.sourceSans3(
-                                                                color: AppColors.sequencerText,
-                                                                fontSize: 15,
-                                                                fontWeight: FontWeight.w600,
-                                                                letterSpacing: 1.5,
-                                                              ),
-                                                            ),
-                                                      ),
-                                                      
-                                                      // Projects list (single column)
-                                                      Expanded(
-                                                        child: ListView.separated(
-                                                          padding: EdgeInsets.all(_listPadding),
-                                                          itemCount: sortedProjects.length,
-                                                          separatorBuilder: (context, index) => SizedBox(height: _tileSpacing),
-                                                          itemBuilder: (context, index) {
-                                                            return _buildProjectCard(sortedProjects[index]);
-                                                          },
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          ),
+                                      : _buildProjectsList(context, threadsState),
                                 ),
                               ],
                             ),
@@ -539,32 +614,46 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           Positioned(
             right: 30,
             bottom: 30,
-            child: FloatingActionButton(
-              onPressed: () async {
-                // Stop any playing audio from playlist/renders
-                context.read<AudioPlayerState>().stop();
-                // Clear active thread context for new project
-                context.read<ThreadsState>().setActiveThread(null);
-                // Initialize native subsystems (idempotent: init performs cleanup)
-                try {
-                  TableBindings().tableInit();
-                  PlaybackBindings().playbackInit();
-                  SampleBankBindings().sampleBankInit();
-                } catch (e) {
-                  debugPrint('❌ Failed to init native subsystems: $e');
-                }
-                // Navigate to sequencer using PatternScreen which handles version routing
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PatternScreen(),
+            child: Material(
+              color: _fabBackgroundColor,
+              elevation: _fabElevation,
+              borderRadius: BorderRadius.circular(_fabCornerRadius),
+              child: InkWell(
+                onTap: () async {
+                  // Stop any playing audio from playlist/renders
+                  context.read<AudioPlayerState>().stop();
+                  // Clear active thread context for new project
+                  context.read<ThreadsState>().setActiveThread(null);
+                  // Initialize native subsystems (idempotent: init performs cleanup)
+                  try {
+                    TableBindings().tableInit();
+                    PlaybackBindings().playbackInit();
+                    SampleBankBindings().sampleBankInit();
+                    // Assign random colors for new project from dark forest/berry palette
+                    context.read<SampleBankState>().assignRandomProjectColors();
+                  } catch (e) {
+                    debugPrint('❌ Failed to init native subsystems: $e');
+                  }
+                  // Navigate to sequencer using PatternScreen which handles version routing
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PatternScreen(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(_fabCornerRadius),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.add,
+                    size: _fabIconSize,
+                    color: _fabIconColor,
                   ),
-                );
-              },
-              backgroundColor: AppColors.sequencerAccent,
-              foregroundColor: AppColors.sequencerText,
-              elevation: 4,
-              child: const Icon(Icons.add, size: 50),
+                ),
+              ),
             ),
           ),
         ],
@@ -575,22 +664,37 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   Widget _buildProjectCard(Thread project) {
     final threadsState = context.read<ThreadsState>();
+    final currentVersion = threadsState.workingStateVersion;
     
-    // Check if project was updated by collaborators (async, so use FutureBuilder)
-    return FutureBuilder<bool>(
-      future: threadsState.isThreadUpdatedSinceLastView(project.id),
-      builder: (context, snapshot) {
-        final hasCollaboratorUpdates = snapshot.data ?? false;
-        
-        return Container(
-          // Rebuild when project's message count changes OR when working state is saved
-          // workingStateVersion increments on each auto-save, forcing widget rebuild
-          key: ValueKey('${project.id}_${project.messageIds.length}_${threadsState.workingStateVersion}'),
+    debugPrint('🎴 [PROJECTS] Building card for ${project.id}, workingStateVersion=$currentVersion');
+    
+    // Check if version changed for this project and invalidate cache if needed
+    // This is necessary because didChangeDependencies() doesn't fire after Navigator.pop()
+    final lastSeenVersion = _projectVersionCache[project.id];
+    if (lastSeenVersion != null && lastSeenVersion != currentVersion) {
+      // Version changed since last build - invalidate cache
+      final hadCache = _snapshotFutureCache.containsKey(project.id);
+      _snapshotFutureCache.remove(project.id);
+      debugPrint('🔄 [PROJECTS] Version changed for ${project.id} ($lastSeenVersion → $currentVersion), invalidated cache (had: $hadCache)');
+    }
+    
+    // Update version cache for next build
+    _projectVersionCache[project.id] = currentVersion;
+    
+    // Check if project was updated by collaborators (pre-computed, instant!)
+    final hasCollaboratorUpdates = threadsState.hasCollaboratorUpdates(project.id);
+    
+    // Wrap in RepaintBoundary to isolate repaints and prevent flicker
+    return RepaintBoundary(
+      child: Container(
+          // Rebuild when project's message count changes (new checkpoint saved)
+          // Note: Footer still updates on auto-save via its own FutureBuilder key
+          key: ValueKey('${project.id}_${project.messageIds.length}'),
           height: _tileHeight,
           decoration: BoxDecoration(
             // Blue-tinted background if updated by collaborators
             color: hasCollaboratorUpdates 
-                ? AppColors.sequencerAccent.withOpacity(0.15)
+                ? _collaboratorUpdateColor.withOpacity(_collaboratorUpdateOpacity)
                 : _tileBackgroundColor,
             borderRadius: BorderRadius.circular(_tileBorderRadius),
             boxShadow: [
@@ -627,11 +731,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             bottomRight: _showFooter ? Radius.zero : Radius.circular(_tileBorderRadius),
                           ),
                           child: PatternPreviewWidget(
+                            key: ValueKey('preview_${project.id}_${threadsState.workingStateVersion}'),
                             project: project,
                             getProjectSnapshot: _getProjectSnapshot,
                             getSampleBankColors: _getSampleBankColors,
                             fadeOverlayColor: _tileBackgroundColor,
                             innerPadding: const EdgeInsets.all(6),
+                            workingStateVersion: threadsState.workingStateVersion,
                           ),
                         ),
                         
@@ -651,8 +757,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               ),
             ),
           ),
-        );
-      },
+        ),
     );
   }
   
@@ -678,19 +783,37 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final visibleParticipants = otherParticipants.take(maxVisible).toList();
     final remaining = otherParticipants.length - maxVisible;
     
-    // Add visible participants
+    // Add visible participants with online status indicators
     for (final user in visibleParticipants) {
       participantWidgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Text(
-            user.username,
-            style: _getFontStyle(
-              _overlayFontFamily,
-              color: _overlayTextColor.withOpacity(_overlayTextOpacity),
-              fontSize: _participantsOverlayFontSize,
-              fontWeight: _overlayTextFontWeight,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Online status indicator (green dot)
+              Container(
+                width: _participantsOnlineIndicatorSize,
+                height: _participantsOnlineIndicatorSize,
+                margin: EdgeInsets.only(right: _participantsOnlineIndicatorSpacing),
+                decoration: BoxDecoration(
+                  color: user.isOnline 
+                      ? AppColors.menuOnlineIndicator  // Green for online
+                      : _overlayTextColor.withOpacity(0.3),  // Gray for offline
+                  shape: BoxShape.circle,
+                ),
+              ),
+              // Username
+              Text(
+                user.username,
+                style: _getFontStyle(
+                  _overlayFontFamily,
+                  color: _overlayTextColor.withOpacity(_overlayTextOpacity),
+                  fontSize: _participantsOverlayFontSize,
+                  fontWeight: _overlayTextFontWeight,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -871,6 +994,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   
   /// Builds footer section showing created and modified dates
   Widget _buildFooter(Thread project) {
+    // Check if project has collaborator updates for blue highlighting
+    final threadsState = context.read<ThreadsState>();
+    final hasCollaboratorUpdates = threadsState.hasCollaboratorUpdates(project.id);
+    
     // Format absolute dates with slashes
     String formatDate(DateTime date) {
       return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
@@ -957,7 +1084,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     'MODIFIED',
                     style: _getFontStyle(
                       _footerFontFamily,
-                      color: _footerTextColor.withOpacity(_footerLabelOpacity),
+                      // Use bright blue when collaborator updated, otherwise default color
+                      color: hasCollaboratorUpdates
+                          ? _collaboratorUpdateColor
+                          : _footerTextColor.withOpacity(_footerLabelOpacity),
                       fontSize: _footerLabelFontSize,
                       fontWeight: _overlayTextFontWeight,
                       letterSpacing: 0.5,
@@ -974,7 +1104,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         modifiedDateText,
                         style: _getFontStyle(
                           _footerFontFamily,
-                          color: _footerTextColor.withOpacity(_footerTextOpacity),
+                          // Use bright blue when collaborator updated, otherwise default color
+                          color: hasCollaboratorUpdates
+                              ? _collaboratorUpdateColor
+                              : _footerTextColor.withOpacity(_footerTextOpacity),
                           fontSize: _footerDateFontSize,
                           fontWeight: _overlayTextFontWeight,
                         ),
@@ -1116,17 +1249,19 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       // Extract sample_bank from snapshot
       final source = snapshotData['source'] as Map<String, dynamic>?;
       if (source == null) {
-        // Return empty colors for all 25 slots
+        debugPrint('⚠️ [COLOR] No source in snapshot data');
         return List.generate(25, (i) => AppColors.sequencerCellEmpty);
       }
       
       final sampleBankData = source['sample_bank'] as Map<String, dynamic>?;
       if (sampleBankData == null) {
+        debugPrint('⚠️ [COLOR] No sample_bank in source');
         return List.generate(25, (i) => AppColors.sequencerCellEmpty);
       }
       
       final samples = sampleBankData['samples'] as List<dynamic>?;
       if (samples == null) {
+        debugPrint('⚠️ [COLOR] No samples in sample_bank');
         return List.generate(25, (i) => AppColors.sequencerCellEmpty);
       }
       
@@ -1136,6 +1271,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       final slotsToProcess = samples.length.clamp(0, 25);
       int loadedCount = 0;
       int coloredCount = 0;
+      
+      debugPrint('🎨 [COLOR] Processing $slotsToProcess sample slots');
       
       for (int i = 0; i < slotsToProcess; i++) {
         final sample = samples[i];
@@ -1152,7 +1289,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               final color = _hexToColor(colorHex);
               colors.add(color);
               coloredCount++;
-              debugPrint('✅ [COLOR] Slot $i: $colorHex');
+              if (coloredCount <= 3) { // Only log first 3 to avoid spam
+                debugPrint('✅ [COLOR] Slot $i: loaded with color $colorHex');
+              }
             } catch (e) {
               debugPrint('❌ [COLOR] Slot $i parse error: $e');
               colors.add(AppColors.sequencerCellEmpty);
@@ -1160,16 +1299,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           } else {
             // Use empty cell color for unloaded slots
             colors.add(AppColors.sequencerCellEmpty);
-            if (loaded && !hasColor) {
-              debugPrint('⚠️ [COLOR] Slot $i: LOADED but NO COLOR (old format?)');
-            }
           }
         } else {
           colors.add(AppColors.sequencerCellEmpty);
         }
       }
       
-      debugPrint('🎨 [COLOR] Summary: $loadedCount loaded, $coloredCount with colors');
+      debugPrint('🎨 [COLOR] Summary: $loadedCount loaded, $coloredCount with colors out of $slotsToProcess slots');
       
       // If we have fewer than 25 colors, fill the rest with empty color
       while (colors.length < 25) {
@@ -1194,33 +1330,52 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     }
     return Color(int.parse(buffer.toString(), radix: 16) + 0xFF000000);
   }
-  Future<Map<String, dynamic>?> _getProjectSnapshot(String threadId) async {
-    try {
-      // Special handling for mock projects
-      if (threadId == 'mock-layer-test-project-1') {
-        return _createMockSnapshot(sectionsCount: 123);
-      }
-      if (threadId == 'mock-layer-test-project-2') {
-        return _createMockSnapshot(sectionsCount: 64);
-      }
-      
-      // Use unified cache from ThreadsState (no local caching!)
-      final threadsState = context.read<ThreadsState>();
-      final snapshot = await threadsState.loadProjectSnapshot(threadId);
-      
-      if (snapshot == null || snapshot.isEmpty) {
-        debugPrint('📸 [PROJECTS] No snapshot for $threadId - returning empty pattern');
-        // Return an empty but valid snapshot structure for threads with no messages
+  Future<Map<String, dynamic>?> _getProjectSnapshot(String threadId) {
+    // Return cached Future to prevent recreation on rebuild (eliminates flicker!)
+    final hasCache = _snapshotFutureCache.containsKey(threadId);
+    debugPrint('📸 [PROJECTS] _getProjectSnapshot called for $threadId (has cache: $hasCache)');
+    
+    return _snapshotFutureCache.putIfAbsent(threadId, () async {
+      try {
+        debugPrint('🆕 [PROJECTS] Creating NEW snapshot Future for $threadId');
+        
+        // Special handling for mock projects
+        if (threadId == 'mock-layer-test-project-1') {
+          return _createMockSnapshot(sectionsCount: 123);
+        }
+        if (threadId == 'mock-layer-test-project-2') {
+          return _createMockSnapshot(sectionsCount: 64);
+        }
+        
+        // Use unified cache from ThreadsState
+        final threadsState = context.read<ThreadsState>();
+        debugPrint('📥 [PROJECTS] Calling threadsState.loadProjectSnapshot for $threadId');
+        final snapshot = await threadsState.loadProjectSnapshot(threadId);
+        
+        if (snapshot == null || snapshot.isEmpty) {
+          debugPrint('⚠️ [PROJECTS] No snapshot for $threadId - returning empty pattern');
+          return _createEmptySnapshot();
+        }
+        
+        // Debug: Check if snapshot has table cells with data
+        try {
+          final source = snapshot['source'] as Map<String, dynamic>?;
+          final table = source?['table'] as Map<String, dynamic>?;
+          final tableCells = table?['table_cells'] as List<dynamic>?;
+          final sampleBank = source?['sample_bank'] as Map<String, dynamic>?;
+          final samples = sampleBank?['samples'] as List<dynamic>?;
+          final loadedCount = samples?.where((s) => (s as Map)['loaded'] == true).length ?? 0;
+          debugPrint('✅ [PROJECTS] Loaded snapshot for $threadId: ${tableCells?.length ?? 0} rows, $loadedCount loaded samples');
+        } catch (e) {
+          debugPrint('⚠️ [PROJECTS] Error parsing snapshot details: $e');
+        }
+        
+        return snapshot;
+      } catch (e) {
+        debugPrint('❌ [PROJECTS] Error loading snapshot for $threadId: $e');
         return _createEmptySnapshot();
       }
-      
-      debugPrint('📸 [PROJECTS] Loaded snapshot for $threadId: success');
-      return snapshot;
-    } catch (e) {
-      debugPrint('❌ [PROJECTS] Error loading snapshot for $threadId: $e');
-      // Return empty snapshot instead of null to show empty grid
-      return _createEmptySnapshot();
-    }
+    });
   }
   
   /// Create mock snapshot with colors for testing

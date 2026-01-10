@@ -19,7 +19,7 @@ class MessageSectionsChain extends StatelessWidget {
   
   // Sizing constants similar to old widget
   static const double rectangleSizePercentOfHeight = 0.75; // ~75% of container height (reduced for smaller rectangles)
-  static const double rectangleHorizontalMarginPercent = 0.06; // 6% margin on each side (less margin = bigger)
+  static const double rectangleHorizontalMarginPercent = 0.0; // No margin - tape effect (was 0.06)
   static const double rectangleMinWidth = 40.0; // Minimum width for rectangle (increased)
   static const double layerColumnMinWidth = 14.0; // Minimum width per layer column (increased)
   static const int defaultLayersForSpacing = 4; // Default number of layers to use for divider spacing
@@ -217,7 +217,7 @@ class _SectionRectangle extends StatelessWidget {
                       ),
                       clipBehavior: Clip.hardEdge,
                       alignment: Alignment.center,
-                      padding: const EdgeInsets.all(1),
+                      padding: EdgeInsets.zero,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
@@ -244,7 +244,7 @@ class _SectionRectangle extends StatelessWidget {
               child: Container(
                 clipBehavior: Clip.hardEdge,
                 decoration: const BoxDecoration(),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,

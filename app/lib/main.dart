@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart';
 
 import 'screens/main_navigation_screen.dart';
-import 'screens/thread_screen.dart';
 import 'screens/sequencer_screen.dart';
 import 'widgets/username_creation_dialog.dart';
 import 'services/threads_service.dart';
@@ -103,10 +102,11 @@ class _MainPageState extends State<MainPage> {
   bool _hasInitializedUser = false;
   StreamSubscription? _notifSub;
   NotificationsService? _notificationsService;
-  OverlayEntry? _notifOverlay;
-  Timer? _notifOverlayTimer;
+  final List<OverlayEntry> _notifOverlays = [];
+  final Map<OverlayEntry, Timer> _notifOverlayTimers = {};
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSub;
+  bool _isProcessingInvite = false;
   
   @override
   void initState() {
@@ -174,6 +174,12 @@ class _MainPageState extends State<MainPage> {
   void _showJoinConfirmation(String threadId) {
     // Ensure we have a valid context that can show a dialog
     if (!mounted) return;
+    
+    // Prevent showing dialog if already processing an invite
+    if (_isProcessingInvite) {
+      debugPrint('⚠️ [MAIN] Already processing invite, ignoring duplicate deeplink trigger');
+      return;
+    }
 
     // Check if user needs to create username first
     final userState = context.read<UserState>();
@@ -191,8 +197,14 @@ class _MainPageState extends State<MainPage> {
   void _showUsernameCreationForInvite(String threadId) {
     if (!mounted) return;
     
+    // Set flag to indicate we're processing an invite
+    setState(() {
+      _isProcessingInvite = true;
+    });
+    
     final userState = context.read<UserState>();
     final wsClient = context.read<WebSocketClient>();
+    bool usernameSubmittedSuccessfully = false;
     
     showDialog(
       context: context,
@@ -205,6 +217,7 @@ class _MainPageState extends State<MainPage> {
           // Update username via UserState
           final success = await userState.updateUsername(username);
           if (success) {
+            usernameSubmittedSuccessfully = true;
             // Close dialog
             if (context.mounted) {
               Navigator.pop(context);
@@ -220,17 +233,30 @@ class _MainPageState extends State<MainPage> {
               }
               debugPrint('✅ [MAIN] WebSocket ready, proceeding to join');
               
-              _acceptInviteAndNavigate(threadId);
+              await _acceptInviteAndNavigate(threadId);
             }
           } else {
             throw Exception('Failed to create username. Please try again.');
           }
         },
       ),
-    );
+    ).then((_) {
+      // Reset flag only if user cancelled (didn't submit successfully)
+      // If submitted successfully, flag will be reset in _acceptInviteAndNavigate
+      if (!usernameSubmittedSuccessfully && mounted) {
+        setState(() {
+          _isProcessingInvite = false;
+        });
+      }
+    });
   }
   
   void _showJoinDialog(String threadId) {
+    // Set flag to indicate we're processing an invite
+    setState(() {
+      _isProcessingInvite = true;
+    });
+    
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -315,7 +341,7 @@ class _MainPageState extends State<MainPage> {
                               child: ElevatedButton(
                                 onPressed: () async {
                                   Navigator.of(context).pop();
-                                  _acceptInviteAndNavigate(threadId);
+                                  await _acceptInviteAndNavigate(threadId);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.sequencerAccent,
@@ -345,7 +371,14 @@ class _MainPageState extends State<MainPage> {
           ),
         );
       },
-    );
+    ).then((_) {
+      // Reset flag when dialog is dismissed (user cancels)
+      if (mounted) {
+        setState(() {
+          _isProcessingInvite = false;
+        });
+      }
+    });
   }
   
   Future<void> _acceptInviteAndNavigate(String threadId) async {
@@ -382,6 +415,13 @@ class _MainPageState extends State<MainPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('An error occurred: $e'), backgroundColor: Colors.red),
         );
+      }
+    } finally {
+      // Always reset the processing flag
+      if (mounted) {
+        setState(() {
+          _isProcessingInvite = false;
+        });
       }
     }
   }
@@ -514,6 +554,8 @@ class _MainPageState extends State<MainPage> {
     _notificationsService = notifications;
     _notifSub?.cancel();
     _notifSub = notifications.stream.listen((event) async {
+      debugPrint('🔔 [NOTIFICATION] Received event: ${event.type} for thread ${event.threadId}');
+      
       // Do not show messageCreated banner if already on same thread screen
       bool suppress = false;
       if (event.type == AppNotificationType.messageCreated) {
@@ -522,8 +564,11 @@ class _MainPageState extends State<MainPage> {
           // Suppress only when user is actively viewing the same thread screen
           if (threadsState.isThreadViewActive && threadsState.activeThread?.id == event.threadId) {
             suppress = true;
+            debugPrint('🔕 [NOTIFICATION] Suppressed - already viewing thread ${event.threadId}');
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('⚠️ [NOTIFICATION] Error checking suppress: $e');
+        }
       }
       // If an invitation arrives while on Projects, refresh user + load that thread summary so INVITES appears instantly
       if (event.type == AppNotificationType.invitationReceived) {
@@ -565,27 +610,54 @@ class _MainPageState extends State<MainPage> {
               senderName = user.name;
             }
           } catch (_) {}
-          body = '$senderName sent a new message';
+          body = '$senderName updated the pattern';
           if (event.threadId != null) {
             onTap = () async {
               try {
                 final threadsState = Provider.of<ThreadsState>(context, listen: false);
+                final audioPlayerState = Provider.of<AudioPlayerState>(context, listen: false);
+                
+                // Ensure we have the thread summary
                 await threadsState.ensureThreadSummary(event.threadId!);
-                threadsState.setActiveThread(
-                  threadsState.threads.firstWhere(
-                    (t) => t.id == event.threadId,
-                    orElse: () => Thread(id: event.threadId!, name: ThreadNameGenerator.generate(event.threadId!), createdAt: DateTime.now(), updatedAt: DateTime.now(), users: const [], messageIds: const [], invites: const []),
+                
+                // Find the thread
+                final thread = threadsState.threads.firstWhere(
+                  (t) => t.id == event.threadId,
+                  orElse: () => Thread(
+                    id: event.threadId!, 
+                    name: ThreadNameGenerator.generate(event.threadId!), 
+                    createdAt: DateTime.now(), 
+                    updatedAt: DateTime.now(), 
+                    users: const [], 
+                    messageIds: const [], 
+                    invites: const [],
                   ),
                 );
-                await threadsState.loadMessages(event.threadId!, includeSnapshot: false, order: 'asc', limit: 1000);
+                
+                // Set active thread context
+                threadsState.setActiveThread(thread);
+                
+                // Stop any playing audio
+                audioPlayerState.stop();
+                
+                // Load project into sequencer (handles initialization and import)
+                debugPrint('📂 [NOTIFICATION] Loading project ${event.threadId} via unified loader');
+                await threadsState.loadProjectIntoSequencer(event.threadId!);
+                
+                // Navigate to sequencer using PatternScreen (current version) - open to thread view
                 if (!mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ThreadScreen(threadId: event.threadId!, highlightNewest: false, targetMessageId: event.messageId),
+                    builder: (context) => const PatternScreen(
+                      initialSnapshot: null,
+                      openThreadView: true, // Open to thread view tab
+                    ),
                   ),
                 );
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('❌ [NOTIFICATION] Failed to open project: $e');
+              }
             };
           }
         } else if (event.type == AppNotificationType.invitationReceived) {
@@ -605,21 +677,34 @@ class _MainPageState extends State<MainPage> {
           body = '$userName accepted invitation';
           onTap = null;
         }
+        debugPrint('📢 [NOTIFICATION] Showing overlay: "$body"');
         _showOverlayNotification(
           title: event.title,
           body: body,
           onTap: onTap,
         );
+      } else {
+        debugPrint('🔕 [NOTIFICATION] Notification suppressed');
       }
     });
   }
 
   void _showOverlayNotification({required String title, required String body, VoidCallback? onTap}) {
-    _removeOverlayNotification();
-    final overlay = OverlayEntry(
+    debugPrint('🎨 [NOTIFICATION] Creating overlay notification: "$body" (current count: ${_notifOverlays.length})');
+    
+    // Calculate vertical position based on number of existing notifications
+    // Each notification is ~56px tall (10px padding top/bottom + ~36px content height) + 8px spacing
+    const double notificationHeight = 56.0;
+    const double notificationSpacing = 8.0;
+    final double topPosition = 20.0 + (_notifOverlays.length * (notificationHeight + notificationSpacing));
+    
+    // Declare overlay as late so we can reference it in the builder
+    late final OverlayEntry overlay;
+    
+    overlay = OverlayEntry(
       builder: (context) {
         return Positioned(
-          top: 20,
+          top: topPosition,
           left: 12,
           right: 12,
           child: SafeArea(
@@ -627,29 +712,47 @@ class _MainPageState extends State<MainPage> {
               color: Colors.transparent,
               child: Container
               (
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.menuEntryBackground,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.sequencerSurfaceBase.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(4),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
-                  border: Border.all(color: AppColors.menuBorder, width: 1),
+                  border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
                 ),
                 child: InkWell(
-                  onTap: onTap,
+                  onTap: () {
+                    // Remove this specific notification when tapped
+                    _removeSpecificNotification(overlay);
+                    // Execute the original onTap callback
+                    onTap?.call();
+                  },
+                  borderRadius: BorderRadius.circular(4),
                   child: Row(
                     children: [
                       Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(2)),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.sequencerAccent,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Text(
                           body,
-                          style: GoogleFonts.sourceSans3(color: AppColors.menuText, fontSize: 14, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.crimsonPro(
+                            color: AppColors.sequencerText,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -663,25 +766,50 @@ class _MainPageState extends State<MainPage> {
         );
       },
     );
+    
+    // Insert the overlay and track it
     Overlay.of(context).insert(overlay);
-    _notifOverlay = overlay;
-    _notifOverlayTimer = Timer(const Duration(seconds: 4), () {
-      _removeOverlayNotification();
+    _notifOverlays.add(overlay);
+    
+    // Create a timer that removes this specific overlay after 4 seconds
+    final timer = Timer(const Duration(seconds: 4), () {
+      _removeSpecificNotification(overlay);
     });
+    _notifOverlayTimers[overlay] = timer;
   }
 
-  void _removeOverlayNotification() {
-    _notifOverlayTimer?.cancel();
-    _notifOverlayTimer = null;
-    _notifOverlay?.remove();
-    _notifOverlay = null;
+  void _removeSpecificNotification(OverlayEntry overlay) {
+    debugPrint('🗑️ [NOTIFICATION] Removing notification (remaining: ${_notifOverlays.length - 1})');
+    
+    // Cancel and remove the timer for this specific overlay
+    final timer = _notifOverlayTimers[overlay];
+    timer?.cancel();
+    _notifOverlayTimers.remove(overlay);
+    
+    // Remove the overlay from the screen
+    overlay.remove();
+    _notifOverlays.remove(overlay);
+  }
+  
+  void _removeAllNotifications() {
+    // Cancel all timers
+    for (final timer in _notifOverlayTimers.values) {
+      timer.cancel();
+    }
+    _notifOverlayTimers.clear();
+    
+    // Remove all overlays
+    for (final overlay in _notifOverlays) {
+      overlay.remove();
+    }
+    _notifOverlays.clear();
   }
 
   @override
   void dispose() {
     _notifSub?.cancel();
     _notificationsService?.dispose();
-    _removeOverlayNotification();
+    _removeAllNotifications();
     _linkSub?.cancel();
     super.dispose();
   }

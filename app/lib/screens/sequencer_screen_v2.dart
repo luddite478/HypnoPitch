@@ -47,8 +47,9 @@ enum _SequencerView { sequencer, thread }
 
 class SequencerScreenV2 extends StatefulWidget {
   final Map<String, dynamic>? initialSnapshot;
+  final bool openThreadView; // If true, opens to thread view tab instead of sequencer
 
-  const SequencerScreenV2({super.key, this.initialSnapshot});
+  const SequencerScreenV2({super.key, this.initialSnapshot, this.openThreadView = false});
 
   @override
   State<SequencerScreenV2> createState() => _SequencerScreenV2State();
@@ -76,7 +77,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
   bool _isInitialLoading = false;
   
   // View switching state
-  _SequencerView _currentView = _SequencerView.sequencer;
+  late _SequencerView _currentView;
   late PageController _pageController;
   
   // Thread screen state
@@ -90,8 +91,14 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
-    // Initialize page controller
-    _pageController = PageController(initialPage: 0);
+    // Initialize view based on openThreadView parameter
+    _currentView = widget.openThreadView ? _SequencerView.thread : _SequencerView.sequencer;
+    
+    // Initialize page controller with appropriate initial page
+    // Page 0 = Sequencer, Page 1 = Thread
+    _pageController = PageController(initialPage: widget.openThreadView ? 1 : 0);
+    
+    debugPrint('🎵 [SEQUENCER_V2] Initialized with openThreadView: ${widget.openThreadView}, initialPage: ${widget.openThreadView ? 1 : 0}');
     
     // Initialize thread scroll listener
     _threadScrollController.addListener(_onThreadScroll);
@@ -256,6 +263,12 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
       // if (widget.initialSnapshot == null) {
       //   await _loadDraftIfAny();
       // }
+      
+      // If opening directly to thread view, load thread messages
+      if (widget.openThreadView) {
+        debugPrint('🎵 [SEQUENCER_V2] Loading thread messages for initial thread view');
+        await _loadThreadMessages();
+      }
     } catch (e) {
       Log.e('Initial sequencer bootstrap failed', 'SEQUENCER_V2', e);
     } finally {
@@ -293,10 +306,15 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
   void _switchView(_SequencerView newView) {
     if (_currentView == newView) return;
     
+    final threadsState = context.read<ThreadsState>();
+    
     // Stop audio playback when switching FROM thread view (audio is only played in thread view)
     if (_currentView == _SequencerView.thread) {
       try {
         context.read<AudioPlayerState>().stop();
+        // Exit thread view to stop marking new messages as auto-read
+        threadsState.exitThreadView();
+        debugPrint('👋 [SEQUENCER_V2] Exited thread view');
       } catch (_) {}
     }
     
@@ -340,6 +358,9 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
         limit: _initialMessageCount,
       );
     }
+    
+    // Mark messages as read (resets unread badge)
+    await threadsState.markMessagesAsRead();
     
     final loadedCount = threadsState.activeThreadMessages.length;
     if (mounted) {
@@ -492,6 +513,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
       leading: IconButton(
         icon: Icon(Icons.arrow_back, color: AppColors.sequencerText),
         onPressed: () async {
+            debugPrint('🔙 [SEQUENCER] Back button pressed');
+            
             if (_playbackState.isPlaying) {
               _playbackState.stop();
             }
@@ -502,13 +525,16 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
             
             // Force auto-save before leaving sequencer
             try {
+              debugPrint('💾 [SEQUENCER] Calling forceAutoSave()...');
               await context.read<ThreadsState>().forceAutoSave();
+              debugPrint('✅ [SEQUENCER] forceAutoSave() completed');
             } catch (e) {
               debugPrint('⚠️ [SEQUENCER] Failed to auto-save before exit: $e');
             }
             
             // Draft saving disabled - only manual checkpoints are saved
             // _draftService.saveDraft();
+            debugPrint('🚪 [SEQUENCER] Calling Navigator.pop()');
             Navigator.of(context).pop();
           },
         iconSize: 20,
@@ -578,14 +604,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
             children: [
+              // Thread view icon with unread badge
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: AppIcons.buildThreadViewIcon(
-                  size: 18,
-                  color: _currentView == _SequencerView.thread 
-                      ? Colors.white 
-                      : AppColors.sequencerLightText,
-                ),
+                child: _buildThreadIconWithBadge(),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6),
@@ -595,6 +617,68 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
           ),
           ),
       ],
+    );
+  }
+  
+  /// Build thread view icon with unread message badge
+  Widget _buildThreadIconWithBadge() {
+    return Consumer<ThreadsState>(
+      builder: (context, threadsState, child) {
+        final unreadCount = threadsState.unreadMessageCount;
+        final iconColor = _currentView == _SequencerView.thread 
+            ? Colors.white 
+            : AppColors.sequencerLightText;
+        
+        // No badge if no unread messages
+        if (unreadCount == 0) {
+          return AppIcons.buildThreadViewIcon(
+            size: 18,
+            color: iconColor,
+          );
+        }
+        
+        // Show badge with unread count
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            AppIcons.buildThreadViewIcon(
+              size: 18,
+              color: iconColor,
+            ),
+            Positioned(
+              right: -8,
+              top: -6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.sequencerAccent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.sequencerPageBackground,
+                    width: 1,
+                  ),
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                child: Center(
+                  child: Text(
+                    unreadCount > 99 ? '99+' : '$unreadCount',
+                    style: GoogleFonts.sourceSans3(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -972,33 +1056,43 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
   
 
   Widget _buildSaveButton() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final h = constraints.maxHeight;
-        final vPad = (h * 0.18).clamp(6.0, 14.0);
-        final borderRadius = 4.0;
-        return ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 0),
-          child: SizedBox.expand(
-            child: ElevatedButton(
-              onPressed: () => _saveCheckpoint(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.sequencerAccent,
-                foregroundColor: AppColors.sequencerText,
-                elevation: 0,
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: vPad),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(borderRadius),
+    return Consumer<ThreadsState>(
+      builder: (context, threadsState, _) {
+        final activeThread = threadsState.activeThread;
+        final isMultiUser = (activeThread?.users.length ?? 0) > 1;
+        final buttonText = isMultiUser ? 'Send' : 'Save';
+        
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final h = constraints.maxHeight;
+            final vPad = (h * 0.18).clamp(6.0, 14.0);
+            final borderRadius = 4.0;
+            return ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 0),
+              child: SizedBox.expand(
+                child: ElevatedButton(
+                  onPressed: () => _saveCheckpoint(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.sequencerAccent,
+                    foregroundColor: AppColors.sequencerText,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: vPad),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(borderRadius),
+                    ),
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: GoogleFonts.sourceSans3(
+                      fontSize: (h * 0.35).clamp(10.0, 14.0),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.sequencerText,
+                    ),
+                  ),
                 ),
               ),
-              child: Icon(
-                Icons.add,
-                size: h * 0.7,
-                color: AppColors.sequencerText,
-                weight: 900,
-              ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -1107,15 +1201,31 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
       return;
     }
     
-    // Use unified loader (handles initialization, caching, and import)
-    // Pass the message's snapshot as override to avoid refetching
+    // Ensure message has snapshot (fetches from API if needed)
+    final snapshot = await threadsState.ensureMessageSnapshot(message);
+    
+    if (snapshot == null || snapshot.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Failed to load checkpoint'),
+          backgroundColor: AppColors.sequencerAccent,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
+    // Use unified loader with fetched snapshot as override
+    // This bypasses working state and loads the actual checkpoint
     final ok = await threadsState.loadProjectIntoSequencer(
       thread.id,
-      snapshotOverride: message.snapshot.isNotEmpty ? message.snapshot : null,
+      snapshotOverride: snapshot,
     );
     
     if (!mounted) return;
     if (ok) {
+      debugPrint('✅ [LOAD_CHECKPOINT] Successfully loaded checkpoint from message ${message.id}');
       // Switch back to sequencer view after loading
       _switchView(_SequencerView.sequencer);
     } else {
@@ -1137,7 +1247,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
         barrierDismissible: true,
         barrierColor: AppColors.sequencerPageBackground.withOpacity(0.8),
         builder: (context) => UsernameCreationDialog(
-          title: 'Share',
+          title: 'Create Username',
           message: 'You need to create username before you can share pattern.',
           onSubmit: (username) async {
             // Update username via UserState
@@ -1322,122 +1432,141 @@ class _AddToLibraryDialogState extends State<_AddToLibraryDialog> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final dialogWidth = (size.width * 0.85).clamp(280.0, size.width);
-    final dialogHeight = (size.height * 0.35).clamp(220.0, size.height);
+    
+    // Use flexible max height that accounts for keyboard
+    final availableHeight = size.height - keyboardHeight;
+    final dialogMaxHeight = (availableHeight * 0.35).clamp(220.0, availableHeight - 40);
 
     return Material(
       type: MaterialType.transparency,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints.tightFor(width: dialogWidth, height: dialogHeight),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.sequencerSurfaceRaised,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
+      child: AnimatedPadding(
+        // Add padding from bottom to push dialog up when keyboard appears
+        padding: EdgeInsets.only(bottom: keyboardHeight),
+        duration: const Duration(milliseconds: 100),
+        child: Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            // Use maxHeight instead of tightFor to allow flexible height
+            constraints: BoxConstraints(
+              maxWidth: dialogWidth,
+              minWidth: dialogWidth,
+              maxHeight: dialogMaxHeight,
             ),
-            clipBehavior: Clip.hardEdge,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.sequencerSurfaceRaised,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  // Allow scrolling when keyboard appears
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Add track to the library?',
+                        Row(
+                          children: [
+                            Text(
+                              'Add track to the library?',
+                              style: GoogleFonts.sourceSans3(
+                                color: AppColors.sequencerText,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: Icon(Icons.close, color: AppColors.sequencerLightText, size: 24),
+                              splashRadius: 20,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _trackNameController,
+                          autofocus: true,
                           style: GoogleFonts.sourceSans3(
                             color: AppColors.sequencerText,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
                           ),
+                          decoration: InputDecoration(
+                            hintText: 'Enter track name',
+                            hintStyle: GoogleFonts.sourceSans3(
+                              color: AppColors.sequencerLightText.withOpacity(0.5),
+                              fontSize: 15,
+                            ),
+                            filled: true,
+                            fillColor: AppColors.sequencerSurfaceBase,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: AppColors.sequencerAccent, width: 1),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          onSubmitted: (_) => _handleSubmit(),
                         ),
-                        const Spacer(),
-                        IconButton(
-                          icon: Icon(Icons.close, color: AppColors.sequencerLightText, size: 24),
-                          splashRadius: 20,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          onPressed: () => Navigator.of(context).pop(),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.sequencerText,
+                                  side: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  minimumSize: const Size(0, 48),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isSubmitting ? null : _handleSubmit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.sequencerAccent,
+                                  foregroundColor: AppColors.sequencerText,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  minimumSize: const Size(0, 48),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
+                                child: _isSubmitting
+                                    ? SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          color: AppColors.sequencerText,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _trackNameController,
-                      autofocus: true,
-                      style: GoogleFonts.sourceSans3(
-                        color: AppColors.sequencerText,
-                        fontSize: 15,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Enter track name',
-                        hintStyle: GoogleFonts.sourceSans3(
-                          color: AppColors.sequencerLightText.withOpacity(0.5),
-                          fontSize: 15,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.sequencerSurfaceBase,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: AppColors.sequencerAccent, width: 1),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onSubmitted: (_) => _handleSubmit(),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.sequencerText,
-                              side: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isSubmitting ? null : _handleSubmit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.sequencerAccent,
-                              foregroundColor: AppColors.sequencerText,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              elevation: 0,
-                            ),
-                            child: _isSubmitting
-                                ? SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.sequencerText,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

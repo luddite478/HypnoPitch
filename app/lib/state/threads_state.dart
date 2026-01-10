@@ -63,6 +63,16 @@ class ThreadsState extends ChangeNotifier {
   
   // Track working state changes for UI refresh (increment on auto-save)
   int _workingStateVersion = 0;
+  
+  // Cache for sorted threads and modified times (for performance)
+  List<Thread>? _sortedThreadsCache;
+  Map<String, DateTime> _modifiedTimesCache = {};
+  
+  // Cache for collaborator updates (blue tint indicator)
+  Map<String, bool> _collaboratorUpdatesCache = {};
+  
+  // Cache for unread message count (for active thread badge)
+  int _unreadMessageCount = 0;
 
   ThreadsState({
     required WebSocketClient wsClient,
@@ -99,6 +109,85 @@ class ThreadsState extends ChangeNotifier {
     all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return List.unmodifiable(all);
   }
+  
+  /// Get threads sorted by modified time (considers working state)
+  /// Pre-computed and cached for performance - no async operations
+  List<Thread> get sortedThreads {
+    if (_sortedThreadsCache != null) {
+      return _sortedThreadsCache!;
+    }
+    
+    // Sort by modified time (descending - newest first)
+    final allThreads = [..._threads, ..._unsyncedThreads];
+    allThreads.sort((a, b) {
+      final aTime = _modifiedTimesCache[a.id] ?? a.updatedAt;
+      final bTime = _modifiedTimesCache[b.id] ?? b.updatedAt;
+      return bTime.compareTo(aTime);
+    });
+    
+    _sortedThreadsCache = List.unmodifiable(allThreads);
+    return _sortedThreadsCache!;
+  }
+  
+  /// Invalidate sorted threads cache (call when data changes)
+  void _invalidateSortCache() {
+    _sortedThreadsCache = null;
+  }
+  
+  /// Update modified time cache for a thread
+  void _updateModifiedTimeCache(String threadId, DateTime time) {
+    _modifiedTimesCache[threadId] = time;
+    _invalidateSortCache();
+  }
+  
+  /// Pre-compute modified times for all threads
+  /// Uses working state timestamps if newer than thread.updatedAt
+  Future<void> _precomputeModifiedTimes() async {
+    // Pre-compute for synced threads
+    for (final thread in _threads) {
+      final modifiedAt = await getThreadModifiedAt(thread.id, thread.updatedAt);
+      
+      // Preserve existing cache entry if it's newer (e.g., from recent creation)
+      // This prevents newly created threads from jumping to the bottom on background refresh
+      final existingTimestamp = _modifiedTimesCache[thread.id];
+      if (existingTimestamp == null || modifiedAt.isAfter(existingTimestamp)) {
+        _modifiedTimesCache[thread.id] = modifiedAt;
+      } else {
+        debugPrint('📊 [SORT] Preserving newer cached timestamp for ${thread.id}: $existingTimestamp vs computed $modifiedAt');
+      }
+    }
+    
+    // Also pre-compute for unsynced threads (offline-created)
+    for (final thread in _unsyncedThreads) {
+      // For unsynced threads, use their updatedAt if not already in cache
+      // (cache entries from creation should be preserved)
+      if (!_modifiedTimesCache.containsKey(thread.id)) {
+        _modifiedTimesCache[thread.id] = thread.updatedAt;
+      }
+    }
+    
+    _invalidateSortCache();
+  }
+  
+  /// Check if thread has collaborator updates (synchronous, pre-computed)
+  /// Returns cached value for instant access during build
+  bool hasCollaboratorUpdates(String threadId) {
+    return _collaboratorUpdatesCache[threadId] ?? false;
+  }
+  
+  /// Pre-compute collaborator updates for all threads
+  Future<void> _precomputeCollaboratorUpdates() async {
+    // Pre-compute for synced threads
+    for (final thread in _threads) {
+      final hasUpdates = await isThreadUpdatedSinceLastView(thread.id);
+      _collaboratorUpdatesCache[thread.id] = hasUpdates;
+    }
+    
+    // Unsynced threads don't have collaborator updates (they're local only)
+    for (final thread in _unsyncedThreads) {
+      _collaboratorUpdatesCache[thread.id] = false;
+    }
+  }
   Thread? get activeThread => _activeThread;
   // Backward-compat alias for older call sites
   Thread? get currentThread => _activeThread;
@@ -115,6 +204,64 @@ class ThreadsState extends ChangeNotifier {
   
   bool isLoadingMessages(String threadId) => _messagesLoadingByThread[threadId] ?? false;
   bool hasMessagesLoaded(String threadId) => _messagesByThread.containsKey(threadId);
+  
+  /// Get count of unread messages in active thread (cached for performance)
+  int get unreadMessageCount => _unreadMessageCount;
+  
+  /// Update unread message count for active thread
+  /// Called when messages are loaded or new messages arrive
+  Future<void> _updateUnreadMessageCount() async {
+    if (_activeThread == null) {
+      _unreadMessageCount = 0;
+      return;
+    }
+    
+    try {
+      final messages = _messagesByThread[_activeThread!.id] ?? [];
+      if (messages.isEmpty) {
+        _unreadMessageCount = 0;
+        return;
+      }
+      
+      // Get last viewed timestamp
+      final lastViewed = await LastViewedCacheService.getLastViewed(_activeThread!.id);
+      
+      // If never viewed, count all messages from other users
+      if (lastViewed == null) {
+        _unreadMessageCount = messages.where((msg) => 
+          msg.userId != _currentUserId && msg.userId != 'unknown'
+        ).length;
+        debugPrint('📬 [THREADS] Unread count (never viewed): $_unreadMessageCount');
+        return;
+      }
+      
+      // Count messages from other users that came after last viewed time
+      _unreadMessageCount = messages.where((msg) => 
+        msg.userId != _currentUserId && 
+        msg.userId != 'unknown' &&
+        msg.timestamp.isAfter(lastViewed)
+      ).length;
+      
+      debugPrint('📬 [THREADS] Unread count: $_unreadMessageCount (last viewed: $lastViewed)');
+    } catch (e) {
+      debugPrint('⚠️ [THREADS] Error calculating unread count: $e');
+      _unreadMessageCount = 0;
+    }
+  }
+  
+  /// Mark all messages as read (resets unread count to 0)
+  Future<void> markMessagesAsRead() async {
+    if (_activeThread == null) return;
+    
+    try {
+      await LastViewedCacheService.saveLastViewed(_activeThread!.id, DateTime.now());
+      _unreadMessageCount = 0;
+      notifyListeners();
+      debugPrint('✅ [THREADS] Marked messages as read for ${_activeThread!.id}');
+    } catch (e) {
+      debugPrint('⚠️ [THREADS] Failed to mark messages as read: $e');
+    }
+  }
 
   void setCurrentUser(String userId, [String? userName]) {
     _currentUserId = userId;
@@ -138,8 +285,11 @@ class ThreadsState extends ChangeNotifier {
   }
 
   void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
+    // Only notify if state actually changed to reduce unnecessary rebuilds
+    if (_isLoading != value) {
+      _isLoading = value;
+      notifyListeners();
+    }
   }
 
   void _setError(String? value) {
@@ -155,10 +305,12 @@ class ThreadsState extends ChangeNotifier {
     }
     
     try {
+      // For silent refreshes when already loaded, don't notify on start to reduce flicker
       if (!silent) {
         _isLoading = true;
         notifyListeners();
       } else {
+        // Silent refresh - just set flag without notifying
         _isRefreshing = true;
       }
       
@@ -174,12 +326,19 @@ class ThreadsState extends ChangeNotifier {
 
       await syncOfflineThreads();
       
+      // Pre-compute modified times for all threads (for sorted view)
+      await _precomputeModifiedTimes();
+      
+      // Pre-compute collaborator updates (for blue tint indicator)
+      await _precomputeCollaboratorUpdates();
+      
       debugPrint('🧵 [THREADS] Loaded threads: ${_threads.length} items');
     } catch (e) {
       _setError('Failed to load threads: $e');
       debugPrint('❌ [THREADS] Error loading threads: $e');
       rethrow;
     } finally {
+      // Reset flags and notify once at the end
       _isLoading = false;
       _isRefreshing = false;
       notifyListeners();
@@ -217,6 +376,8 @@ class ThreadsState extends ChangeNotifier {
       } else {
         _threads.add(thread);
       }
+      // Update modified time cache for the thread
+      _updateModifiedTimeCache(threadId, thread.updatedAt);
       notifyListeners();
     } catch (e) {
       _setError('Failed to load thread summary: $e');
@@ -274,6 +435,11 @@ class ThreadsState extends ChangeNotifier {
       final existingMessages = _messagesByThread[threadId] ?? [];
       _messagesByThread[threadId] = _mergeMessagesPreservingUploads(existingMessages, stored);
       
+      // Update unread count if this is the active thread
+      if (_activeThread?.id == threadId) {
+        await _updateUnreadMessageCount();
+      }
+      
       Log.d(' [THREADS] Loaded ${stored.length} messages for thread $threadId (stored ascending)');
     } catch (e) {
       _setError('Failed to load messages: $e');
@@ -314,6 +480,11 @@ class ThreadsState extends ChangeNotifier {
       final existingMessages = _messagesByThread[threadId] ?? [];
       _messagesByThread[threadId] = _mergeMessagesPreservingUploads(existingMessages, stored);
       
+      // Update unread count if this is the active thread
+      if (_activeThread?.id == threadId) {
+        await _updateUnreadMessageCount();
+      }
+      
       Log.d('Preloaded ${messages.length} recent messages for thread $threadId');
     } catch (e) {
       debugPrint('⚠️ [THREADS] Failed to preload messages (non-critical): $e');
@@ -349,16 +520,21 @@ class ThreadsState extends ChangeNotifier {
       final idx = _threads.indexWhere((t) => t.id == threadId);
       if (idx >= 0) {
         _activeThread = _threads[idx];
+        // Update modified time cache so new thread appears at top
+        _updateModifiedTimeCache(threadId, _threads[idx].updatedAt);
       } else {
+        final now = DateTime.now();
         _activeThread = Thread(
           id: threadId,
           name: name,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          createdAt: now,
+          updatedAt: now,
           users: const [],
           messageIds: const [],
           invites: const [],
         );
+        // Update modified time cache so new thread appears at top
+        _updateModifiedTimeCache(threadId, now);
       }
       return threadId;
     } catch (e) {
@@ -375,11 +551,12 @@ class ThreadsState extends ChangeNotifier {
     Map<String, dynamic>? metadata,
   }) {
     final tempId = 'local_${DateTime.now().microsecondsSinceEpoch}';
+    final now = DateTime.now();
     final newThread = Thread(
       id: tempId,
       name: name,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: now,
+      updatedAt: now,
       users: users,
       messageIds: const [],
       invites: const [],
@@ -387,6 +564,10 @@ class ThreadsState extends ChangeNotifier {
     );
     _unsyncedThreads.add(newThread);
     _activeThread = newThread;
+    
+    // Update modified time cache so new thread appears at top
+    _updateModifiedTimeCache(tempId, now);
+    
     notifyListeners();
     return tempId;
   }
@@ -436,6 +617,8 @@ class ThreadsState extends ChangeNotifier {
         } else {
           _threads.add(thread);
         }
+        // Update modified time cache for synced threads
+        _updateModifiedTimeCache(thread.id, thread.updatedAt);
       }
     }
     notifyListeners();
@@ -531,6 +714,9 @@ class ThreadsState extends ChangeNotifier {
         // Update thread's messageIds for HST counter (optimistic update)
         _updateThreadMessageIds(threadId, saved.id);
         
+        // Update modified time cache so thread moves to top when user sends message
+        _updateModifiedTimeCache(threadId, saved.timestamp);
+        
         notifyListeners();
       } else {
         // If not found (e.g., reconciled by websocket), append if missing by id
@@ -540,6 +726,9 @@ class ThreadsState extends ChangeNotifier {
           
           // Update thread's messageIds for HST counter (optimistic update)
           _updateThreadMessageIds(threadId, saved.id);
+          
+          // Update modified time cache so thread moves to top when user sends message
+          _updateModifiedTimeCache(threadId, saved.timestamp);
           
           notifyListeners();
         }
@@ -865,6 +1054,33 @@ class ThreadsState extends ChangeNotifier {
     }
   }
 
+  /// Load a checkpoint message into the sequencer (used by thread view "Load" button)
+  /// This method ensures the snapshot is fetched if needed and bypasses working state
+  /// to load the actual checkpoint from the collaborator
+  Future<Map<String, dynamic>?> ensureMessageSnapshot(Message message) async {
+    debugPrint('📥 [LOAD_CHECKPOINT] Ensuring message ${message.id} has snapshot');
+    
+    // If snapshot is already present, return it
+    if (message.snapshot.isNotEmpty) {
+      debugPrint('✅ [LOAD_CHECKPOINT] Snapshot already present');
+      return message.snapshot;
+    }
+    
+    // Fetch full message with snapshot from API
+    debugPrint('📥 [LOAD_CHECKPOINT] Message snapshot empty, fetching from API...');
+    try {
+      final fullMessage = await ThreadsApi.getMessageById(
+        message.id, 
+        includeSnapshot: true,
+      );
+      debugPrint('✅ [LOAD_CHECKPOINT] Fetched snapshot from API');
+      return fullMessage.snapshot;
+    } catch (e) {
+      debugPrint('❌ [LOAD_CHECKPOINT] Failed to fetch snapshot: $e');
+      return null;
+    }
+  }
+
   // === UNIFIED PROJECT LOADING ===
   
   /// Load project snapshot from cache or API (cache-aware with disk persistence)
@@ -913,8 +1129,8 @@ class ThreadsState extends ChangeNotifier {
           if (diskSnapshot != null && diskSnapshot.isNotEmpty) {
             debugPrint('📦 [PROJECT_LOAD] ✅ Using disk cached snapshot from message ${latestCached.id}');
             
-            // Update in-memory cache with disk snapshot
-            _updateMessageCache(threadId, latestCached.copyWith(snapshot: diskSnapshot));
+            // Update in-memory cache with disk snapshot (silent to avoid flicker)
+            _updateMessageCache(threadId, latestCached.copyWith(snapshot: diskSnapshot), silent: true);
             
             return diskSnapshot;
           }
@@ -934,8 +1150,8 @@ class ThreadsState extends ChangeNotifier {
         return null;
       }
       
-      // 5. Update both in-memory and disk cache
-      _updateMessageCache(threadId, latest);
+      // 5. Update both in-memory and disk cache (silent to avoid flicker during background load)
+      _updateMessageCache(threadId, latest, silent: true);
       
       // Save to disk cache for offline access
       if (latest.snapshot.isNotEmpty) {
@@ -1008,6 +1224,9 @@ class ThreadsState extends ChangeNotifier {
           _activeThread = updatedThread;
         }
         
+        // Update modified time cache so thread moves to top in sorted list
+        _updateModifiedTimeCache(threadId, timestamp);
+        
         debugPrint('📅 [THREADS] Updated timestamp for thread $threadId: $timestamp');
       }
     }
@@ -1015,7 +1234,7 @@ class ThreadsState extends ChangeNotifier {
   
   /// Update message cache with a message (preserves existing snapshot if new one is empty)
   /// Also caches snapshot to disk for offline access
-  void _updateMessageCache(String threadId, Message message) {
+  void _updateMessageCache(String threadId, Message message, {bool silent = false}) {
     final messages = _messagesByThread[threadId] ?? [];
     final existingIndex = messages.indexWhere((m) => m.id == message.id);
     
@@ -1047,7 +1266,10 @@ class ThreadsState extends ChangeNotifier {
       });
     }
     
-    notifyListeners();
+    // Don't notify during background loading to reduce flicker
+    if (!silent) {
+      notifyListeners();
+    }
   }
   
   /// Unified project loader - handles initialization, caching, and import
@@ -1096,6 +1318,10 @@ class ThreadsState extends ChangeNotifier {
       if (ok) {
         // Save last viewed timestamp (for collaborator update detection)
         await LastViewedCacheService.saveLastViewed(threadId, DateTime.now());
+        
+        // Clear collaborator update flag (project now viewed)
+        _collaboratorUpdatesCache[threadId] = false;
+        
         debugPrint('✅ [PROJECT_LOAD] Successfully loaded project $threadId');
       } else {
         debugPrint('❌ [PROJECT_LOAD] Failed to import project $threadId');
@@ -1462,7 +1688,10 @@ class ThreadsState extends ChangeNotifier {
       if (success) {
         debugPrint('✅ [AUTO_SAVE] Successfully auto-saved working state for thread $threadId');
         
-        // Increment version to force widget rebuild
+        // Update modified time cache (project will move to top in sorted view)
+        _updateModifiedTimeCache(threadId, DateTime.now());
+        
+        // Increment version to force footer timestamp update
         _workingStateVersion++;
         
         // Notify listeners so UI (projects screen) refreshes to show new working state
@@ -1631,7 +1860,27 @@ class ThreadsState extends ChangeNotifier {
         // Update thread's updatedAt timestamp if message is from collaborator (not current user)
         if (finalMessage.userId != _currentUserId) {
           _updateThreadTimestamp(threadId, finalMessage.timestamp);
+          
+          // Mark thread as having collaborator updates (blue tint indicator)
+          _collaboratorUpdatesCache[threadId] = true;
+          
+          // Handle unread count for active thread
+          if (_activeThread?.id == threadId) {
+            // If user is actively viewing the thread, mark as read immediately
+            // Otherwise, update unread count to show badge
+            if (_isThreadViewActive) {
+              // User is viewing thread - mark message as read automatically
+              unawaited(markMessagesAsRead());
+              debugPrint('✅ [WS] Auto-marked message as read (user viewing thread)');
+            } else {
+              // User is not viewing thread (e.g., in sequencer tab) - increment unread count
+              unawaited(_updateUnreadMessageCount());
+              debugPrint('📬 [WS] Incremented unread count (user not viewing thread)');
+            }
+          }
+          
           debugPrint('🔔 [WS] Updated thread $threadId timestamp from collaborator message');
+          debugPrint('💙 [WS] Marked thread $threadId as having collaborator updates (blue tint)');
         }
       }
       

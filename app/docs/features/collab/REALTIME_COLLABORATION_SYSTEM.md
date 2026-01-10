@@ -527,17 +527,34 @@ void _onUserStatusChanged(Map<String, dynamic> payload) {
 }
 ```
 
-**UI Display** (`app/lib/widgets/sequencer/participants_widget.dart`):
+**UI Display** (`app/lib/widgets/sequencer/participants_widget.dart`, `app/lib/screens/projects_screen.dart`):
 ```dart
-      Container(
-        decoration: BoxDecoration(
-          color: user.isOnline 
-        ? AppColors.menuOnlineIndicator  // Green
-        : AppColors.sequencerLightText.withOpacity(0.3),  // Gray
-          shape: BoxShape.circle,
-        ),
+// Sequencer participants widget
+Container(
+  decoration: BoxDecoration(
+    color: user.isOnline 
+      ? AppColors.menuOnlineIndicator  // Green
+      : AppColors.sequencerLightText.withOpacity(0.3),  // Gray
+    shape: BoxShape.circle,
+  ),
+)
+
+// Projects screen participants overlay
+Container(
+  width: 6,
+  height: 6,
+  decoration: BoxDecoration(
+    color: user.isOnline 
+      ? AppColors.menuOnlineIndicator  // Green
+      : overlayTextColor.withOpacity(0.3),  // Gray
+    shape: BoxShape.circle,
+  ),
 )
 ```
+
+**Displayed In:**
+- ✅ Sequencer screen participants widget (bottom bar)
+- ✅ Projects screen participants overlay (top-right of each card)
 
 ### WebSocket Message Types
 

@@ -206,13 +206,10 @@ class SnapshotExporter {
           'display_name': sampleData.displayName,
         };
         
-        // ONLY include color if sample is loaded (project-specific colors)
-        if (sampleData.loaded) {
-          final color = i < uiColors.length ? uiColors[i] : uiColors[0];
-          final hexColor = _colorToHex(color);
-          sampleEntry['color'] = hexColor;
-          debugPrint('✅ [EXPORT] Slot $i: $hexColor');
-        }
+        // Always include project-specific color (for all slots, loaded or not)
+        final color = i < uiColors.length ? uiColors[i] : uiColors[0];
+        final hexColor = _colorToHex(color);
+        sampleEntry['color'] = hexColor;
         
         samples.add(sampleEntry);
       }

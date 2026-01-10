@@ -48,8 +48,8 @@ class NotificationsService {
     // final String fromUserId = (msg['user_id'] ?? '') as String;
     _controller.add(AppNotificationEvent(
       type: AppNotificationType.messageCreated,
-      title: 'New message',
-      body: 'New update in a thread you follow',
+      title: 'Pattern updated',
+      body: 'New update in a pattern',
       threadId: threadId,
       messageId: messageId,
       raw: msg,

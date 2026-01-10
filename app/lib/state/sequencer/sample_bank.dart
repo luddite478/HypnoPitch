@@ -7,8 +7,10 @@ import 'package:ffi/ffi.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:math' as math;
 import 'package:path_provider/path_provider.dart';
 import '../../ffi/sample_bank_bindings.dart';
+import '../../utils/app_colors.dart';
 import 'ui_selection.dart';
 
 /// Simple data class to hold native sample bank state snapshot
@@ -376,6 +378,36 @@ class SampleBankState extends ChangeNotifier {
       _sampleColors[i] = null;
     }
     notifyListeners();
+  }
+  
+  /// Assign random colors from the dark forest/berry palette to all sample slots
+  /// 
+  /// This is called when creating a new project to give each project a unique
+  /// color scheme. The 26 palette colors are shuffled randomly and assigned
+  /// to slots A-Z, ensuring visual distinction between projects.
+  void assignRandomProjectColors() {
+    // Verify palette has exactly 26 unique colors
+    assert(AppColors.sampleBankPalette.length == maxSampleSlots, 
+      'Palette must have exactly 26 colors for 26 sample slots');
+    assert(AppColors.sampleBankPalette.toSet().length == maxSampleSlots,
+      'All 26 palette colors must be unique (found ${AppColors.sampleBankPalette.toSet().length} unique colors)');
+    
+    // Create a copy of the palette and shuffle it
+    final shuffledColors = List<Color>.from(AppColors.sampleBankPalette);
+    shuffledColors.shuffle(math.Random());
+    
+    // Assign shuffled colors to all 26 slots (one-to-one mapping, no duplicates)
+    for (int i = 0; i < maxSampleSlots; i++) {
+      _sampleColors[i] = shuffledColors[i];
+    }
+    
+    Log.d('🎨 [SAMPLE_BANK_STATE] Assigned random project colors from dark forest palette');
+    
+    // Notify UI listeners
+    notifyListeners();
+    
+    // Trigger auto-save if callback is set
+    _onStateChanged?.call();
   }
   
   void uiHandleBankChange(int slot) {
