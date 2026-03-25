@@ -75,11 +75,11 @@ set(SEQUENCER_SOURCES
   table.mm
   playback_sunvox.mm
   sunvox_wrapper.mm
+  microphone_input.mm
   recording.mm
   wav_writer.mm
   miniaudio_impl.mm
   sample_bank.mm
-  pitch.mm
   undo_redo.mm
   preview.mm
 )
@@ -97,10 +97,10 @@ set_source_files_properties(
   table.mm
   playback_sunvox.mm
   sunvox_wrapper.mm
+  microphone_input.mm
   recording.mm
   miniaudio_impl.mm
   sample_bank.mm
-  pitch.mm
   undo_redo.mm
   preview.mm
   PROPERTIES
@@ -185,9 +185,13 @@ if(ANDROID)
   # We support a few common locations to keep local workflows flexible.
   set(SUNVOX_ANDROID_CANDIDATES
     ${CMAKE_CURRENT_SOURCE_DIR}/sunvox_lib/sunvox_lib/android/sample_project/SunVoxLib/src/main/jniLibs/${ANDROID_ABI}/libsunvox.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/sunvox_lib/sunvox_lib/android/sample_project/SunVoxLib/src/main/jniLibs/${ANDROID_ABI}/sunvox.so
     ${CMAKE_CURRENT_SOURCE_DIR}/sunvox_lib/sunvox_lib/android/libs/${ANDROID_ABI}/libsunvox.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/sunvox_lib/sunvox_lib/android/libs/${ANDROID_ABI}/sunvox.so
     ${CMAKE_CURRENT_SOURCE_DIR}/sunvox_lib/sunvox_lib/android/${ANDROID_ABI}/libsunvox.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/sunvox_lib/sunvox_lib/android/${ANDROID_ABI}/sunvox.so
     ${CMAKE_CURRENT_SOURCE_DIR}/${ANDROID_ABI}/libsunvox.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/${ANDROID_ABI}/sunvox.so
   )
 
   set(SUNVOX_ANDROID_LIB "")
@@ -202,7 +206,7 @@ if(ANDROID)
     message(FATAL_ERROR
       "SunVox Android library not found for ABI '${ANDROID_ABI}'. "
       "Build it with: cd native/sunvox_lib/sunvox_lib/make && bash MAKE_ANDROID, "
-      "then place libsunvox.so under one of:\n"
+      "then place sunvox.so (or libsunvox.so) under one of:\n"
       "  1) native/sunvox_lib/sunvox_lib/android/sample_project/SunVoxLib/src/main/jniLibs/${ANDROID_ABI}/\n"
       "  2) native/sunvox_lib/sunvox_lib/android/libs/${ANDROID_ABI}/\n"
       "  3) native/sunvox_lib/sunvox_lib/android/${ANDROID_ABI}/\n"

@@ -61,7 +61,9 @@ ifeq ($(TARGET_OS),linux_android16)
 	-DOPENGL
 #Android:
 install:
-	mv -f $(APPNAME).so ../android/sample_project/SunVoxLib/src/main/jniLibs/$(TARGET_ABI)/lib$(APPNAME).so
+	mkdir -p ../android/sample_project/SunVoxLib/src/main/jniLibs/$(TARGET_ABI)
+	cp -f $(APPNAME).so ../android/sample_project/SunVoxLib/src/main/jniLibs/$(TARGET_ABI)/lib$(APPNAME).so
+	cp -f $(APPNAME).so ../android/sample_project/SunVoxLib/src/main/jniLibs/$(TARGET_ABI)/$(APPNAME).so
 else
 #Not Android:
 install:

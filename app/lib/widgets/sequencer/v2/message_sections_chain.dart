@@ -222,7 +222,7 @@ class _SectionRectangle extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         child: Text(
                           '${layerIndex + 1}',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
@@ -254,7 +254,7 @@ class _SectionRectangle extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Text(
                         '$loopsCount',
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -271,7 +271,7 @@ class _SectionRectangle extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Text(
                         '$stepsCount',
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,

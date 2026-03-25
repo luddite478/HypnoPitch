@@ -145,7 +145,7 @@ class _RevolverSelectorWidgetState extends State<RevolverSelectorWidget> {
         if (widget.title != null) ...[
           Text(
             widget.title!,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerText,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -217,7 +217,7 @@ class _RevolverSelectorWidgetState extends State<RevolverSelectorWidget> {
                             child: Center(
                               child: Text(
                                 item.displayText,
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: isSelected 
                                       ? AppColors.sequencerAccent
                                       : AppColors.sequencerLightText,

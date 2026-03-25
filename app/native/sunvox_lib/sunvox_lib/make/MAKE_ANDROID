@@ -2,18 +2,24 @@ set -e
 
 MAKE_OPTIONS="TARGET_OS=linux_android16 MAKE_DYNAMIC_LIB=true STYPE=PS_STYPE_FLOAT32"
 
-make -j16 TARGET_ARCH=arm $MAKE_OPTIONS
-make install TARGET_ARCH=arm $MAKE_OPTIONS
-make clean
+if command -v make >/dev/null 2>&1; then
+  MAKE_CMD="make"
+elif command -v mingw32-make >/dev/null 2>&1; then
+  MAKE_CMD="mingw32-make"
+else
+  echo "Error: GNU make not found (neither 'make' nor 'mingw32-make')."
+  echo "On Windows + Git Bash, install make via MSYS2:"
+  echo "  pacman -S --needed make"
+  echo "Or run from an environment where GNU make is available."
+  exit 1
+fi
 
-make -j16 TARGET_ARCH=arm64 $MAKE_OPTIONS
-make install TARGET_ARCH=arm64 $MAKE_OPTIONS
-make clean
+$MAKE_CMD clean
 
-make -j16 TARGET_ARCH=x86 $MAKE_OPTIONS
-make install TARGET_ARCH=x86 $MAKE_OPTIONS
-make clean
+$MAKE_CMD -j16 TARGET_ARCH=arm64 $MAKE_OPTIONS
+$MAKE_CMD install TARGET_ARCH=arm64 $MAKE_OPTIONS
+$MAKE_CMD clean
 
-make -j16 TARGET_ARCH=x86_64 $MAKE_OPTIONS
-make install TARGET_ARCH=x86_64 $MAKE_OPTIONS
-make clean
+$MAKE_CMD -j16 TARGET_ARCH=x86_64 $MAKE_OPTIONS
+$MAKE_CMD install TARGET_ARCH=x86_64 $MAKE_OPTIONS
+$MAKE_CMD clean

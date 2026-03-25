@@ -222,7 +222,7 @@ class _MicrophoneSettingsWidgetState extends State<MicrophoneSettingsWidget> {
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: isSelected 
                   ? AppColors.sequencerPageBackground 
                   : AppColors.sequencerText,
@@ -359,7 +359,7 @@ class _MicrophoneSettingsWidgetState extends State<MicrophoneSettingsWidget> {
                       Flexible(
                         child: Text(
                           device.name,
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                             color: isSelected 
                         ? AppColors.sequencerAccent 
                                 : AppColors.sequencerText,
@@ -433,7 +433,7 @@ class _MicrophoneSettingsWidgetState extends State<MicrophoneSettingsWidget> {
                       child: Center(
                         child: Text(
                           'T${trackIndex + 1}',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: isSelected 
                                 ? Colors.white 
                                 : AppColors.sequencerText,

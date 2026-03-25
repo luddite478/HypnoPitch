@@ -601,7 +601,9 @@ class RecordingState extends ChangeNotifier {
   Future<String> _deriveWritableBasePath() async {
     final appName = dotenv.env['APP_NAME']!;
     if (Platform.isAndroid) {
-      return '/storage/emulated/0/Download/${appName}_data';
+      // Use app-specific storage on Android to avoid scoped storage denials.
+      final appDocDir = await getApplicationDocumentsDirectory();
+      return appDocDir.path;
     }
     if (Platform.isIOS) {
       // Use Documents directory for persistent storage on iOS

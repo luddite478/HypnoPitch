@@ -153,7 +153,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
                           const SizedBox(height: 12),
                           Text(
                             _error!,
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               color: AppColors.menuLightText,
                               fontWeight: FontWeight.w500,
                             ),
@@ -167,7 +167,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
                             ),
                             child: Text(
                               'RETRY',
-                              style: GoogleFonts.sourceSans3(
+                              style: TextStyle(
                                 color: AppColors.menuText,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.0,
@@ -210,12 +210,12 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
         ],
         labelColor: AppColors.menuText,
         unselectedLabelColor: AppColors.menuLightText,
-        labelStyle: GoogleFonts.sourceSans3(
+        labelStyle: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
         ),
-        unselectedLabelStyle: GoogleFonts.sourceSans3(
+        unselectedLabelStyle: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
@@ -239,7 +239,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
             const SizedBox(height: 12),
             Text(
               'No tracks in playlist',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.menuLightText,
                 fontWeight: FontWeight.w500,
               ),
@@ -296,7 +296,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
                             children: [
                               Text(
                                 item.name,
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: AppColors.menuText,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -307,7 +307,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
                                 const SizedBox(height: 2),
                                 Text(
                                   _formatDuration(item.duration!),
-                                  style: GoogleFonts.sourceSans3(
+                                  style: TextStyle(
                                     color: AppColors.menuLightText,
                                     fontSize: 11,
                                   ),
@@ -363,7 +363,7 @@ class _UserProfileWidgetState extends State<UserProfileWidget> with TickerProvid
           const SizedBox(height: 12),
           Text(
             'Coming soon',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.menuLightText,
               fontWeight: FontWeight.w500,
             ),

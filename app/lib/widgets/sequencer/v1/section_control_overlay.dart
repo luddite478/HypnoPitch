@@ -51,7 +51,7 @@ class SectionControlOverlay extends StatelessWidget {
             const Spacer(),
             Text(
               'Section Settings',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -91,7 +91,7 @@ class SectionControlOverlay extends StatelessWidget {
                 // Loop count label
                 Text(
                   'Loop Count',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: AppColors.sequencerLightText,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -135,7 +135,7 @@ class SectionControlOverlay extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '${playbackState.currentSectionLoopsNum}',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: AppColors.sequencerAccent,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,

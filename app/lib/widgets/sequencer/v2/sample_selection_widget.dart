@@ -7,6 +7,7 @@ import '../../../state/sequencer/sample_browser.dart';
 import '../../../state/sequencer/sample_bank.dart';
 import '../../../state/sequencer/playback.dart';
 import '../../../state/sequencer/table.dart';
+import '../../../state/app_state.dart';
 
 Future<void> _selectSampleForCurrentTarget(
   BuildContext context, {
@@ -56,6 +57,8 @@ Future<void> _selectSampleForCurrentTarget(
     debugPrint('❌ Failed to resolve/load sample slot for id=$sampleId');
   } else {
     debugPrint('✅ Sample loaded into slot $resolvedSlot');
+    // Tutorial step verification: real sample assignment completed.
+    context.read<AppState>().completeSampleSelectionStep();
   }
 
   browserState.hide();
@@ -121,7 +124,7 @@ class SampleSelectionWidget extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'BACK',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: AppColors.sequencerText,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -138,7 +141,7 @@ class SampleSelectionWidget extends StatelessWidget {
                   state.currentPath.isEmpty
                       ? 'samples/'
                       : 'samples/${state.currentPath.join('/')}/',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: AppColors.sequencerLightText,
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
@@ -164,7 +167,7 @@ class SampleSelectionWidget extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Loading samples...',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
@@ -184,7 +187,7 @@ class SampleSelectionWidget extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'No samples found',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
@@ -316,7 +319,7 @@ class _FileListTile extends StatelessWidget {
                       item.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerText,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -325,7 +328,7 @@ class _FileListTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       _formatLabel,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerLightText,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -389,7 +392,7 @@ class _ActionButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: filled ? AppColors.sequencerPageBackground : AppColors.sequencerAccent,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -468,7 +471,7 @@ class _GridTile extends StatelessWidget {
                       Flexible(
                         child: Text(
                           item.name,
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: AppColors.sequencerText,
                             fontSize: fontSize.clamp(8.0, 14.0),
                             fontWeight: FontWeight.w500,
@@ -505,7 +508,7 @@ class _GridTile extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       item.name,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerText,
                         fontSize: (fontSize * 0.75).clamp(7.0, 12.0),
                         fontWeight: FontWeight.w600,
@@ -543,7 +546,7 @@ class _GridTile extends StatelessWidget {
                           Expanded(
                             child: Text(
                               item.name,
-                              style: GoogleFonts.sourceSans3(
+                              style: TextStyle(
                                 color: AppColors.sequencerPageBackground,
                                 fontSize: (fontSize * 0.8).clamp(6.0, 12.0),
                                 fontWeight: FontWeight.w600,
@@ -554,7 +557,7 @@ class _GridTile extends StatelessWidget {
                           ),
                           Text(
                             'SELECT',
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               color: AppColors.sequencerPageBackground.withOpacity(0.9),
                               fontSize: (fontSize * 0.5).clamp(4.0, 9.0),
                               fontWeight: FontWeight.w700,

@@ -41,7 +41,7 @@ class ActionButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: GoogleFonts.sourceSans3(
+          style: TextStyle(
             color: textColor,
             fontSize: fontSize,
             fontWeight: FontWeight.w600,

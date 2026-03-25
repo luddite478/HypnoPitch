@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'screens/main_navigation_screen.dart';
@@ -13,10 +14,12 @@ import 'state/sequencer/table.dart';
 import 'state/sequencer/playback.dart';
 import 'state/sequencer/sample_bank.dart';
 import 'state/sequencer_version_state.dart';
+import 'state/app_state.dart';
 import 'services/local_pattern_service.dart';
 import 'services/local_library_service.dart';
 import 'services/cache/working_state_cache_service.dart';
-import 'services/local_storage_service.dart';
+import 'services/reliable_storage.dart';
+import 'services/tutorial_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +27,7 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
   await dotenv.load(fileName: ".env");
+  GoogleFonts.config.allowRuntimeFetching = false;
   
   // Apply DevHttpOverrides for stage environment to trust self-signed certificates
   final env = dotenv.env['ENV'] ?? '';
@@ -45,6 +49,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => AudioPlayerState()),
         ChangeNotifierProvider(create: (context) => LibraryState()),
         ChangeNotifierProvider(create: (context) => LibrarySamplesState()),
+        ChangeNotifierProvider(create: (context) => AppState()),
         
         // Pattern management (replaces thread/collaboration)
         ChangeNotifierProvider(create: (context) => PatternsState()),
@@ -85,7 +90,6 @@ class _MainPageState extends State<MainPage> {
     'CLEAR_STORAGE',
     defaultValue: false,
   );
-  static const String _clearStorageMarkerFile = '.clear_storage_consumed.json';
   
   @override
   void initState() {
@@ -98,11 +102,13 @@ class _MainPageState extends State<MainPage> {
   Future<void> _initializeApp() async {
     final patternsState = context.read<PatternsState>();
     final libraryState = context.read<LibraryState>();
+    final appState = context.read<AppState>();
     await _applyClearStorageIfRequested(patternsState, libraryState);
     
     await Future.wait([
       patternsState.loadPatterns(),
       libraryState.loadLibrary(),
+      appState.initialize(),
     ]);
     
     setState(() {
@@ -116,30 +122,17 @@ class _MainPageState extends State<MainPage> {
     PatternsState patternsState,
     LibraryState libraryState,
   ) async {
-    // If not in clear mode, reset marker so a future clear run can execute again.
     if (!_clearStorageOnLaunch) {
-      await LocalStorageService.deleteFile(_clearStorageMarkerFile);
       return;
     }
 
-    final alreadyCleared = await LocalStorageService.fileExists(_clearStorageMarkerFile);
-    if (alreadyCleared) {
-      debugPrint('🗑️ [MAIN] CLEAR_STORAGE already consumed for this run');
-      return;
-    }
-
-    debugPrint('🗑️ [MAIN] CLEAR_STORAGE=true - clearing local app data (one-time)');
+    debugPrint('🗑️ [MAIN] CLEAR_STORAGE=true - clearing local app data');
     await Future.wait([
       LocalPatternService.clearAll(),
       LocalLibraryService.clearAll(),
       WorkingStateCacheService.clearAllWorkingStates(),
+      ReliableStorage.remove(TutorialService.hasLaunchedBeforeKey),
     ]);
-
-    // Mark clear as consumed to avoid wiping again on subsequent app relaunches.
-    await LocalStorageService.writeJsonFile(_clearStorageMarkerFile, {
-      'consumed_at': DateTime.now().toIso8601String(),
-      'clear_storage': true,
-    });
 
     // Reset in-memory providers to ensure clean reload.
     patternsState.clear();

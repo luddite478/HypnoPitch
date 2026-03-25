@@ -26,7 +26,7 @@ class SimplifiedHeaderWidget extends StatelessWidget {
             alignment: Alignment.centerLeft,
             scale: 1.55,
             child: Image.asset(
-              'icons/wagon_transp.png',
+              'icons/rehorsed_blue.png',
               width: 40,
               height: 40,
               fit: BoxFit.contain,

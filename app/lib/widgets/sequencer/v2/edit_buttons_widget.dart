@@ -7,6 +7,8 @@ import '../../../state/sequencer/multitask_panel.dart';
 import '../../../state/sequencer/table.dart';
 import '../../../state/sequencer/sample_bank.dart';
 import '../../../state/sequencer/ui_selection.dart';
+import '../../../state/app_state.dart';
+import '../../../ffi/table_bindings.dart' show CellData;
 
 class EditButtonsWidget extends StatelessWidget {
   const EditButtonsWidget({super.key});
@@ -18,7 +20,8 @@ class EditButtonsWidget extends StatelessWidget {
   // V2 percent-based configuration
   static const double _v2ButtonHeightPercent = 0.7; // of container height
   static const double _v2RightPaddingPercent = 0.03; // of container width
-  static const double _v2ButtonHorizontalPaddingPercent = 0.035; // of container height
+  static const double _v2ButtonHorizontalPaddingPercent =
+      0.035; // of container height
   static const double _v2ButtonSpacingPercent = 0.015; // of container width
   static const double _v2TextFontScale = 0.23; // of button height
   static const double _v2PerButtonWidthPercent = 0.162; // of container width
@@ -26,22 +29,46 @@ class EditButtonsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer4<TableState, EditState, SampleBankState, UiSelectionState>(
-      builder: (context, tableState, editState, sampleBankState, uiSelection, child) {
+      builder: (context, tableState, editState, sampleBankState, uiSelection,
+          child) {
+        final appState = context.watch<AppState>();
+        if (appState.activeTutorialStep == TutorialStep.sequencerSelectMultipleHint &&
+            editState.selectedCells.length > 1) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            context.read<AppState>().verifyMultiSelectStep();
+          });
+        }
+        if (appState.activeTutorialStep ==
+                TutorialStep.sequencerJumpValuePasteHint &&
+            editState.stepInsertSize == 2) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            context.read<AppState>().markJumpValueSetToTwo();
+          });
+        }
         return LayoutBuilder(
           builder: (context, constraints) {
             final panelHeight = constraints.maxHeight;
             final panelWidth = constraints.maxWidth;
 
-            if (tableState.uiEditButtonsLayoutMode == EditButtonsLayoutMode.v2) {
+            if (tableState.uiEditButtonsLayoutMode ==
+                EditButtonsLayoutMode.v2) {
               // V2: Text buttons, equal size via percents, right-aligned, with small inactive left chevron
-              final buttonHeight = (panelHeight * _v2ButtonHeightPercent).clamp(20.0, 64.0);
-              final textFontSize = (buttonHeight * _v2TextFontScale).clamp(10.0, 22.0);
-              final buttonHPad = (panelHeight * _v2ButtonHorizontalPaddingPercent).clamp(6.0, 18.0);
-              final spacing = (panelWidth * _v2ButtonSpacingPercent).clamp(4.0, 16.0);
+              final buttonHeight =
+                  (panelHeight * _v2ButtonHeightPercent).clamp(20.0, 64.0);
+              final textFontSize =
+                  (buttonHeight * _v2TextFontScale).clamp(10.0, 22.0);
+              final buttonHPad =
+                  (panelHeight * _v2ButtonHorizontalPaddingPercent)
+                      .clamp(6.0, 18.0);
+              final spacing =
+                  (panelWidth * _v2ButtonSpacingPercent).clamp(4.0, 16.0);
               final buttonWidth = panelWidth * _v2PerButtonWidthPercent;
 
               return Container(
-                padding: EdgeInsets.only(right: panelWidth * _v2RightPaddingPercent),
+                padding:
+                    EdgeInsets.only(right: panelWidth * _v2RightPaddingPercent),
                 decoration: BoxDecoration(
                   color: AppColors.sequencerSurfaceBase,
                   borderRadius: BorderRadius.circular(2),
@@ -64,15 +91,33 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
+                        key: appState.activeTutorialStep ==
+                                TutorialStep.sequencerSelectModeHint
+                            ? appState.selectModeButtonTutorialKey
+                            : null,
                         label: 'SELECT',
                         height: buttonHeight,
                         fontSize: textFontSize,
                         enabled: true,
                         onPressed: () {
-                          editState.toggleSelectionMode();
-                          // If SELECT was just turned on and a cell is selected, show cell settings
-                          if (editState.isInSelectionMode && editState.hasSelection) {
-                            Provider.of<MultitaskPanelState>(context, listen: false).showCellSettings();
+                          final wasInSelectionMode = editState.isInSelectionMode;
+                          final multitaskPanel =
+                              Provider.of<MultitaskPanelState>(context,
+                                  listen: false);
+                          if (editState.isInSelectionMode) {
+                            // Toggle off when SELECT is already active.
+                            editState.toggleSelectionMode();
+                            multitaskPanel.showPlaceholder();
+                          } else {
+                            // Keep custom rectangle select as default behavior,
+                            // and open the Select settings panel.
+                            editState.toggleSelectionMode();
+                            multitaskPanel.showSelectSettings();
+                          }
+                          appState.completeSelectModeInfoStep();
+                          if (wasInSelectionMode &&
+                              !editState.isInSelectionMode) {
+                            appState.verifyDisableSelectModeStep();
                           }
                         },
                         isActive: editState.isInSelectionMode,
@@ -83,13 +128,19 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _JumpButtonWithFeedback(
+                        key: appState.activeTutorialStep == TutorialStep.sequencerJumpHint
+                            ? appState.jumpButtonTutorialKey
+                            : null,
                         label: 'JUMP ${editState.stepInsertSize}',
                         height: buttonHeight,
                         fontSize: textFontSize,
                         horizontalPadding: buttonHPad,
                         onPressed: () {
                           editState.toggleStepInsertMode();
-                          Provider.of<MultitaskPanelState>(context, listen: false).showStepInsertSettings();
+                          Provider.of<MultitaskPanelState>(context,
+                                  listen: false)
+                              .showStepInsertSettings();
+                          appState.markJumpAction();
                         },
                       ),
                     ),
@@ -97,20 +148,42 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
+                        key: appState.activeTutorialStep == TutorialStep.sequencerDeleteHint
+                            ? appState.deleteButtonTutorialKey
+                            : null,
                         label: 'DEL',
                         height: buttonHeight,
                         fontSize: textFontSize,
-                        enabled: editState.hasSelection || uiSelection.isSampleBank || uiSelection.isSection,
-                        onPressed: (editState.hasSelection || uiSelection.isSampleBank || uiSelection.isSection)
+                        enabled: editState.hasSelection ||
+                            uiSelection.isSampleBank ||
+                            uiSelection.isSection,
+                        onPressed: (editState.hasSelection ||
+                                uiSelection.isSampleBank ||
+                                uiSelection.isSection)
                             ? () {
                                 if (uiSelection.isSampleBank) {
-                                  final slot = uiSelection.selectedSampleSlot ?? sampleBankState.activeSlot;
+                                  final slot = uiSelection.selectedSampleSlot ??
+                                      sampleBankState.activeSlot;
                                   sampleBankState.unloadSample(slot);
                                   uiSelection.clear();
                                 } else if (uiSelection.isSection) {
-                                  _deleteSectionWithConfirmation(context, tableState, uiSelection);
+                                  _deleteSectionWithConfirmation(
+                                      context, tableState, uiSelection);
                                 } else {
+                                  final selectedCellsAbs =
+                                      editState.getSelectedAbsoluteCells();
+                                  final hadSample = _absoluteCellsContainSamples(
+                                    tableState,
+                                    selectedCellsAbs,
+                                  );
                                   editState.deleteCells();
+                                  final isDeleted = _absoluteCellsAreEmpty(
+                                    tableState,
+                                    selectedCellsAbs,
+                                  );
+                                  if (hadSample && isDeleted) {
+                                    appState.verifyDeletionStep();
+                                  }
                                 }
                               }
                             : null,
@@ -122,19 +195,27 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
+                        key: appState.activeTutorialStep == TutorialStep.sequencerCopyPasteHint
+                            ? appState.copyButtonTutorialKey
+                            : null,
                         label: 'COPY',
                         height: buttonHeight,
                         fontSize: textFontSize,
-                        enabled: editState.hasSelection || uiSelection.isSection,
-                        onPressed: (editState.hasSelection || uiSelection.isSection)
-                            ? () {
-                                if (uiSelection.isSection) {
-                                  tableState.copySectionToClipboard(uiSelection.selectedSection!);
-                                } else {
-                                  editState.copyCells();
-                                }
-                              }
-                            : null,
+                        enabled:
+                            editState.hasSelection || uiSelection.isSection,
+                        onPressed:
+                            (editState.hasSelection || uiSelection.isSection)
+                                ? () {
+                                    if (uiSelection.isSection) {
+                                      tableState.copySectionToClipboard(
+                                          uiSelection.selectedSection!);
+                                    } else {
+                                      editState.copyCells();
+                                    }
+                                    appState.markCopyAction();
+                                    appState.markJumpValueCopyAction();
+                                  }
+                                : null,
                         isActive: false,
                         horizontalPadding: buttonHPad,
                       ),
@@ -143,20 +224,31 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
+                        key: appState.activeTutorialStep == TutorialStep.sequencerCopyPasteHint
+                            ? appState.pasteButtonTutorialKey
+                            : null,
                         label: 'PASTE',
                         height: buttonHeight,
                         fontSize: textFontSize,
-                        enabled: (editState.hasClipboardData && editState.hasSelection) || 
-                                (tableState.hasCopiedSection && uiSelection.isSection),
-                        onPressed: ((editState.hasClipboardData && editState.hasSelection) || 
-                                   (tableState.hasCopiedSection && uiSelection.isSection))
+                        enabled: (editState.hasClipboardData &&
+                                editState.hasSelection) ||
+                            (tableState.hasCopiedSection &&
+                                uiSelection.isSection),
+                        onPressed: ((editState.hasClipboardData &&
+                                    editState.hasSelection) ||
+                                (tableState.hasCopiedSection &&
+                                    uiSelection.isSection))
                             ? () {
-                                if (uiSelection.isSection && tableState.hasCopiedSection) {
+                                if (uiSelection.isSection &&
+                                    tableState.hasCopiedSection) {
                                   // Paste section contents INTO selected section (replace)
-                                  tableState.pasteSection(uiSelection.selectedSection!);
+                                  tableState.pasteSection(
+                                      uiSelection.selectedSection!);
                                 } else {
                                   editState.pasteCells();
                                 }
+                                appState.markPasteAction();
+                                appState.markJumpValuePasteAction();
                               }
                             : null,
                         isActive: false,
@@ -169,11 +261,13 @@ class EditButtonsWidget extends StatelessWidget {
             }
 
             // V1: Keep as-is (icon buttons, evenly spaced)
-            final buttonSize = (panelHeight * _v1ButtonSizePercent).clamp(20.0, 48.0);
+            final buttonSize =
+                (panelHeight * _v1ButtonSizePercent).clamp(20.0, 48.0);
             final iconSize = (buttonSize * 0.6).clamp(16.0, 32.0);
 
             return Container(
-              padding: EdgeInsets.symmetric(horizontal: panelHeight * _v1HorizontalPaddingPercent),
+              padding: EdgeInsets.symmetric(
+                  horizontal: panelHeight * _v1HorizontalPaddingPercent),
               decoration: BoxDecoration(
                 color: AppColors.sequencerSurfaceBase,
                 borderRadius: BorderRadius.circular(2), // Sharp corners
@@ -196,10 +290,16 @@ class EditButtonsWidget extends StatelessWidget {
                   _buildEditButton(
                     size: buttonSize,
                     iconSize: iconSize,
-                    icon: editState.isInSelectionMode ? Icons.check_box : Icons.check_box_outline_blank,
-                    color: editState.isInSelectionMode ? AppColors.sequencerAccent : AppColors.sequencerLightText,
+                    icon: editState.isInSelectionMode
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: editState.isInSelectionMode
+                        ? AppColors.sequencerAccent
+                        : AppColors.sequencerLightText,
                     onPressed: () => editState.toggleSelectionMode(),
-                    tooltip: editState.isInSelectionMode ? 'Exit Selection Mode' : 'Enter Selection Mode',
+                    tooltip: editState.isInSelectionMode
+                        ? 'Exit Selection Mode'
+                        : 'Enter Selection Mode',
                   ),
                   _buildStepInsertToggleButton(
                     size: buttonSize,
@@ -211,15 +311,18 @@ class EditButtonsWidget extends StatelessWidget {
                     size: buttonSize,
                     iconSize: iconSize,
                     icon: Icons.delete,
-                    color: (editState.hasSelection || context.read<UiSelectionState>().isSampleBank)
+                    color: (editState.hasSelection ||
+                            context.read<UiSelectionState>().isSampleBank)
                         ? AppColors.sequencerAccent.withOpacity(0.8)
                         : AppColors.sequencerLightText,
-                    onPressed: (editState.hasSelection || context.read<UiSelectionState>().isSampleBank)
+                    onPressed: (editState.hasSelection ||
+                            context.read<UiSelectionState>().isSampleBank)
                         ? () {
                             final uiSel = context.read<UiSelectionState>();
                             final sb = context.read<SampleBankState>();
                             if (uiSel.isSampleBank) {
-                              final slot = uiSel.selectedSampleSlot ?? sb.activeSlot;
+                              final slot =
+                                  uiSel.selectedSampleSlot ?? sb.activeSlot;
                               sb.unloadSample(slot);
                               uiSel.clear();
                             } else {
@@ -248,9 +351,10 @@ class EditButtonsWidget extends StatelessWidget {
                     color: editState.hasClipboardData && editState.hasSelection
                         ? AppColors.sequencerAccent
                         : AppColors.sequencerLightText,
-                    onPressed: editState.hasClipboardData && editState.hasSelection
-                        ? () => editState.pasteCells()
-                        : null,
+                    onPressed:
+                        editState.hasClipboardData && editState.hasSelection
+                            ? () => editState.pasteCells()
+                            : null,
                     tooltip: 'Paste to Selected Cells',
                   ),
                 ],
@@ -271,13 +375,13 @@ class EditButtonsWidget extends StatelessWidget {
     required String tooltip,
   }) {
     final isEnabled = onPressed != null;
-    
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: isEnabled 
-            ? AppColors.sequencerSurfaceRaised 
+        color: isEnabled
+            ? AppColors.sequencerSurfaceRaised
             : AppColors.sequencerSurfacePressed,
         borderRadius: BorderRadius.circular(2), // Sharp corners
         border: Border.all(
@@ -323,8 +427,8 @@ class EditButtonsWidget extends StatelessWidget {
         ),
       ),
     );
-      }
-  
+  }
+
   Widget _buildStepInsertToggleButton({
     required double size,
     required double iconSize,
@@ -338,7 +442,9 @@ class EditButtonsWidget extends StatelessWidget {
         color: AppColors.sequencerSurfaceRaised,
         borderRadius: BorderRadius.circular(2), // Sharp corners
         border: Border.all(
-          color: editState.isStepInsertMode ? AppColors.sequencerAccent : AppColors.sequencerBorder,
+          color: editState.isStepInsertMode
+              ? AppColors.sequencerAccent
+              : AppColors.sequencerBorder,
           width: editState.isStepInsertMode ? 1.0 : 0.5,
         ),
         boxShadow: [
@@ -361,7 +467,8 @@ class EditButtonsWidget extends StatelessWidget {
           onTap: () {
             editState.toggleStepInsertMode();
             // Open jump insert settings when toggled
-            Provider.of<MultitaskPanelState>(context, listen: false).showStepInsertSettings();
+            Provider.of<MultitaskPanelState>(context, listen: false)
+                .showStepInsertSettings();
           },
           borderRadius: BorderRadius.circular(2),
           child: Container(
@@ -372,11 +479,14 @@ class EditButtonsWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    margin: const EdgeInsets.only(top: 2), // Add 4 pixels top margin
+                    margin: const EdgeInsets.only(
+                        top: 2), // Add 4 pixels top margin
                     child: Text(
                       '${editState.stepInsertSize}',
-                      style: GoogleFonts.sourceSans3(
-                        color: editState.isStepInsertMode ? AppColors.sequencerAccent : AppColors.sequencerLightText,
+                      style: TextStyle(
+                        color: editState.isStepInsertMode
+                            ? AppColors.sequencerAccent
+                            : AppColors.sequencerLightText,
                         fontSize: iconSize * 0.8,
                         fontWeight: FontWeight.w600,
                         height: 0.7,
@@ -387,7 +497,9 @@ class EditButtonsWidget extends StatelessWidget {
                     offset: const Offset(0, -2), // Move arrow up by 2 pixels
                     child: Icon(
                       Icons.keyboard_double_arrow_down,
-                      color: editState.isStepInsertMode ? AppColors.sequencerAccent : AppColors.sequencerLightText,
+                      color: editState.isStepInsertMode
+                          ? AppColors.sequencerAccent
+                          : AppColors.sequencerLightText,
                       size: iconSize * 0.8,
                     ),
                   ),
@@ -399,8 +511,9 @@ class EditButtonsWidget extends StatelessWidget {
       ),
     );
   }
- 
+
   Widget _buildTextActionButton({
+    Key? key,
     required String label,
     required double height,
     required double fontSize,
@@ -409,19 +522,24 @@ class EditButtonsWidget extends StatelessWidget {
     required bool isActive,
     required double horizontalPadding,
   }) {
-    final backgroundColor = enabled
-        ? AppColors.sequencerSurfaceRaised
-        : AppColors.sequencerSurfacePressed;
+    final backgroundColor = !enabled
+        ? AppColors.sequencerSurfacePressed
+        : isActive
+            ? Colors.white.withOpacity(0.22)
+            : AppColors.sequencerSurfaceRaised;
     final textColor = isActive
-        ? AppColors.sequencerAccent
+        ? const Color(0xFFF5F5F5)
         : (enabled ? AppColors.sequencerText : AppColors.sequencerLightText);
     return Container(
+      key: key,
       height: height,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(3),
         border: Border.all(
-          color: isActive ? AppColors.sequencerAccent : AppColors.sequencerBorder,
+          color: isActive
+              ? Colors.white.withOpacity(0.75)
+              : AppColors.sequencerBorder,
           width: isActive ? 1.0 : 0.5,
         ),
         boxShadow: enabled
@@ -436,6 +554,12 @@ class EditButtonsWidget extends StatelessWidget {
                   blurRadius: 0.5,
                   offset: const Offset(0, -0.5),
                 ),
+                if (isActive)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.22),
+                    blurRadius: 6,
+                    offset: const Offset(0, 0),
+                  ),
               ]
             : [
                 BoxShadow(
@@ -460,7 +584,7 @@ class EditButtonsWidget extends StatelessWidget {
                   maxLines: 1,
                   softWrap: false,
                   overflow: TextOverflow.visible,
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: FontWeight.w700,
                     color: textColor,
@@ -485,6 +609,7 @@ class _JumpButtonWithFeedback extends StatefulWidget {
   final VoidCallback onPressed;
 
   const _JumpButtonWithFeedback({
+    super.key,
     required this.label,
     required this.height,
     required this.fontSize,
@@ -493,7 +618,36 @@ class _JumpButtonWithFeedback extends StatefulWidget {
   });
 
   @override
-  State<_JumpButtonWithFeedback> createState() => _JumpButtonWithFeedbackState();
+  State<_JumpButtonWithFeedback> createState() =>
+      _JumpButtonWithFeedbackState();
+}
+
+bool _absoluteCellsContainSamples(
+  TableState tableState,
+  List<({int step, int col})> selectedCellsAbs,
+) {
+  if (selectedCellsAbs.isEmpty) return false;
+  for (final cell in selectedCellsAbs) {
+    final ptr = tableState.getCellPointer(cell.step, cell.col);
+    if (ptr.address == 0) continue;
+    final cellData = CellData.fromPointer(ptr);
+    if (cellData.isNotEmpty && cellData.sampleSlot >= 0) return true;
+  }
+  return false;
+}
+
+bool _absoluteCellsAreEmpty(
+  TableState tableState,
+  List<({int step, int col})> selectedCellsAbs,
+) {
+  if (selectedCellsAbs.isEmpty) return false;
+  for (final cell in selectedCellsAbs) {
+    final ptr = tableState.getCellPointer(cell.step, cell.col);
+    if (ptr.address == 0) continue;
+    final cellData = CellData.fromPointer(ptr);
+    if (cellData.isNotEmpty && cellData.sampleSlot >= 0) return false;
+  }
+  return true;
 }
 
 class _JumpButtonWithFeedbackState extends State<_JumpButtonWithFeedback> {
@@ -515,8 +669,8 @@ class _JumpButtonWithFeedbackState extends State<_JumpButtonWithFeedback> {
       child: Container(
         height: widget.height,
         decoration: BoxDecoration(
-          color: _isPressed 
-              ? AppColors.sequencerAccent 
+          color: _isPressed
+              ? AppColors.sequencerAccent
               : AppColors.sequencerSurfaceRaised,
           borderRadius: BorderRadius.circular(3),
           border: Border.all(
@@ -546,11 +700,11 @@ class _JumpButtonWithFeedbackState extends State<_JumpButtonWithFeedback> {
                 maxLines: 1,
                 softWrap: false,
                 overflow: TextOverflow.visible,
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   fontSize: widget.fontSize,
                   fontWeight: FontWeight.w700,
-                  color: _isPressed 
-                      ? AppColors.sequencerPageBackground 
+                  color: _isPressed
+                      ? AppColors.sequencerPageBackground
                       : AppColors.sequencerText,
                   letterSpacing: 0.8,
                 ),
@@ -569,40 +723,40 @@ void _deleteSectionWithConfirmation(
   TableState tableState,
   UiSelectionState uiSelection,
 ) {
-    final selectedSection = uiSelection.selectedSection;
-    if (selectedSection == null) return;
-    
-    if (tableState.sectionsCount <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot delete the last section'),
-          backgroundColor: AppColors.sequencerAccent,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-    
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: AppColors.sequencerPageBackground.withOpacity(0.8),
-      builder: (dialogContext) => _DeleteSectionDialog(
-        sectionNumber: selectedSection + 1,
-        onConfirm: () {
-          tableState.deleteSection(selectedSection, undoRecord: true);
-          
-          // Adjust selection if needed
-          if (selectedSection >= tableState.sectionsCount) {
-            uiSelection.selectSection(tableState.sectionsCount - 1);
-            tableState.setUiSelectedSection(tableState.sectionsCount - 1);
-          } else {
-            uiSelection.selectSection(selectedSection);
-            tableState.setUiSelectedSection(selectedSection);
-          }
-        },
+  final selectedSection = uiSelection.selectedSection;
+  if (selectedSection == null) return;
+
+  if (tableState.sectionsCount <= 1) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Cannot delete the last section'),
+        backgroundColor: AppColors.sequencerAccent,
+        duration: const Duration(seconds: 2),
       ),
     );
+    return;
+  }
+
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: AppColors.sequencerPageBackground.withOpacity(0.8),
+    builder: (dialogContext) => _DeleteSectionDialog(
+      sectionNumber: selectedSection + 1,
+      onConfirm: () {
+        tableState.deleteSection(selectedSection, undoRecord: true);
+
+        // Adjust selection if needed
+        if (selectedSection >= tableState.sectionsCount) {
+          uiSelection.selectSection(tableState.sectionsCount - 1);
+          tableState.setUiSelectedSection(tableState.sectionsCount - 1);
+        } else {
+          uiSelection.selectSection(selectedSection);
+          tableState.setUiSelectedSection(selectedSection);
+        }
+      },
+    ),
+  );
 }
 
 // Delete confirmation dialog styled like share menu
@@ -625,7 +779,8 @@ class _DeleteSectionDialog extends StatelessWidget {
       type: MaterialType.transparency,
       child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints.tightFor(width: dialogWidth, height: dialogHeight),
+          constraints:
+              BoxConstraints.tightFor(width: dialogWidth, height: dialogHeight),
           child: Container(
             decoration: BoxDecoration(
               color: AppColors.sequencerSurfaceRaised,
@@ -643,7 +798,7 @@ class _DeleteSectionDialog extends StatelessWidget {
                       children: [
                         Text(
                           'Delete Section $sectionNumber?',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: AppColors.sequencerText,
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -651,10 +806,12 @@ class _DeleteSectionDialog extends StatelessWidget {
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: Icon(Icons.close, color: AppColors.sequencerLightText, size: 24),
+                          icon: Icon(Icons.close,
+                              color: AppColors.sequencerLightText, size: 24),
                           splashRadius: 20,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          constraints:
+                              const BoxConstraints(minWidth: 36, minHeight: 36),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ],
@@ -663,7 +820,7 @@ class _DeleteSectionDialog extends StatelessWidget {
                     Text(
                       'This action cannot be undone.',
                       textAlign: TextAlign.left,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerLightText,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
@@ -677,10 +834,12 @@ class _DeleteSectionDialog extends StatelessWidget {
                             onPressed: () => Navigator.of(context).pop(),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.sequencerText,
-                              side: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
+                              side: BorderSide(
+                                  color: AppColors.sequencerBorder, width: 0.5),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             child: const Text('Cancel'),
                           ),
@@ -697,10 +856,12 @@ class _DeleteSectionDialog extends StatelessWidget {
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                               elevation: 0,
                             ),
-                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+                            child: const Text('Delete',
+                                style: TextStyle(fontWeight: FontWeight.w600)),
                           ),
                         ),
                       ],

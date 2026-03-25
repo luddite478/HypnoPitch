@@ -78,7 +78,7 @@ class ValueDisplayThumbShape extends SliderComponentShape {
     final TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: this.value,
-        style: GoogleFonts.sourceSans3(
+        style: TextStyle(
           color: Colors.white,
           fontSize: thumbRadius * 0.6,
           fontWeight: FontWeight.bold,

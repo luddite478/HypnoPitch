@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,7 @@ import '../ffi/playback_bindings.dart';
 import '../ffi/sample_bank_bindings.dart';
 import '../state/sequencer/table.dart';
 import '../services/cache/working_state_cache_service.dart';
+import '../state/app_state.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({Key? key}) : super(key: key);
@@ -35,6 +37,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   
   // Cache snapshot Futures to prevent recreation on rebuilds (eliminates flicker)
   final Map<String, Future<Map<String, dynamic>?>> _snapshotFutureCache = {};
+  final GlobalKey _fabKey = GlobalKey();
 
   // ============================================================================
   // LAYOUT CONTROL VARIABLES - CENTRALIZED CONFIGURATION
@@ -127,6 +130,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   static Color _fabIconColor = Color.fromARGB(255, 185, 185, 185);
   static const double _fabElevation = 4.0;
   static const double _fabIconSize = 50.0;
+  static const double _fabSize = 56.0;
+  static const double _fabBottomOffset = 30.0;
+  static const double _fabRightOffset = 30.0;
 
   // Helper method to get font family based on font family string
   static TextStyle _getFontStyle(String fontFamily, {
@@ -138,7 +144,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }) {
     switch (fontFamily.toLowerCase()) {
       case 'sourcesans3':
-        return GoogleFonts.sourceSans3(
+        return TextStyle(
           color: color,
           fontSize: fontSize,
           fontWeight: fontWeight,
@@ -186,7 +192,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           height: height,
         );
       default:
-        return GoogleFonts.sourceSans3(
+        return TextStyle(
           color: color,
           fontSize: fontSize,
           fontWeight: fontWeight,
@@ -214,7 +220,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Text(
             'PATTERNS',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerText,
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -304,6 +310,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     return Scaffold(
       backgroundColor: AppColors.sequencerPageBackground,
       body: Stack(
@@ -335,7 +343,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                               const SizedBox(height: 12),
                                               Text(
                                                 _error!, 
-                                                style: GoogleFonts.sourceSans3(
+                                                style: TextStyle(
                                                   color: AppColors.sequencerText,
                                                   fontWeight: FontWeight.w500,
                                                 ),
@@ -350,7 +358,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                                 ),
                                                 child: Text(
                                                   'RETRY',
-                                                  style: GoogleFonts.sourceSans3(
+                                                  style: TextStyle(
                                                     color: AppColors.sequencerText,
                                                     fontWeight: FontWeight.bold,
                                                     letterSpacing: 1.0,
@@ -378,9 +386,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             ),
           // Floating action button - Create new pattern
           Positioned(
-            right: 30,
-            bottom: 30,
+            right: _fabRightOffset,
+            bottom: _fabBottomOffset,
             child: Material(
+              key: _fabKey,
               color: _fabBackgroundColor,
               elevation: _fabElevation,
               borderRadius: BorderRadius.circular(_fabCornerRadius),
@@ -417,6 +426,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   }
                   
                   // Navigate to sequencer
+                  appState.advanceTutorialFromProjectsPlus();
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -430,8 +440,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 },
                 borderRadius: BorderRadius.circular(_fabCornerRadius),
                 child: Container(
-                  width: 56,
-                  height: 56,
+                  width: _fabSize,
+                  height: _fabSize,
                   alignment: Alignment.center,
                   child: Icon(
                     Icons.add,
@@ -442,8 +452,292 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               ),
             ),
           ),
+          if (appState.isInitialized && appState.showTutorialPromptThisSession)
+            _buildQuickTutorialPrompt(appState),
+          if (appState.activeTutorialStep == TutorialStep.projectsPlusButtonHint)
+            _buildPlusButtonCoachMark(appState),
         ],
       ),
+    );
+  }
+
+  Widget _buildQuickTutorialPrompt(AppState appState) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth * 0.82).clamp(240.0, 420.0).toDouble();
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: false,
+        child: Container(
+          alignment: Alignment.center,
+          color: Colors.black.withOpacity(0.22),
+          child: Material(
+            color: AppColors.sequencerSurfaceRaised.withOpacity(0.98),
+            elevation: 12,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: cardWidth,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.sequencerBorder, width: 1),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      onPressed: appState.dismissTutorialPromptForSession,
+                      icon: Icon(Icons.close, color: AppColors.sequencerLightText, size: 22),
+                      tooltip: 'Dismiss',
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: appState.startProjectsQuickTutorial,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.sequencerAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Run quick tutorial',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlusButtonCoachMark(AppState appState) {
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
+          final fabRect = _resolveFabRect(viewportSize);
+          final safeTop = MediaQuery.of(context).padding.top;
+          final textWidth = (viewportSize.width * 0.62).clamp(200.0, 340.0).toDouble();
+
+          double textLeft = (viewportSize.width - textWidth) / 2;
+          textLeft = textLeft
+              .clamp(16.0, viewportSize.width - textWidth - 16.0)
+              .toDouble();
+
+          double textTop = (viewportSize.height * 0.5) - 32;
+          final minTextTop = safeTop + 24;
+          final maxTextTop = viewportSize.height - 140;
+          textTop = textTop.clamp(minTextTop, maxTextTop).toDouble();
+
+          final textCenter = Offset(textLeft + textWidth / 2, textTop + 30);
+          final arrowTarget = _resolveArrowTarget(
+            from: textCenter,
+            targetRect: fabRect,
+            edgePadding: 4,
+          );
+
+          return Stack(
+            children: [
+              IgnorePointer(
+                child: Container(
+                  color: Colors.black.withOpacity(0.12),
+                ),
+              ),
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: _TutorialArrowPainter(
+                    start: textCenter,
+                    end: arrowTarget,
+                    color: AppColors.sequencerAccent,
+                  ),
+                  size: viewportSize,
+                ),
+              ),
+              Positioned(
+                left: textLeft,
+                top: textTop,
+                width: textWidth,
+                child: IgnorePointer(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.sequencerSurfaceBase.withOpacity(0.88),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.sequencerBorder, width: 0.8),
+                    ),
+                    child: Text(
+                      'Tap + button to create new pattern',
+                      style: TextStyle(
+                        color: AppColors.sequencerText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 72,
+                right: 16,
+                child: _buildTutorialControls(appState),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTutorialControls(AppState appState) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.sequencerSurfaceRaised.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.sequencerBorder, width: 0.8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tutorial',
+            style: TextStyle(
+              color: AppColors.sequencerText,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${appState.tutorialStepDisplayIndex}/${AppState.tutorialTotalSteps}',
+                style: TextStyle(
+                  color: AppColors.sequencerText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: appState.goBackTutorialManually,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.sequencerSurfaceBase,
+                  foregroundColor: AppColors.sequencerText,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+                child: Text(
+                  'Back',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              ElevatedButton(
+                onPressed: appState.advanceTutorialManually,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.sequencerAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+                child: Text(
+                  'Next',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Rect _resolveFabRect(Size viewportSize) {
+    final context = _fabKey.currentContext;
+    if (context != null) {
+      final box = context.findRenderObject();
+      if (box is RenderBox && box.hasSize) {
+        final topLeft = box.localToGlobal(Offset.zero);
+        return topLeft & box.size;
+      }
+    }
+
+    return Rect.fromLTWH(
+      viewportSize.width - _fabRightOffset - _fabSize,
+      viewportSize.height - _fabBottomOffset - _fabSize,
+      _fabSize,
+      _fabSize,
+    );
+  }
+
+  Offset _resolveArrowTarget({
+    required Offset from,
+    required Rect targetRect,
+    required double edgePadding,
+  }) {
+    final center = targetRect.center;
+    final towardsText = from - center;
+
+    if (towardsText.distanceSquared < 0.0001) {
+      return center;
+    }
+
+    final halfW = targetRect.width / 2;
+    final halfH = targetRect.height / 2;
+    final scaleX =
+        towardsText.dx.abs() < 0.0001 ? double.infinity : halfW / towardsText.dx.abs();
+    final scaleY =
+        towardsText.dy.abs() < 0.0001 ? double.infinity : halfH / towardsText.dy.abs();
+    final scale = scaleX < scaleY ? scaleX : scaleY;
+
+    final edgePoint = Offset(
+      center.dx + towardsText.dx * scale,
+      center.dy + towardsText.dy * scale,
+    );
+
+    final toCenter = center - edgePoint;
+    final len = toCenter.distance;
+    if (len < 0.0001) return edgePoint;
+
+    final inset = edgePadding.clamp(0.0, 12.0).toDouble();
+    return Offset(
+      edgePoint.dx + (toCenter.dx / len) * inset,
+      edgePoint.dy + (toCenter.dy / len) * inset,
     );
   }
 
@@ -957,7 +1251,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           backgroundColor: AppColors.sequencerSurfaceRaised,
           title: Text(
             'Delete Pattern',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerText,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -965,7 +1259,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           ),
           content: Text(
             'Are you sure you want to delete this pattern? This will delete all checkpoints.',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerLightText,
               fontSize: 14,
               fontWeight: FontWeight.w400,
@@ -976,7 +1270,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   color: AppColors.sequencerLightText,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -990,7 +1284,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               },
               child: Text(
                 'Delete',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   color: Colors.red,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -1114,5 +1408,58 @@ class _OverlayGradientPainter extends CustomPainter {
         oldDelegate.horizontalFade != horizontalFade ||
         oldDelegate.verticalFade != verticalFade ||
         oldDelegate.cornerRadius != cornerRadius;
+  }
+}
+
+class _TutorialArrowPainter extends CustomPainter {
+  final Offset start;
+  final Offset end;
+  final Color color;
+
+  _TutorialArrowPainter({
+    required this.start,
+    required this.end,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(start.dx, start.dy)
+      ..lineTo(end.dx, end.dy);
+
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, linePaint);
+
+    final direction = (end - start);
+    final angle = direction.direction;
+    const arrowLength = 11.0;
+    const arrowSpread = 0.6;
+
+    final arrowPath = Path()
+      ..moveTo(end.dx, end.dy)
+      ..lineTo(
+        end.dx - arrowLength * cos(angle - arrowSpread),
+        end.dy - arrowLength * sin(angle - arrowSpread),
+      )
+      ..moveTo(end.dx, end.dy)
+      ..lineTo(
+        end.dx - arrowLength * cos(angle + arrowSpread),
+        end.dy - arrowLength * sin(angle + arrowSpread),
+      );
+
+    canvas.drawPath(arrowPath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TutorialArrowPainter oldDelegate) {
+    return oldDelegate.start != start ||
+        oldDelegate.end != end ||
+        oldDelegate.color != color;
   }
 }

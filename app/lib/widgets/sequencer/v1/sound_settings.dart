@@ -581,7 +581,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
           children: [
             Text(
               title,
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerAccent,
                 fontSize: fontSize * 1.8,
                 fontWeight: FontWeight.bold,
@@ -592,7 +592,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: fontSize * 1.1,
                 fontWeight: FontWeight.w500,
@@ -629,7 +629,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             Text(
               widget.noDataMessage,
               textAlign: TextAlign.center,
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: fontSize * 1.2,
                 fontWeight: FontWeight.w500,
@@ -672,7 +672,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: isSelected 
                   ? AppColors.sequencerPageBackground 
                   : AppColors.sequencerText,

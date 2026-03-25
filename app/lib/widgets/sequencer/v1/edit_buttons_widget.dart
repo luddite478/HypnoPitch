@@ -352,7 +352,7 @@ class EditButtonsWidget extends StatelessWidget {
                     margin: const EdgeInsets.only(top: 2), // Add 4 pixels top margin
                     child: Text(
                       '${editState.stepInsertSize}',
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: editState.isStepInsertMode ? AppColors.sequencerAccent : AppColors.sequencerLightText,
                         fontSize: iconSize * 0.8,
                         fontWeight: FontWeight.w600,
@@ -437,7 +437,7 @@ class EditButtonsWidget extends StatelessWidget {
                   maxLines: 1,
                   softWrap: false,
                   overflow: TextOverflow.visible,
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: FontWeight.w700,
                     color: textColor,

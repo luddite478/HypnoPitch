@@ -4,6 +4,8 @@
 // Simple wrapper around SunVox library for our playback engine
 // Maps our table-based sequencer to SunVox patterns and modules
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

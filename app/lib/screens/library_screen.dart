@@ -232,12 +232,12 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                             ],
                             labelColor: AppColors.sequencerText,
                             unselectedLabelColor: AppColors.sequencerLightText,
-                            labelStyle: GoogleFonts.sourceSans3(
+                            labelStyle: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.5,
                             ),
-                            unselectedLabelStyle: GoogleFonts.sourceSans3(
+                            unselectedLabelStyle: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 1.5,
@@ -270,7 +270,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                   child: Center(
                     child: Text(
                       'Loading pattern...',
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerText,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -299,7 +299,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               children: [
                 Text(
                   'Your library is empty',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: AppColors.sequencerLightText,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -308,7 +308,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                 const SizedBox(height: 8),
                 Text(
                   'Add audio recordings from the sequencer',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: AppColors.sequencerLightText,
                     fontSize: 12,
                   ),
@@ -362,7 +362,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                             children: [
                               Text(
                                 item.name,
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: AppColors.sequencerText,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -373,7 +373,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                                 const SizedBox(height: 2),
                                 Text(
                                   _formatDuration(item.duration!),
-                                  style: GoogleFonts.sourceSans3(
+                                  style: TextStyle(
                                     color: AppColors.sequencerLightText,
                                     fontSize: 11,
                                   ),
@@ -419,7 +419,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                               value: 'open_pattern',
                               child: Text(
                                 'Open Pattern',
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: AppColors.sequencerText,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -430,7 +430,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                               value: 'delete',
                               child: Text(
                                 'Delete',
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: AppColors.sequencerAccent,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -474,7 +474,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           backgroundColor: AppColors.sequencerSurfaceRaised,
           title: Text(
             'Remove from Library',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerText,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -482,7 +482,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           ),
           content: Text(
             'Are you sure you want to remove "${item.name}" from your library?',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerLightText,
               fontSize: 14,
               fontWeight: FontWeight.w400,
@@ -493,7 +493,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   color: AppColors.sequencerLightText,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -507,7 +507,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               },
               child: Text(
                 'Remove',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   color: Colors.red,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -658,7 +658,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           backgroundColor: AppColors.sequencerSurfaceRaised,
           title: Text(
             'Pattern Not Found',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerText,
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -666,7 +666,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           ),
           content: Text(
             'This pattern does not exist anymore.',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerLightText,
               fontSize: 14,
             ),
@@ -676,7 +676,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'OK',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   color: AppColors.sequencerAccent,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -739,7 +739,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                     const SizedBox(width: 4),
                     Text(
                       'BACK',
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerText,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -754,7 +754,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           Expanded(
             child: Text(
               state.currentPathLabel,
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: 11,
                 fontWeight: FontWeight.w400,
@@ -844,7 +844,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                 Flexible(
                   child: Text(
                     title,
-                    style: GoogleFonts.sourceSans3(
+                    style: TextStyle(
                       color: AppColors.sequencerText,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -934,7 +934,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           color: AppColors.sequencerText,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -945,7 +945,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           color: AppColors.sequencerLightText,
                           fontSize: 11,
                         ),
@@ -969,7 +969,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     return Center(
       child: Text(
         message,
-        style: GoogleFonts.sourceSans3(
+        style: TextStyle(
           color: AppColors.sequencerLightText,
           fontSize: 12,
         ),
@@ -1021,7 +1021,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           backgroundColor: AppColors.sequencerSurfaceRaised,
           title: Text(
             'Create custom folder',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerText,
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -1030,10 +1030,10 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           content: TextField(
             autofocus: true,
             onChanged: (value) => folderName = value,
-            style: GoogleFonts.sourceSans3(color: AppColors.sequencerText),
+            style: TextStyle(color: AppColors.sequencerText),
             decoration: InputDecoration(
               hintText: 'Folder name',
-              hintStyle: GoogleFonts.sourceSans3(color: AppColors.sequencerLightText),
+              hintStyle: TextStyle(color: AppColors.sequencerLightText),
             ),
           ),
           actions: [
@@ -1041,14 +1041,14 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.sourceSans3(color: AppColors.sequencerLightText),
+                style: TextStyle(color: AppColors.sequencerLightText),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(folderName),
               child: Text(
                 'Continue',
-                style: GoogleFonts.sourceSans3(color: AppColors.sequencerAccent),
+                style: TextStyle(color: AppColors.sequencerAccent),
               ),
             ),
           ],

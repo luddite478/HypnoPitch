@@ -68,7 +68,7 @@ class _SequencerSettingsScreenState extends State<SequencerSettingsScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Output',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.sequencerText.withOpacity(0.5),
@@ -79,7 +79,7 @@ class _SequencerSettingsScreenState extends State<SequencerSettingsScreen> {
             const SizedBox(height: 8),
             Text(
               'Available when in sequencer screen',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 fontSize: 11,
                 color: AppColors.sequencerText.withOpacity(0.5),
               ),
@@ -115,7 +115,7 @@ class _SequencerSettingsScreenState extends State<SequencerSettingsScreen> {
               const SizedBox(width: 8),
               Text(
                 'Output',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.sequencerText,
@@ -127,7 +127,7 @@ class _SequencerSettingsScreenState extends State<SequencerSettingsScreen> {
           if (availableOutputs.isEmpty)
             Text(
               'No output devices available',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 fontSize: 11,
                 color: AppColors.sequencerText.withOpacity(0.5),
               ),
@@ -173,7 +173,7 @@ class _SequencerSettingsScreenState extends State<SequencerSettingsScreen> {
                         Expanded(
                           child: Text(
                             device.name,
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                               color: isActive 

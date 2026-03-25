@@ -40,7 +40,7 @@ android {
         minSdk = 26
         
         ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+            abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
         }
     }
 
@@ -65,7 +65,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            jniLibs.srcDir("../../native")
+            jniLibs.srcDir("../../native/sunvox_lib/sunvox_lib/android/sample_project/SunVoxLib/src/main/jniLibs")
         }
     }
 }

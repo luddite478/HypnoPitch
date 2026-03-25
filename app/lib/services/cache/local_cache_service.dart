@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 /// Base service for local file-based caching
@@ -17,7 +18,9 @@ class LocalCacheService {
     String baseDir;
 
     if (Platform.isAndroid) {
-      baseDir = '/storage/emulated/0/Download/${appName}_data';
+      // Use app-specific storage on Android to avoid scoped storage permission errors.
+      final appDocDir = await getApplicationDocumentsDirectory();
+      baseDir = appDocDir.path;
     } else if (Platform.isIOS) {
       baseDir = path.join(Directory.systemTemp.path, appName);
     } else if (Platform.isMacOS) {

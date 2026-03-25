@@ -251,7 +251,7 @@ class SectionManagementWidget extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 '${sectionIndex + 1}',
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   color: numberColor,
                   fontSize: fontSize,
                   fontWeight: FontWeight.w700,

@@ -41,12 +41,18 @@ class ReliableStorage {
       if (cacheDir != null) {
         return path.join(cacheDir.path, '${appName}_prefs');
       }
-      
-      // Last resort fallback to Downloads
-      return '/storage/emulated/0/Download/${appName}_data';
+
+      // Fallback to app-specific documents directory (still writable without storage permission)
+      final appDocDir = await getApplicationDocumentsDirectory();
+      return path.join(appDocDir.path, '${appName}_prefs');
     } catch (e) {
-      print('⚠️ DocMan failed, using Downloads fallback: $e');
-      return '/storage/emulated/0/Download/${appName}_data';
+      print('⚠️ DocMan failed, using app documents fallback: $e');
+      try {
+        final appDocDir = await getApplicationDocumentsDirectory();
+        return path.join(appDocDir.path, '${appName}_prefs');
+      } catch (_) {
+        return path.join(Directory.systemTemp.path, '${appName}_prefs');
+      }
     }
   }
 

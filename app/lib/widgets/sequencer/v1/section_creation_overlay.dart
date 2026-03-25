@@ -104,7 +104,7 @@ class _SectionCreationOverlayState extends State<SectionCreationOverlay> {
             // Title centered
             Text(
               'Create New Section',
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -140,7 +140,7 @@ class _SectionCreationOverlayState extends State<SectionCreationOverlay> {
           // Create From Label
           Text(
             'Copy:',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerLightText,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -182,7 +182,7 @@ class _SectionCreationOverlayState extends State<SectionCreationOverlay> {
         child: Center(
           child: Text(
             text,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -216,7 +216,7 @@ class _SectionCreationOverlayState extends State<SectionCreationOverlay> {
           ),
           child: Text(
             'Section ${sectionIndex + 1}',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.sequencerLightText,
               fontSize: 14,
               fontWeight: FontWeight.w500,

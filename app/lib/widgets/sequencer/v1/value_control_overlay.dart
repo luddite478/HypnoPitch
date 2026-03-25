@@ -52,7 +52,7 @@ class ValueControlOverlay extends StatelessWidget {
                                 padding: const EdgeInsets.only(bottom: 8.0),
                                 child: Text(
                                   ctx,
-                                  style: GoogleFonts.sourceSans3(
+                                  style: TextStyle(
                                     color: AppColors.sequencerLightText.withOpacity(0.9),
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
@@ -68,7 +68,7 @@ class ValueControlOverlay extends StatelessWidget {
                             builder: (context, setting, child) {
                               return Text(
                                 setting,
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: AppColors.sequencerLightText,
                                   fontSize: 24,
                                   fontWeight: FontWeight.w500,
@@ -86,7 +86,7 @@ class ValueControlOverlay extends StatelessWidget {
                             builder: (context, value, child) {
                               return Text(
                                 value,
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 48,
                                   fontWeight: FontWeight.bold,

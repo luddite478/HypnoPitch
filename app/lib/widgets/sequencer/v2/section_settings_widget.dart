@@ -244,7 +244,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: isSelected 
                   ? AppColors.sequencerPageBackground 
                   : AppColors.sequencerText,
@@ -331,7 +331,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                           child: Center(
                             child: Text(
                               '$loopCount',
-                              style: GoogleFonts.sourceSans3(
+                              style: TextStyle(
                                 color: AppColors.sequencerAccent,
                                 fontSize: counterHeight * 0.75, // 65% of counter height for bigger digit
                                 fontWeight: FontWeight.w700,

@@ -121,7 +121,7 @@ class SampleSelectionWidget extends StatelessWidget {
                             SizedBox(width: screenWidth * 0.015),
                             Text(
                               'BACK',
-                              style: GoogleFonts.sourceSans3(
+                              style: TextStyle(
                                 color: AppColors.sequencerText,
                                 fontSize: headerFontSize.clamp(12.0, 16.0),
                                 fontWeight: FontWeight.w600,
@@ -139,7 +139,7 @@ class SampleSelectionWidget extends StatelessWidget {
                       browserState.currentPath.isEmpty 
                           ? 'samples/' 
                           : 'samples/${browserState.currentPath.join('/')}/',
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerLightText,
                         fontSize: pathFontSize.clamp(10.0, 14.0),
                         fontWeight: FontWeight.w400,
@@ -199,7 +199,7 @@ class SampleSelectionWidget extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           'Loading samples...',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: AppColors.sequencerLightText,
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
@@ -221,7 +221,7 @@ class SampleSelectionWidget extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           'No samples found',
-                          style: GoogleFonts.sourceSans3(
+                          style: TextStyle(
                             color: AppColors.sequencerLightText,
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
@@ -249,12 +249,12 @@ class SampleSelectionWidget extends StatelessWidget {
                             final browserState = context.read<SampleBrowserState>();
                             final sampleBankState = context.read<SampleBankState>();
 
-                            final fileNameStyle = GoogleFonts.sourceSans3(
+                            final fileNameStyle = TextStyle(
                               color: AppColors.sequencerText,
                               fontSize: (screenWidth * 0.035).clamp(12.0, 16.0),
                               fontWeight: FontWeight.w600,
                             );
-                            final metaStyle = GoogleFonts.sourceSans3(
+                            final metaStyle = TextStyle(
                               color: AppColors.sequencerLightText,
                               fontSize: (screenWidth * 0.028).clamp(10.0, 13.0),
                               fontWeight: FontWeight.w600,
@@ -427,7 +427,7 @@ class SampleSelectionWidget extends StatelessWidget {
                                             Flexible(
                                               child: Text(
                                                 item.name,
-                                                style: GoogleFonts.sourceSans3(
+                                                style: TextStyle(
                                                   color: AppColors.sequencerText,
                                                   fontSize: fontSize.clamp(8.0, 14.0),
                                                   fontWeight: FontWeight.w500,
@@ -550,7 +550,7 @@ class SampleSelectionWidget extends StatelessWidget {
                                                   Expanded(
                                                     child: Text(
                                                       item.name,
-                                                      style: GoogleFonts.sourceSans3(
+                                                      style: TextStyle(
                                                         color: AppColors.sequencerPageBackground,
                                                         fontSize: (fontSize * 0.8).clamp(6.0, 12.0),
                                                         fontWeight: FontWeight.w600,
@@ -564,7 +564,7 @@ class SampleSelectionWidget extends StatelessWidget {
                                                     item.name.toLowerCase().endsWith('.wav') ? 'WAV' :
                                                     item.name.toLowerCase().endsWith('.mp3') ? 'MP3' :
                                                     item.name.toLowerCase().endsWith('.m4a') ? 'M4A' : 'AUDIO',
-                                                    style: GoogleFonts.sourceSans3(
+                                                    style: TextStyle(
                                                       color: AppColors.sequencerPageBackground.withOpacity(0.8),
                                                       fontSize: (fontSize * 0.6).clamp(5.0, 10.0),
                                                       fontWeight: FontWeight.w600,
@@ -572,7 +572,7 @@ class SampleSelectionWidget extends StatelessWidget {
                                                   ),
                                                   Text(
                                                     'TAP TO SELECT',
-                                                    style: GoogleFonts.sourceSans3(
+                                                    style: TextStyle(
                                                       color: AppColors.sequencerPageBackground.withOpacity(0.9),
                                                       fontSize: (fontSize * 0.5).clamp(4.0, 8.0),
                                                       fontWeight: FontWeight.w700,

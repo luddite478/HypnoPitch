@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../widgets/sequencer/v2/edit_buttons_widget.dart' as v2;
@@ -32,6 +33,7 @@ import '../state/sequencer/recording_waveform.dart';
 import 'sequencer_settings_screen.dart';
 import '../services/snapshot/snapshot_service.dart';
 import '../services/cache/working_state_cache_service.dart';
+import '../state/app_state.dart';
 
 class SequencerScreenV2 extends StatefulWidget {
   final Map<String, dynamic>? initialSnapshot;
@@ -150,11 +152,22 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
 
   // Triggered when any sequencer state changes
   void _onSequencerStateChanged() {
+    _maybeAdvanceTutorialByState();
+
     // Cancel existing timer and schedule new one (debouncing)
     _autoSaveTimer?.cancel();
     _autoSaveTimer = Timer(_autoSaveDelay, () {
       _performAutoSave();
     });
+  }
+
+  void _maybeAdvanceTutorialByState() {
+    if (!mounted) return;
+    final appState = context.read<AppState>();
+    if (appState.activeTutorialStep == TutorialStep.sequencerSwipeSectionHint &&
+        _tableState.sectionsCount > 1) {
+      appState.verifySecondSectionCreated();
+    }
   }
 
   // Perform the actual auto-save
@@ -423,6 +436,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _tableState),
@@ -486,6 +500,92 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
                     ),
                   ),
                 ),
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerFirstCellHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.firstCellTutorialKey,
+                text: 'Press cell 1/1 in the sample grid',
+                centerText: true,
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerSelectSampleHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.selectSampleTutorialKey,
+                text: 'Select sample for this cell',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerCopyPasteHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.copyButtonTutorialKey,
+                text: 'Try to copy and paste the sample cell',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerDeleteHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.deleteButtonTutorialKey,
+                text: 'Try to delete the created sample cell',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerJumpHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.jumpButtonTutorialKey,
+                text: 'You can set how many cells to jump after pasting a cell.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerJumpValuePasteHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.jumpButtonTutorialKey,
+                text:
+                    'Try setting Jump value to 2, copy one cell, then press Paste several times.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerPlayHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.playButtonTutorialKey,
+                text: 'Press play and listen to the sample(s) you loaded.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerStopHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.playButtonTutorialKey,
+                text: 'Playback can be stopped by pressing the stop button.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerLayersHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.layersRowTutorialKey,
+                text:
+                    'These are section layers. They all play at the same time. You can arrange samples across them. Selecting a layer opens controls to mute/solo the layer or specific columns.',
+                centerInRectKey: appState.sampleGridTutorialKey,
+                drawLayerPointers: true,
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerSelectModeHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.selectModeButtonTutorialKey,
+                text:
+                    'Select button allows you to select multiple cells for copy/paste or changing their parameters at once.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerSelectMultipleHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.sampleGridTutorialKey,
+                text: 'Try to select multiple steps.',
+                centerText: true,
+              ),
+            if (appState.activeTutorialStep ==
+                TutorialStep.sequencerDisableSelectModeHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.selectModeButtonTutorialKey,
+                text: 'Now disable select mode.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerSwipeSectionHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.sampleGridTutorialKey,
+                text: 'Swipe the sample grid left and create or copy the first section.',
+                centerText: true,
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerPlaybackModesHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.sectionMenuButtonTutorialKey,
+                text:
+                    'There are two playback modes: Loop and Song. Use this section control to manage loops and section playback behavior.',
+              ),
+            if (appState.activeTutorialStep == TutorialStep.sequencerRecordHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.recordButtonTutorialKey,
+                text:
+                    'Try adding samples across two sections, then press Record and Play.',
               ),
           ],
         ),
@@ -581,6 +681,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
         ),
         child: Consumer4<TableState, PlaybackState, RecordingState, MultitaskPanelState>(
           builder: (context, tableState, playbackState, recordingState, multitaskPanelState, child) {
+            final appState = context.watch<AppState>();
             return LayoutBuilder(
               builder: (context, constraints) {
                 final barHeight = constraints.maxHeight;
@@ -637,6 +738,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
                                                 }
                                               },
                                               child: Container(
+                                                key: appState.activeTutorialStep ==
+                                                        TutorialStep.sequencerPlaybackModesHint
+                                                    ? appState.sectionMenuButtonTutorialKey
+                                                    : null,
                                                 decoration: BoxDecoration(
                                                   color: AppColors.sequencerSurfaceBase,
                                                   borderRadius: BorderRadius.circular(4),
@@ -757,25 +862,16 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
                                                           if (isRecording || isArmed) {
                                                             await recordingState.stopRecording();
                                                           } else {
-                                                            if (!isPlaying) {
-                                                              if (context.mounted) {
-                                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                                  const SnackBar(
-                                                                    content: Text('Start playback before pattern recording.'),
-                                                                    duration: Duration(seconds: 2),
-                                                                  ),
-                                                                );
-                                                              }
-                                                              return;
-                                                            }
                                                             final currentLayer = _tableState.uiSelectedLayer;
                                                             await recordingState.startRecording(layer: currentLayer);
                                                           }
                                                         } else if (index == 2) {
                                                           if (isPlaying) {
                                                             playbackState.stop();
+                                                            appState.markStopAction();
                                                           } else {
                                                             playbackState.start();
+                                                            appState.markPlayAction();
                                                           }
                                                         }
                                                       },
@@ -798,8 +894,23 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
                                                                 : AppColors.sequencerLightText, // Normal color
                                                           ),
                                                         ),
-                                                        const Icon(Icons.circle, size: 14),
-                                                        Icon(isPlaying ? Icons.stop : Icons.play_arrow, size: 20),
+                                                        KeyedSubtree(
+                                                          key: appState.activeTutorialStep ==
+                                                                  TutorialStep.sequencerRecordHint
+                                                              ? appState.recordButtonTutorialKey
+                                                              : null,
+                                                          child: const Icon(Icons.circle, size: 14),
+                                                        ),
+                                                        KeyedSubtree(
+                                                          key: appState.activeTutorialStep ==
+                                                                  TutorialStep.sequencerPlayHint
+                                                              ? appState.playButtonTutorialKey
+                                                              : null,
+                                                          child: Icon(
+                                                            isPlaying ? Icons.stop : Icons.play_arrow,
+                                                            size: 20,
+                                                          ),
+                                                        ),
                                                       ],
                                                     );
                                                   },
@@ -1050,6 +1161,341 @@ class _SequencerScreenV2State extends State<SequencerScreenV2> with TickerProvid
   }
 
   // Thread-related methods and collaboration dialogs removed in offline transformation
+}
+
+/// Coach-mark overlay that waits until [anchorKey] is laid out (grid may build after first frame).
+class _SequencerTutorialAnchorOverlay extends StatefulWidget {
+  final GlobalKey anchorKey;
+  final String text;
+  final bool centerText;
+  final GlobalKey? centerInRectKey;
+  final bool drawLayerPointers;
+
+  const _SequencerTutorialAnchorOverlay({
+    required this.anchorKey,
+    required this.text,
+    this.centerText = false,
+    this.centerInRectKey,
+    this.drawLayerPointers = false,
+  });
+
+  @override
+  State<_SequencerTutorialAnchorOverlay> createState() =>
+      _SequencerTutorialAnchorOverlayState();
+}
+
+class _SequencerTutorialAnchorOverlayState
+    extends State<_SequencerTutorialAnchorOverlay> {
+  int _layoutTick = 0;
+  static const int _maxLayoutWaits = 48;
+
+  @override
+  void didUpdateWidget(covariant _SequencerTutorialAnchorOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.anchorKey != widget.anchorKey) {
+      _layoutTick = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+          final anchorRect = _tutorialResolveAnchorRect(widget.anchorKey, viewport);
+          if (anchorRect == null) {
+            if (_layoutTick < _maxLayoutWaits) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() => _layoutTick++);
+              });
+            }
+            return IgnorePointer(
+              child: Container(color: Colors.black.withOpacity(0.06)),
+            );
+          }
+
+          final safeTop = MediaQuery.of(context).padding.top + 10;
+          final centerRect = _tutorialResolveAnchorRect(
+                widget.centerInRectKey ?? appState.sampleGridTutorialKey,
+                viewport,
+              ) ??
+              Rect.fromCenter(
+                center: Offset(viewport.width / 2, viewport.height / 2),
+                width: viewport.width,
+                height: viewport.height,
+              );
+          final textWidth =
+              (viewport.width * 0.56).clamp(180.0, 300.0).toDouble();
+          final desiredLeft = centerRect.center.dx - textWidth / 2;
+          final textLeft =
+              desiredLeft.clamp(12.0, viewport.width - textWidth - 12.0).toDouble();
+          const cardHeightEstimate = 126.0;
+          final desiredTop = centerRect.center.dy - (cardHeightEstimate / 2);
+          final textTop = desiredTop
+              .clamp(safeTop, viewport.height - 120.0)
+              .toDouble();
+          final textCenter = Offset(textLeft + (textWidth / 2), textTop + (cardHeightEstimate / 2));
+          final arrowEnd = _tutorialResolveArrowTarget(
+            from: textCenter,
+            targetRect: anchorRect,
+            edgePadding: 4,
+          );
+
+          return Stack(
+            children: [
+              IgnorePointer(
+                child: Container(color: Colors.black.withOpacity(0.1)),
+              ),
+              if (!widget.drawLayerPointers)
+                IgnorePointer(
+                  child: CustomPaint(
+                    size: viewport,
+                    painter: _TutorialOverlayArrowPainter(
+                      start: textCenter,
+                      end: arrowEnd,
+                      color: AppColors.sequencerAccent,
+                    ),
+                  ),
+                ),
+              if (widget.drawLayerPointers)
+                IgnorePointer(
+                  child: CustomPaint(
+                    size: viewport,
+                    painter: _LayerPointersPainter(
+                      targetRect: anchorRect,
+                      color: AppColors.sequencerAccent,
+                      count: 5,
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: textLeft,
+                top: textTop,
+                width: textWidth,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.sequencerSurfaceBase.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.sequencerBorder, width: 0.8),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${appState.tutorialStepDisplayIndex}/${AppState.tutorialTotalSteps}',
+                            style: const TextStyle(
+                              color: AppColors.sequencerText,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: appState.goBackTutorialManually,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.sequencerSurfaceBase,
+                              foregroundColor: AppColors.sequencerText,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                            child: const Text(
+                              'Back',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          ElevatedButton(
+                            onPressed: appState.advanceTutorialManually,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.sequencerAccent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                            child: const Text(
+                              'Next',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.text,
+                        style: const TextStyle(
+                          color: AppColors.sequencerText,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+Rect? _tutorialResolveAnchorRect(GlobalKey key, Size viewport) {
+  final ctx = key.currentContext;
+  if (ctx == null) return null;
+  final box = ctx.findRenderObject();
+  if (box is! RenderBox || !box.hasSize) return null;
+  final topLeft = box.localToGlobal(Offset.zero);
+  return topLeft & box.size;
+}
+
+Offset _tutorialResolveArrowTarget({
+  required Offset from,
+  required Rect targetRect,
+  required double edgePadding,
+}) {
+  final center = targetRect.center;
+  final towardsText = from - center;
+  if (towardsText.distanceSquared < 0.0001) return center;
+
+  final halfW = targetRect.width / 2;
+  final halfH = targetRect.height / 2;
+  final scaleX = towardsText.dx.abs() < 0.0001
+      ? double.infinity
+      : halfW / towardsText.dx.abs();
+  final scaleY = towardsText.dy.abs() < 0.0001
+      ? double.infinity
+      : halfH / towardsText.dy.abs();
+  final scale = scaleX < scaleY ? scaleX : scaleY;
+  final edgePoint = Offset(
+    center.dx + towardsText.dx * scale,
+    center.dy + towardsText.dy * scale,
+  );
+  final toCenter = center - edgePoint;
+  final len = toCenter.distance;
+  if (len < 0.0001) return edgePoint;
+  final inset = edgePadding.clamp(0.0, 12.0).toDouble();
+  return Offset(
+    edgePoint.dx + (toCenter.dx / len) * inset,
+    edgePoint.dy + (toCenter.dy / len) * inset,
+  );
+}
+
+class _TutorialOverlayArrowPainter extends CustomPainter {
+  final Offset start;
+  final Offset end;
+  final Color color;
+
+  _TutorialOverlayArrowPainter({
+    required this.start,
+    required this.end,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(start, end, linePaint);
+
+    final direction = (end - start);
+    final angle = direction.direction;
+    const arrowLength = 10.0;
+    const arrowSpread = 0.6;
+    final arrowPath = Path()
+      ..moveTo(end.dx, end.dy)
+      ..lineTo(
+        end.dx - arrowLength * cos(angle - arrowSpread),
+        end.dy - arrowLength * sin(angle - arrowSpread),
+      )
+      ..moveTo(end.dx, end.dy)
+      ..lineTo(
+        end.dx - arrowLength * cos(angle + arrowSpread),
+        end.dy - arrowLength * sin(angle + arrowSpread),
+      );
+    canvas.drawPath(arrowPath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TutorialOverlayArrowPainter oldDelegate) {
+    return oldDelegate.start != start ||
+        oldDelegate.end != end ||
+        oldDelegate.color != color;
+  }
+}
+
+class _LayerPointersPainter extends CustomPainter {
+  final Rect targetRect;
+  final Color color;
+  final int count;
+
+  _LayerPointersPainter({
+    required this.targetRect,
+    required this.color,
+    required this.count,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (count <= 0 || targetRect.width <= 0) return;
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    final segmentWidth = targetRect.width / count;
+    for (int i = 0; i < count; i++) {
+      final x = targetRect.left + segmentWidth * (i + 0.5);
+      final start = Offset(x, targetRect.bottom + 18);
+      final end = Offset(x, targetRect.bottom + 4);
+      canvas.drawLine(start, end, paint);
+
+      const arrowLen = 5.0;
+      const spread = 0.6;
+      final angle = -pi / 2; // upward
+      final arrowPath = Path()
+        ..moveTo(end.dx, end.dy)
+        ..lineTo(
+          end.dx - arrowLen * cos(angle - spread),
+          end.dy - arrowLen * sin(angle - spread),
+        )
+        ..moveTo(end.dx, end.dy)
+        ..lineTo(
+          end.dx - arrowLen * cos(angle + spread),
+          end.dy - arrowLen * sin(angle + spread),
+        );
+      canvas.drawPath(arrowPath, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LayerPointersPainter oldDelegate) {
+    return oldDelegate.targetRect != targetRect ||
+        oldDelegate.color != color ||
+        oldDelegate.count != count;
+  }
 }
 
 // Helper widget for pulsing recording indicator

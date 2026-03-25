@@ -576,7 +576,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                     child: Center(
                       child: Text(
                         'L${i + 1}',
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           color: isActive ? AppColors.sequencerText : AppColors.sequencerLightText,
                           fontSize: 12,
                           fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
@@ -641,7 +641,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
         // Sample letter (always shown on the left)
         Text(
           String.fromCharCode(65 + sampleSlot),
-          style: GoogleFonts.sourceSans3(
+          style: TextStyle(
             color: (isActivePad || isDragHovering) 
                 ? AppColors.sequencerPageBackground 
                 : isCurrentStep
@@ -669,7 +669,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                 if (hasVolumeOverride) ...[
                   Text(
                     'V${(effectiveVolume * 100).round()}',
-                    style: GoogleFonts.sourceSans3(
+                    style: TextStyle(
                       color: (isActivePad || isDragHovering)
                           ? AppColors.sequencerPageBackground
                           : isCurrentStep
@@ -684,7 +684,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                 if (hasPitchOverride) ...[
                   Text(
                     _formatPitchDisplay(effectivePitch),
-                    style: GoogleFonts.sourceSans3(
+                    style: TextStyle(
                       color: (isActivePad || isDragHovering)
                           ? AppColors.sequencerPageBackground
                           : isCurrentStep
@@ -772,7 +772,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                 child: Center(
                   child: Text(
                     '${rowIndex + 1}',
-                    style: GoogleFonts.sourceSans3(
+                    style: TextStyle(
                       color: AppColors.sequencerText,
                       fontSize: 9,
                       // fontWeight: FontWeight.bold,
@@ -860,7 +860,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
         child: Center(
           child: Text(
             'L${gridIndex + 1}',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: isFrontCard 
                   ? AppColors.sequencerText // Light text for active tab
                   : AppColors.sequencerLightText, // Muted text for inactive tab
@@ -970,7 +970,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                 const SizedBox(height: 8),
                 Text(
                   'Layer ${actualSoundGridId + 1}',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: AppColors.sequencerLightText,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

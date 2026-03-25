@@ -317,7 +317,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
               child: Center(
                 child: Text(
                   'SEQUENCE',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: isSequence ? AppColors.sequencerPageBackground : AppColors.sequencerText.withOpacity(0.6),
                     fontSize: fontSize,
                     fontWeight: isSequence ? FontWeight.w700 : FontWeight.w600,
@@ -353,7 +353,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
               child: Center(
                 child: Text(
                   'REC',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: !isSequence ? AppColors.sequencerPageBackground : AppColors.sequencerText.withOpacity(0.6),
                     fontSize: fontSize,
                     fontWeight: !isSequence ? FontWeight.w700 : FontWeight.w600,
@@ -403,7 +403,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: isSelected ? AppColors.sequencerPageBackground : AppColors.sequencerText,
               fontSize: fontSize,
               fontWeight: FontWeight.w600,
@@ -605,7 +605,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
                     const SizedBox(width: 6),
                     Text(
                       device.name,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: isSelected ? AppColors.sequencerAccent : AppColors.sequencerText,
                         fontSize: height * 0.18,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
@@ -751,7 +751,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
                   maxLines: 1,
                   overflow: TextOverflow.fade,
                   softWrap: false,
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: mutedVisual
                         ? AppColors.sequencerLightText.withOpacity(0.65)
                         : AppColors.sequencerLightText,

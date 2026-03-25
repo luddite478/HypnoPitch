@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../state/patterns_state.dart';
 import '../state/audio_player_state.dart';
@@ -34,6 +33,13 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   String? _highlightedCheckpointId;
   Timer? _timestampUpdateTimer;
   int _refreshKey = 0; // Used to force rebuild of FutureBuilder
+  AudioPlayerState? _audioPlayerRef;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _audioPlayerRef ??= context.read<AudioPlayerState>();
+  }
 
   @override
   void initState() {
@@ -87,6 +93,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   @override
   void dispose() {
     _timestampUpdateTimer?.cancel();
+    _audioPlayerRef?.stop();
     super.dispose();
   }
 
@@ -168,7 +175,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                 Expanded(
                   child: Text(
                     'Takes',
-                    style: GoogleFonts.sourceSans3(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.sequencerText,
@@ -241,7 +248,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
               const SizedBox(height: 16),
               Text(
                 message,
-                style: GoogleFonts.sourceSans3(
+                style: TextStyle(
                   fontSize: 16,
                   color: AppColors.sequencerLightText,
                 ),
@@ -266,7 +273,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
           const SizedBox(height: 16),
           Text(
             message,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               fontSize: 16,
               color: AppColors.sequencerLightText,
             ),
@@ -385,7 +392,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                     children: [
                       Text(
                         _formatDateTime(checkpoint.createdAt),
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           fontSize: isVerySmall ? 13 : 14,
                           fontWeight: FontWeight.w600,
                           color: AppColors.sequencerText,
@@ -398,7 +405,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                         children: [
                           Text(
                             _formatDuration(checkpoint.audioDuration ?? 0),
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppColors.sequencerLightText,
                             ),
@@ -418,7 +425,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                                         Flexible(
                                           child: Text(
                                             _formatFileSize(snapshot.data!),
-                                            style: GoogleFonts.sourceSans3(
+                                            style: TextStyle(
                                               fontSize: 11,
                                               color: AppColors.sequencerLightText,
                                             ),
@@ -513,7 +520,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                           const SizedBox(width: 10),
                           Text(
                             'Share',
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               fontSize: 13,
                               color: AppColors.sequencerText,
                             ),
@@ -530,7 +537,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                           const SizedBox(width: 10),
                           Text(
                             'Delete',
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               fontSize: 13,
                               color: AppColors.sequencerAccent,
                             ),
@@ -674,7 +681,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
               children: [
                 Text(
                   'Add To Library',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppColors.sequencerText,
@@ -684,13 +691,13 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                 TextField(
                   controller: controller,
                   autofocus: true,
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     fontSize: 16,
                     color: AppColors.sequencerText,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Enter name',
-                    hintStyle: GoogleFonts.sourceSans3(
+                    hintStyle: TextStyle(
                       color: AppColors.sequencerLightText,
                     ),
                     filled: true,
@@ -724,7 +731,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                       ),
                       child: Text(
                         'Cancel',
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           fontSize: 14,
                           color: AppColors.sequencerLightText,
                         ),
@@ -746,7 +753,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                       ),
                       child: Text(
                         'Add',
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -814,25 +821,25 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
         ),
         title: Text(
           'Delete Take',
-          style: GoogleFonts.sourceSans3(color: AppColors.sequencerText),
+          style: TextStyle(color: AppColors.sequencerText),
         ),
         content: Text(
           'Are you sure you want to delete this take?',
-          style: GoogleFonts.sourceSans3(color: AppColors.sequencerLightText),
+          style: TextStyle(color: AppColors.sequencerLightText),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.sourceSans3(color: AppColors.sequencerLightText),
+              style: TextStyle(color: AppColors.sequencerLightText),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               'Delete',
-              style: GoogleFonts.sourceSans3(color: AppColors.sequencerAccent),
+              style: TextStyle(color: AppColors.sequencerAccent),
             ),
           ),
         ],

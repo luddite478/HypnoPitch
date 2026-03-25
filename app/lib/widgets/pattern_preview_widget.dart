@@ -137,7 +137,7 @@ class PatternPreviewWidget extends StatelessWidget {
         child: Center(
           child: Text(
             'No source',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.menuLightText,
               fontSize: 8,
             ),
@@ -155,7 +155,7 @@ class PatternPreviewWidget extends StatelessWidget {
         child: Center(
           child: Text(
             'No table',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.menuLightText,
               fontSize: 8,
             ),
@@ -176,7 +176,7 @@ class PatternPreviewWidget extends StatelessWidget {
         child: Center(
           child: Text(
             'No data',
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: AppColors.menuLightText,
               fontSize: 8,
             ),
@@ -299,7 +299,7 @@ class PatternPreviewWidget extends StatelessWidget {
                               child: Text(
                                 '${layer['index'] + 1}',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.sourceSans3(
+                                style: TextStyle(
                                   color: AppColors.menuLightText.withOpacity(0.6),
                                   fontSize: patternLayerHeaderFontSize,
                                   fontWeight: FontWeight.w500,

@@ -39,7 +39,7 @@ class CommonHeaderWidget extends StatelessWidget {
                   children: [
                     Text(
                       customTitle ?? currentUser!.name,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.menuText,

@@ -106,7 +106,7 @@ class AppHeaderWidget extends StatelessWidget implements PreferredSizeWidget {
         // Show title for settings screen
         return Text(
           title ?? 'Settings',
-          style: GoogleFonts.sourceSans3(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: AppColors.sequencerText,
@@ -124,7 +124,7 @@ class AppHeaderWidget extends StatelessWidget implements PreferredSizeWidget {
                 Text(
                   title ?? (pattern != null ? 'Pattern ${pattern.id.substring(0, 8)}' : 'Pattern'),
                   style: _isPhoneBookMode 
-                      ? GoogleFonts.sourceSans3(
+                      ? TextStyle(
                           fontSize: 16, 
                           fontWeight: FontWeight.w700,
                           color: AppColors.menuText,
@@ -136,7 +136,7 @@ class AppHeaderWidget extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     subtitle ?? '${pattern?.checkpointIds.length ?? 0} checkpoints',
                     style: _isPhoneBookMode
-                        ? GoogleFonts.sourceSans3(
+                        ? TextStyle(
                             fontSize: 11,
                             color: AppColors.menuLightText,
                             fontWeight: FontWeight.w400,

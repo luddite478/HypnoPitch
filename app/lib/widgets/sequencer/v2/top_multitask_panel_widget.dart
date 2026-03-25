@@ -13,6 +13,7 @@ import 'step_insert_settings_widget.dart';
 import 'section_settings_widget.dart';
 import 'section_management_widget.dart';
 import 'layer_settings_widget.dart';
+import 'select_settings_widget.dart';
 import '../../../utils/app_colors.dart';
 
 class MultitaskPanelWidget extends StatelessWidget {
@@ -28,7 +29,7 @@ class MultitaskPanelWidget extends StatelessWidget {
         switch (panelState.currentMode) {
           case MultitaskPanelMode.sampleSelection:
             return const SampleSelectionWidget();
-          
+
           case MultitaskPanelMode.cellSettings:
             // Show cell settings whenever any cell is selected, including empty cells.
             final bool hasSelectedCell = editState.selectedCells.isNotEmpty;
@@ -40,13 +41,14 @@ class MultitaskPanelWidget extends StatelessWidget {
               type: cellSettings.type,
               title: cellSettings.title,
               headerButtons: cellSettings.headerButtons,
-              closeAction: () => context.read<MultitaskPanelState>().showPlaceholder(),
+              closeAction: () =>
+                  context.read<MultitaskPanelState>().showPlaceholder(),
               noDataMessage: cellSettings.noDataMessage,
               noDataIcon: cellSettings.noDataIcon,
               showDeleteButton: false,
               showCloseButton: cellSettings.showCloseButton,
             );
-          
+
           case MultitaskPanelMode.sampleSettings:
             // If active sample slot is empty, show placeholder
             final bool hasSampleData = _hasActiveSampleData(sampleBankState);
@@ -58,48 +60,54 @@ class MultitaskPanelWidget extends StatelessWidget {
               type: sampleSettings.type,
               title: sampleSettings.title,
               headerButtons: sampleSettings.headerButtons,
-              closeAction: () => context.read<MultitaskPanelState>().showPlaceholder(),
+              closeAction: () =>
+                  context.read<MultitaskPanelState>().showPlaceholder(),
               noDataMessage: sampleSettings.noDataMessage,
               noDataIcon: sampleSettings.noDataIcon,
               showDeleteButton: false,
               showCloseButton: sampleSettings.showCloseButton,
             );
-          
+
           case MultitaskPanelMode.masterSettings:
             final masterSettings = SoundSettingsWidget.forMaster();
             return SoundSettingsWidget(
               type: masterSettings.type,
               title: masterSettings.title,
               headerButtons: masterSettings.headerButtons,
-              closeAction: () => context.read<MultitaskPanelState>().showPlaceholder(),
+              closeAction: () =>
+                  context.read<MultitaskPanelState>().showPlaceholder(),
               noDataMessage: masterSettings.noDataMessage,
               noDataIcon: masterSettings.noDataIcon,
               showDeleteButton: masterSettings.showDeleteButton,
               showCloseButton: masterSettings.showCloseButton,
             );
-          
+
           case MultitaskPanelMode.stepInsertSettings:
             return const StepInsertSettingsWidget();
-          
+
           case MultitaskPanelMode.shareWidget:
             return const ShareWidget();
-          
+
           case MultitaskPanelMode.sectionSettings:
             return SectionSettingsWidget(
-              closeAction: () => context.read<MultitaskPanelState>().showPlaceholder(),
+              closeAction: () =>
+                  context.read<MultitaskPanelState>().showPlaceholder(),
               showCloseButton: false,
             );
-          
+
           case MultitaskPanelMode.sectionManagement:
             return const SectionManagementWidget();
-          
+
           case MultitaskPanelMode.layerSettings:
             return const LayerSettingsWidget();
-          
+
+          case MultitaskPanelMode.selectSettings:
+            return const SelectSettingsWidget();
+
           case MultitaskPanelMode.recordingWidget:
             // Recording widget removed - recordings now auto-save as messages
             return _buildPlaceholder();
-          
+
           case MultitaskPanelMode.placeholder:
             return _buildPlaceholder();
         }
@@ -135,6 +143,7 @@ class MultitaskPanelWidget extends StatelessWidget {
 
   bool _hasActiveSampleData(SampleBankState sampleBankState) {
     final idx = sampleBankState.activeSlot;
-    return sampleBankState.isSlotLoaded(idx) || sampleBankState.getSlotName(idx) != null;
+    return sampleBankState.isSlotLoaded(idx) ||
+        sampleBankState.getSlotName(idx) != null;
   }
-} 
+}

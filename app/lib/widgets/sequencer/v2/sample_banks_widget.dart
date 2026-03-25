@@ -194,7 +194,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
           children: [
             Text(
               String.fromCharCode(65 + bank),
-              style: GoogleFonts.sourceSans3(
+              style: TextStyle(
                 color: _getTextColor(isSelected, isActive, hasFile),
                 fontWeight: FontWeight.w600,
                 fontSize: letterSize,
@@ -224,7 +224,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
                   children: [
                     Text(
                       String.fromCharCode(65 + bank),
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerText,
                         fontWeight: FontWeight.w600,
                         fontSize: letterSize,
@@ -254,7 +254,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
                   children: [
                     Text(
                       String.fromCharCode(65 + bank),
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: AppColors.sequencerLightText,
                         fontWeight: FontWeight.w600,
                         fontSize: letterSize,

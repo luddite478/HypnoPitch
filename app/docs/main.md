@@ -229,11 +229,13 @@ class AudioConversionService {
 ```bash
 cd android
 ./gradlew assembleDebug
+or 
+flutter build apk --flavor stage --debug
 ```
 
 **2. Install on Emulator or Device:**
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s DEVICE_ID  install -r build/app/outputs/flutter-apk/app-stage-debug.apk
 ```
 - The `-r` flag reinstalls the app if it already exists.
 - Make sure your emulator or device is running and visible to `adb devices`.

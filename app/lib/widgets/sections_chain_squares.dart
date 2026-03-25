@@ -128,7 +128,7 @@ class SectionsChainSquares extends StatelessWidget {
                     if (steps != null) Text(
                       'steps: $steps',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: (s * 0.22).clamp(6, 10),
                         fontWeight: FontWeight.w600,
@@ -138,7 +138,7 @@ class SectionsChainSquares extends StatelessWidget {
                     Text(
                       'loops: $loops',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.sourceSans3(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: (s * 0.22).clamp(6, 10),
                         fontWeight: FontWeight.w700,

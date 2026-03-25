@@ -55,7 +55,7 @@ class StepInsertSettingsWidget extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Jump Insert: ${editState.stepInsertSize} cells',
-                            style: GoogleFonts.sourceSans3(
+                            style: TextStyle(
                               color: AppColors.sequencerText,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,

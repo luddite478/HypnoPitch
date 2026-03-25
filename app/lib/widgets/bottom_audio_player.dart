@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../state/audio_player_state.dart';
 import '../utils/app_colors.dart';
 
@@ -15,12 +14,12 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
   bool _isDragging = false;
   double _dragValue = 0.0;
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes;
+    final seconds = d.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
-  
+
   IconData _getLoopIcon(LoopMode mode) {
     switch (mode) {
       case LoopMode.single:
@@ -46,10 +45,17 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
         final loopMode = audioPlayer.loopMode;
         final shuffleEnabled = audioPlayer.shuffleEnabled;
 
-        // Use drag value when dragging, otherwise use actual position
-        final displayPosition = _isDragging 
-            ? Duration(milliseconds: _dragValue.toInt())
-            : position;
+        final durMs = duration.inMilliseconds;
+        final posMs = position.inMilliseconds;
+        // Stream position can exceed reported duration by a tick; keep UI in range.
+        final safePosMs = durMs > 0 ? posMs.clamp(0, durMs) : 0;
+
+        final displayPosition = _isDragging
+            ? Duration(
+                milliseconds:
+                    _dragValue.round().clamp(0, durMs > 0 ? durMs : 0),
+              )
+            : Duration(milliseconds: safePosMs);
 
         return Container(
           decoration: BoxDecoration(
@@ -65,12 +71,11 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Progress bar with time labels
                   Row(
                     children: [
                       Text(
                         _formatDuration(displayPosition),
-                        style: GoogleFonts.sourceSans3(
+                        style: TextStyle(
                           color: AppColors.sequencerLightText,
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
@@ -78,46 +83,44 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: SliderTheme(
-                          data: SliderThemeData(
-                            trackHeight: 2,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-                            activeTrackColor: AppColors.sequencerAccent,
-                            inactiveTrackColor: AppColors.sequencerBorder.withOpacity(0.5),
-                            thumbColor: AppColors.sequencerText,
-                            overlayColor: AppColors.sequencerAccent.withOpacity(0.2),
-                          ),
-                          child: Slider(
-                            value: duration.inMilliseconds > 0
-                                ? (_isDragging ? _dragValue : position.inMilliseconds.toDouble())
-                                : 0.0,
-                            min: 0.0,
-                            max: duration.inMilliseconds.toDouble().clamp(1.0, double.infinity),
-                            onChangeStart: (value) {
-                              setState(() {
-                                _isDragging = true;
-                                _dragValue = value;
-                              });
-                            },
-                            onChanged: (value) {
-                              setState(() {
-                                _dragValue = value;
-                              });
-                            },
-                            onChangeEnd: (value) async {
-                              await audioPlayer.seek(Duration(milliseconds: value.toInt()));
-                              setState(() {
-                                _isDragging = false;
-                              });
-                            },
-                          ),
-                        ),
+                        child: durMs > 0
+                            ? _SeekSlider(
+                                durationMs: durMs,
+                                positionMs: safePosMs,
+                                isDragging: _isDragging,
+                                dragValue: _dragValue,
+                                onDragStart: (v) {
+                                  setState(() {
+                                    _isDragging = true;
+                                    _dragValue = v;
+                                  });
+                                },
+                                onDragUpdate: (v) {
+                                  setState(() => _dragValue = v);
+                                },
+                                onDragEnd: (v) async {
+                                  await audioPlayer.seek(
+                                    Duration(milliseconds: v),
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _isDragging = false);
+                                },
+                              )
+                            : Container(
+                                height: 2,
+                                decoration: BoxDecoration(
+                                  color: AppColors.sequencerBorder
+                                      .withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(1),
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _formatDuration(duration),
-                        style: GoogleFonts.sourceSans3(
+                        durMs > 0
+                            ? _formatDuration(duration)
+                            : '--:--',
+                        style: TextStyle(
                           color: AppColors.sequencerLightText,
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
@@ -126,11 +129,9 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Control buttons row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Shuffle button
                       IconButton(
                         icon: Icon(
                           Icons.shuffle,
@@ -142,7 +143,6 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
                         onPressed: () => audioPlayer.toggleShuffle(),
                         padding: EdgeInsets.zero,
                       ),
-                      // Previous button
                       IconButton(
                         icon: Icon(
                           Icons.skip_previous,
@@ -152,7 +152,6 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
                         onPressed: () => audioPlayer.playPrevious(),
                         padding: EdgeInsets.zero,
                       ),
-                      // Play/Pause button (larger)
                       GestureDetector(
                         onTap: () async {
                           if (isPlaying) {
@@ -175,7 +174,6 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
                           ),
                         ),
                       ),
-                      // Next button
                       IconButton(
                         icon: Icon(
                           Icons.skip_next,
@@ -185,7 +183,6 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
                         onPressed: () => audioPlayer.playNext(),
                         padding: EdgeInsets.zero,
                       ),
-                      // Loop button with modes
                       IconButton(
                         icon: Icon(
                           _getLoopIcon(loopMode),
@@ -205,6 +202,57 @@ class _BottomAudioPlayerState extends State<BottomAudioPlayer> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Slider with value always clamped to [0, durationMs]. No [Slider] when duration unknown.
+class _SeekSlider extends StatelessWidget {
+  const _SeekSlider({
+    required this.durationMs,
+    required this.positionMs,
+    required this.isDragging,
+    required this.dragValue,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+  });
+
+  final int durationMs;
+  final int positionMs;
+  final bool isDragging;
+  final double dragValue;
+  final ValueChanged<double> onDragStart;
+  final ValueChanged<double> onDragUpdate;
+  final Future<void> Function(int milliseconds) onDragEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final max = durationMs.toDouble();
+    final raw = isDragging ? dragValue : positionMs.toDouble();
+    final value = raw.clamp(0.0, max);
+
+    return SliderTheme(
+      data: SliderThemeData(
+        trackHeight: 2,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+        activeTrackColor: AppColors.sequencerAccent,
+        inactiveTrackColor: AppColors.sequencerBorder.withOpacity(0.5),
+        thumbColor: AppColors.sequencerText,
+        overlayColor: AppColors.sequencerAccent.withOpacity(0.2),
+      ),
+      child: Slider(
+        value: value,
+        min: 0,
+        max: max,
+        onChangeStart: (v) => onDragStart(v.clamp(0.0, max)),
+        onChanged: (v) => onDragUpdate(v.clamp(0.0, max)),
+        onChangeEnd: (v) async {
+          final ms = v.round().clamp(0, durationMs);
+          await onDragEnd(ms);
+        },
+      ),
     );
   }
 }

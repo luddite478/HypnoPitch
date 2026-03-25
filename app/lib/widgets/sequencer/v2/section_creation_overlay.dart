@@ -48,7 +48,7 @@ class SectionCreationOverlay extends StatelessWidget {
                 SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                 Text(
                   'Copy from:',
-                  style: GoogleFonts.sourceSans3(
+                  style: TextStyle(
                     color: AppColors.sequencerLightText,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -97,7 +97,7 @@ class SectionCreationOverlay extends StatelessWidget {
         child: Center(
           child: Text(
             text,
-            style: GoogleFonts.sourceSans3(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -131,7 +131,7 @@ class SectionCreationOverlay extends StatelessWidget {
         ),
         child: Text(
           '${sectionIndex + 1}',
-          style: GoogleFonts.sourceSans3(
+          style: TextStyle(
             color: AppColors.sequencerLightText,
             fontSize: 15,
             fontWeight: FontWeight.w600,

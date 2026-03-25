@@ -48,6 +48,10 @@ ANDROID_NDK ?= $(ANDROID_NDK_ROOT)
 ifeq ($(ANDROID_NDK),)
     ifeq ($(HOST_OS),Darwin)
         ANDROID_NDK := $(lastword $(sort $(wildcard $(HOME)/Library/Android/sdk/ndk/*)))
+    else ifneq (,$(filter MINGW% MSYS% CYGWIN%,$(HOST_OS)))
+        ANDROID_NDK := $(lastword $(sort \
+            $(wildcard $(LOCALAPPDATA)/Android/Sdk/ndk/*) \
+            $(wildcard $(HOME)/AppData/Local/Android/Sdk/ndk/*)))
     else
         ifneq (,$(findstring android16,$(TARGET_OS)))
             # Legacy fallback kept for old Linux setup compatibility.
@@ -460,7 +464,11 @@ endif
 ifneq (,$(findstring linux,$(TARGET_OS)))
 ifeq ($(MAKE_DYNAMIC_LIB),true)
     CFLAGS2 += -fPIC
-    LDFLAGS2 += -shared -Wl,-soname,$(APPNAME).so
+    ifneq (,$(findstring android,$(TARGET_OS)))
+        LDFLAGS2 += -shared -Wl,-soname,lib$(APPNAME).so
+    else
+        LDFLAGS2 += -shared -Wl,-soname,$(APPNAME).so
+    endif
     FILE_EXT = .so
 endif
 endif

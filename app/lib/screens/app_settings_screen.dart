@@ -33,7 +33,7 @@ class AppSettingsScreen extends StatelessWidget {
                   // Title
                   Text(
                     'SETTINGS',
-                    style: GoogleFonts.sourceSans3(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColors.menuText,
