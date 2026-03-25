@@ -480,20 +480,21 @@ class EditState extends ChangeNotifier {
         rowColToCell.putIfAbsent(rowAbs, () => <int, CellData>{})[colAbs] =
             cell;
       }
-      for (final rowAbs in rowColToCell.keys.toList()..sort()) {
-        // Start from current row baseline
-        final List<CellData> rowFlat = List<CellData>.generate(
-          maxCols,
-          (col) =>
-              CellData.fromPointer(_tableState.getCellPointer(rowAbs, col)),
-        );
-        // Overlay pasted cells for this row
-        final overrides = rowColToCell[rowAbs]!;
-        overrides.forEach((col, cell) {
-          rowFlat[col] = cell;
-        });
-        _tableState.updateManyCells(rowAbs, rowFlat);
-      }
+      _tableState.runCellBatchEdit(() {
+        for (final rowAbs in rowColToCell.keys.toList()..sort()) {
+          // Start from current row baseline
+          final List<CellData> rowFlat = List<CellData>.generate(
+            maxCols,
+            (col) => CellData.fromPointer(_tableState.getCellPointer(rowAbs, col)),
+          );
+          // Overlay pasted cells for this row
+          final overrides = rowColToCell[rowAbs]!;
+          overrides.forEach((col, cell) {
+            rowFlat[col] = cell;
+          });
+          _tableState.updateManyCells(rowAbs, rowFlat);
+        }
+      });
     } else {
       for (final clipData in _clipboardData) {
         final targetRow = baseRow + clipData.relativeRow;
@@ -541,16 +542,18 @@ class EditState extends ChangeNotifier {
         ? _selectionTableCols
         : _tableState.getVisibleCols().length;
 
-    for (final cellIndex in _selectedCells) {
-      final row = cellIndex ~/ tableCols;
-      final colInSlice = cellIndex % tableCols;
-      final step = sectionStart + row;
-      final col = layerStart + colInSlice;
+    _tableState.runCellBatchEdit(() {
+      for (final cellIndex in _selectedCells) {
+        final row = cellIndex ~/ tableCols;
+        final colInSlice = cellIndex % tableCols;
+        final step = sectionStart + row;
+        final col = layerStart + colInSlice;
 
-      if (step < _tableState.maxSteps && col < _tableState.maxCols) {
-        _tableState.clearCell(step, col);
+        if (step < _tableState.maxSteps && col < _tableState.maxCols) {
+          _tableState.clearCell(step, col);
+        }
       }
-    }
+    });
 
     notifyListeners();
     debugPrint('🗑️ [EDIT] Deleted ${_selectedCells.length} cells');

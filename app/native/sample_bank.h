@@ -93,6 +93,11 @@ const SampleBankState* sample_bank_state_get_ptr(void);
 __attribute__((visibility("default"))) __attribute__((used))
 void sample_bank_apply_state(const SampleBankState* state);
 
+// Internal apply mode hook:
+// when enabled, setters avoid expensive table-wide rescan/sync and undo recording.
+__attribute__((visibility("default"))) __attribute__((used))
+void sample_bank_set_apply_mode(int enabled);
+
 // Processing state hooks used by pitch module
 __attribute__((visibility("default"))) __attribute__((used))
 void sample_bank_set_processing(int slot, int processing);

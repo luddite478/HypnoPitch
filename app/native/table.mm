@@ -37,6 +37,10 @@ static uint8_t g_layer_col_solo[MAX_LAYERS_PER_SECTION][MAX_COLS_PER_LAYER] = {{
 
 // Flag to disable automatic SunVox sync during bulk operations (import/undo/redo)
 static int g_disable_sunvox_sync = 0;
+// Transaction mode for batched UI edits.
+// While active, we suppress per-cell SunVox sync and per-cell undo records.
+static int g_edit_txn_depth = 0;
+static uint8_t g_edit_txn_touched_sections[MAX_SECTIONS] = {0};
 
 // Seqlock helper functions for unified state
 static inline void state_write_begin() {
@@ -65,6 +69,21 @@ static inline void table_set_cell_defaults(Cell* cell) {
     cell->settings.volume = DEFAULT_CELL_VOLUME;
     cell->settings.pitch = DEFAULT_CELL_PITCH;
     cell->is_processing = 0;
+}
+
+static inline void table_txn_reset_touched_sections() {
+    memset(g_edit_txn_touched_sections, 0, sizeof(g_edit_txn_touched_sections));
+}
+
+static inline void table_txn_mark_section_touched(int section_index) {
+    if (section_index < 0 || section_index >= MAX_SECTIONS) return;
+    g_edit_txn_touched_sections[section_index] = 1;
+}
+
+static inline void table_txn_mark_step_touched_internal(int step) {
+    if (step < 0 || step >= MAX_SEQUENCER_STEPS) return;
+    const int section = table_get_section_at_step(step);
+    table_txn_mark_section_touched(section);
 }
 
 // Helper to recompute all section start_step values to ensure they are contiguous
@@ -160,12 +179,16 @@ void table_set_cell(int step, int col, int sample_slot, float volume, float pitc
     prnt_debug("🎵 [TABLE] Set cell [%d, %d]: slot=%d, vol=%.2f, pitch=%.2f", 
          step, col, sample_slot, volume, pitch);
 
-    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations)
-    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync) {
+    // Track touched section for batched edit reconciliation.
+    table_txn_mark_step_touched_internal(step);
+
+    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations
+    // or we're inside a batched edit transaction).
+    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync && g_edit_txn_depth == 0) {
         sunvox_wrapper_sync_cell(step, col);
     }
 
-    if (undo_record) {
+    if (undo_record && g_edit_txn_depth == 0) {
         UndoRedoManager_record();
     }
 }
@@ -181,12 +204,16 @@ void table_set_cell_settings(int step, int col, float volume, float pitch, int u
     table_mark_content_changed();
     prnt_debug("🎚️ [TABLE] Set settings [%d, %d]: vol=%.2f, pitch=%.2f", step, col, volume, pitch);
 
-    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations)
-    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync) {
+    // Track touched section for batched edit reconciliation.
+    table_txn_mark_step_touched_internal(step);
+
+    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations
+    // or we're inside a batched edit transaction).
+    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync && g_edit_txn_depth == 0) {
         sunvox_wrapper_sync_cell(step, col);
     }
 
-    if (undo_record) {
+    if (undo_record && g_edit_txn_depth == 0) {
         UndoRedoManager_record();
     }
 }
@@ -203,12 +230,16 @@ void table_set_cell_sample_slot(int step, int col, int sample_slot, int undo_rec
     table_mark_content_changed();
     prnt("🎵 [TABLE] Set sample slot [%d, %d]: slot=%d", step, col, sample_slot);
     
-    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations)
-    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync) {
+    // Track touched section for batched edit reconciliation.
+    table_txn_mark_step_touched_internal(step);
+
+    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations
+    // or we're inside a batched edit transaction).
+    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync && g_edit_txn_depth == 0) {
         sunvox_wrapper_sync_cell(step, col);
     }
     
-    if (undo_record) {
+    if (undo_record && g_edit_txn_depth == 0) {
         UndoRedoManager_record();
     }
 }
@@ -223,12 +254,16 @@ void table_clear_cell(int step, int col, int undo_record) {
     
     // prnt("🧹 [TABLE] Cleared cell [%d, %d]", step, col);  // Commented out to reduce log spam
 
-    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations)
-    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync) {
+    // Track touched section for batched edit reconciliation.
+    table_txn_mark_step_touched_internal(step);
+
+    // Sync cell to SunVox pattern (unless sync is disabled for bulk operations
+    // or we're inside a batched edit transaction).
+    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync && g_edit_txn_depth == 0) {
         sunvox_wrapper_sync_cell(step, col);
     }
 
-    if (undo_record) {
+    if (undo_record && g_edit_txn_depth == 0) {
         UndoRedoManager_record();
     }
 }
@@ -878,6 +913,36 @@ void table_disable_sunvox_sync(void) {
 void table_enable_sunvox_sync(void) {
     g_disable_sunvox_sync = 0;
     prnt("🔊 [TABLE] Enabled automatic SunVox sync");
+}
+
+void table_begin_edit_transaction(void) {
+    if (g_edit_txn_depth == 0) {
+        table_txn_reset_touched_sections();
+    }
+    g_edit_txn_depth++;
+}
+
+void table_mark_step_touched(int step) {
+    table_txn_mark_step_touched_internal(step);
+}
+
+void table_end_edit_transaction(int record_undo) {
+    if (g_edit_txn_depth <= 0) return;
+    g_edit_txn_depth--;
+    if (g_edit_txn_depth > 0) return;
+
+    // Flush one section-level sync per touched section.
+    if (sunvox_wrapper_is_initialized() && !g_disable_sunvox_sync) {
+        for (int section = 0; section < g_table_state.sections_count; section++) {
+            if (!g_edit_txn_touched_sections[section]) continue;
+            sunvox_wrapper_sync_section(section);
+        }
+    }
+
+    if (record_undo) {
+        UndoRedoManager_record();
+    }
+    table_txn_reset_touched_sections();
 }
 
 // Apply a native snapshot used by Undo/Redo

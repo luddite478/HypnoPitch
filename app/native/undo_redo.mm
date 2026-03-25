@@ -1,4 +1,5 @@
 #include "undo_redo.h"
+#include "sunvox_wrapper.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -91,7 +92,17 @@ static void apply_snapshot_at_cursor(void) {
     const SequencerSnapshot* e = &g_undo_redo_state.history[g_undo_redo_state.cursor];
     if (e->table) table_apply_state(e->table);
     if (e->playback) playback_apply_state(e->playback);
+    sample_bank_set_apply_mode(1);
     if (e->sample_bank) sample_bank_apply_state(e->sample_bank);
+    sample_bank_set_apply_mode(0);
+    // Reconcile SunVox events from restored table/sample state so audible state
+    // matches the just-applied snapshot deterministically.
+    if (sunvox_wrapper_is_initialized()) {
+        const int sections_count = table_get_sections_count();
+        for (int section = 0; section < sections_count; section++) {
+            sunvox_wrapper_sync_section(section);
+        }
+    }
     g_undo_redo_state.is_applying = 0;
 }
 

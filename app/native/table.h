@@ -206,6 +206,19 @@ void table_disable_sunvox_sync(void);
 __attribute__((visibility("default"))) __attribute__((used))
 void table_enable_sunvox_sync(void);
 
+// Batched edit transaction:
+// - suppress per-cell SunVox sync and per-cell undo records during a batch
+// - accumulate touched sections
+// - flush section sync and one undo record at end
+__attribute__((visibility("default"))) __attribute__((used))
+void table_begin_edit_transaction(void);
+
+__attribute__((visibility("default"))) __attribute__((used))
+void table_mark_step_touched(int step);
+
+__attribute__((visibility("default"))) __attribute__((used))
+void table_end_edit_transaction(int record_undo);
+
 
 #ifdef __cplusplus
 }

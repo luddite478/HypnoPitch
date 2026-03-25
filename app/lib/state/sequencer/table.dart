@@ -514,6 +514,40 @@ class TableState extends ChangeNotifier {
     _table_ffi.tableEnableSunvoxSync();
   }
 
+  /// Begin a native batched cell-edit transaction.
+  /// During transaction, native suppresses per-cell SunVox sync and per-cell undo records.
+  void beginCellBatchEdit() {
+    _table_ffi.tableBeginEditTransaction();
+  }
+
+  /// Mark a step as touched for the current native batch transaction.
+  void markBatchStepTouched(int step) {
+    _table_ffi.tableMarkStepTouched(step);
+  }
+
+  /// End native batched cell-edit transaction.
+  /// When [recordUndo] is true, native records one composite undo snapshot.
+  void endCellBatchEdit({bool recordUndo = true}) {
+    _table_ffi.tableEndEditTransaction(recordUndo ? 1 : 0);
+  }
+
+  /// Run multiple cell edits as one undo + section-sync transaction.
+  /// Ensures native transaction is always closed even if callback throws.
+  void runCellBatchEdit(void Function() applyEdits, {bool recordUndo = true}) {
+    beginCellBatchEdit();
+    var closed = false;
+    try {
+      applyEdits();
+      endCellBatchEdit(recordUndo: recordUndo);
+      closed = true;
+    } finally {
+      if (!closed) {
+        // Ensure transaction depth does not leak on exceptions.
+        endCellBatchEdit(recordUndo: false);
+      }
+    }
+  }
+
   /// Update cell audio settings (volume, pitch) while preserving sample slot
   void setCellSettings(int step, int col,
       {double? volume, double? pitch, bool undoRecord = true}) {

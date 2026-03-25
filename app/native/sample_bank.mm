@@ -28,6 +28,8 @@
 // Unified state (authoritative) and decoders
 static SampleBankState g_sample_bank_state;   // single source of truth
 static ma_decoder g_sample_decoders[MAX_SAMPLE_SLOTS];
+// During snapshot-apply we suppress expensive rescan/sync in setters.
+static int g_sample_bank_apply_mode = 0;
 
 static inline void state_write_begin() { g_sample_bank_state.version++; }
 static inline void state_write_end()   { g_sample_bank_state.version++; }
@@ -129,7 +131,9 @@ int sample_bank_load(int slot, const char* file_path) {
     state_write_begin();
     state_recompute_prefix();
     state_write_end();
-    UndoRedoManager_record();
+    if (!g_sample_bank_apply_mode) {
+        UndoRedoManager_record();
+    }
     return 0;
 }
 
@@ -187,7 +191,9 @@ void sample_bank_unload(int slot) {
     state_write_begin();
     state_recompute_prefix();
     state_write_end();
-    UndoRedoManager_record();
+    if (!g_sample_bank_apply_mode) {
+        UndoRedoManager_record();
+    }
 }
 
 int sample_bank_play(int slot) {
@@ -264,17 +270,18 @@ void sample_bank_set_sample_volume(int slot, float volume) {
     g_sample_bank_state.samples[slot].settings.volume = volume;
     state_write_end();
 
-    // Re-sync all cells using this sample with default volume
-    for (int i = 0; i < table_get_max_steps(); i++) {
-        for (int j = 0; j < table_get_max_cols(); j++) {
-            Cell* cell = table_get_cell(i, j);
-            if (cell && cell->sample_slot == slot && cell->settings.volume == DEFAULT_CELL_VOLUME) {
-                sunvox_wrapper_sync_cell(i, j);
+    if (!g_sample_bank_apply_mode) {
+        // Re-sync all cells using this sample with default volume
+        for (int i = 0; i < table_get_max_steps(); i++) {
+            for (int j = 0; j < table_get_max_cols(); j++) {
+                Cell* cell = table_get_cell(i, j);
+                if (cell && cell->sample_slot == slot && cell->settings.volume == DEFAULT_CELL_VOLUME) {
+                    sunvox_wrapper_sync_cell(i, j);
+                }
             }
         }
+        UndoRedoManager_record();
     }
-
-    UndoRedoManager_record();
 }
 
 void sample_bank_set_sample_pitch(int slot, float pitch) {
@@ -289,23 +296,26 @@ void sample_bank_set_sample_pitch(int slot, float pitch) {
     g_sample_bank_state.samples[slot].settings.pitch = pitch;
     state_write_end();
 
-    // Re-sync all cells using this sample with default pitch
-    for (int i = 0; i < table_get_max_steps(); i++) {
-        for (int j = 0; j < table_get_max_cols(); j++) {
-            Cell* cell = table_get_cell(i, j);
-            if (cell && cell->sample_slot == slot && cell->settings.pitch == DEFAULT_CELL_PITCH) {
-                sunvox_wrapper_sync_cell(i, j);
+    if (!g_sample_bank_apply_mode) {
+        // Re-sync all cells using this sample with default pitch
+        for (int i = 0; i < table_get_max_steps(); i++) {
+            for (int j = 0; j < table_get_max_cols(); j++) {
+                Cell* cell = table_get_cell(i, j);
+                if (cell && cell->sample_slot == slot && cell->settings.pitch == DEFAULT_CELL_PITCH) {
+                    sunvox_wrapper_sync_cell(i, j);
+                }
             }
         }
+        UndoRedoManager_record();
     }
-
-    UndoRedoManager_record();
 }
 
 const SampleBankState* sample_bank_get_state_ptr(void) { return &g_sample_bank_state; }
 
 void sample_bank_apply_state(const SampleBankState* s) {
     if (s == NULL) return;
+    const int prev_apply_mode = g_sample_bank_apply_mode;
+    g_sample_bank_apply_mode = 1;
     // Apply by loading/unloading files and setting params
     for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
         int wantLoaded = s->samples[i].loaded;
@@ -323,6 +333,7 @@ void sample_bank_apply_state(const SampleBankState* s) {
             sample_bank_set_sample_pitch(i, s->samples[i].settings.pitch);
         }
     }
+    g_sample_bank_apply_mode = prev_apply_mode;
 }
 
 void sample_bank_set_sample_settings(int slot, float volume, float pitch) {
@@ -340,21 +351,26 @@ void sample_bank_set_sample_settings(int slot, float volume, float pitch) {
     g_sample_bank_state.samples[slot].settings.pitch = pitch;
     state_write_end();
 
-    // Re-sync all cells using this sample with default pitch or volume
-    for (int i = 0; i < table_get_max_steps(); i++) {
-        for (int j = 0; j < table_get_max_cols(); j++) {
-            Cell* cell = table_get_cell(i, j);
-            if (cell && cell->sample_slot == slot && (cell->settings.pitch == DEFAULT_CELL_PITCH || cell->settings.volume == DEFAULT_CELL_VOLUME)) {
-                sunvox_wrapper_sync_cell(i, j);
+    if (!g_sample_bank_apply_mode) {
+        // Re-sync all cells using this sample with default pitch or volume
+        for (int i = 0; i < table_get_max_steps(); i++) {
+            for (int j = 0; j < table_get_max_cols(); j++) {
+                Cell* cell = table_get_cell(i, j);
+                if (cell && cell->sample_slot == slot && (cell->settings.pitch == DEFAULT_CELL_PITCH || cell->settings.volume == DEFAULT_CELL_VOLUME)) {
+                    sunvox_wrapper_sync_cell(i, j);
+                }
             }
         }
+        UndoRedoManager_record();
     }
-
-    UndoRedoManager_record();
 }
 
 const SampleBankState* sample_bank_state_get_ptr(void) {
     return &g_sample_bank_state;
+}
+
+void sample_bank_set_apply_mode(int enabled) {
+    g_sample_bank_apply_mode = enabled ? 1 : 0;
 }
 
 #ifdef __cplusplus

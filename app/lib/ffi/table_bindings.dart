@@ -179,6 +179,26 @@ class TableBindings {
     tableEnableSunvoxSync =
         _tableEnableSunvoxSyncPtr.asFunction<void Function()>();
 
+    _tableBeginEditTransactionPtr =
+        lib.lookup<ffi.NativeFunction<ffi.Void Function()>>(
+            'table_begin_edit_transaction');
+    tableBeginEditTransaction =
+        _tableBeginEditTransactionPtr.asFunction<void Function()>();
+
+    _tableMarkStepTouchedPtr = lib.lookup<
+        ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>(
+      'table_mark_step_touched',
+    );
+    tableMarkStepTouched =
+        _tableMarkStepTouchedPtr.asFunction<void Function(int)>();
+
+    _tableEndEditTransactionPtr = lib.lookup<
+        ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>(
+      'table_end_edit_transaction',
+    );
+    tableEndEditTransaction =
+        _tableEndEditTransactionPtr.asFunction<void Function(int)>();
+
     _tableInsertStepPtr = lib.lookup<
         ffi.NativeFunction<
             ffi.Void Function(
@@ -371,6 +391,18 @@ class TableBindings {
   late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>
       _tableEnableSunvoxSyncPtr;
   late final void Function() tableEnableSunvoxSync;
+
+  late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>
+      _tableBeginEditTransactionPtr;
+  late final void Function() tableBeginEditTransaction;
+
+  late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>
+      _tableMarkStepTouchedPtr;
+  late final void Function(int) tableMarkStepTouched;
+
+  late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>
+      _tableEndEditTransactionPtr;
+  late final void Function(int) tableEndEditTransaction;
 
   late final ffi.Pointer<
           ffi
