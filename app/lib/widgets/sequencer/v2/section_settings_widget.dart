@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../utils/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../state/app_state.dart';
 import '../../../state/sequencer/table.dart';
 import '../../../state/sequencer/playback.dart';
 
@@ -32,6 +32,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
   Widget build(BuildContext context) {
     return Consumer2<TableState, PlaybackState>(
       builder: (context, tableState, playbackState, child) {
+        final appState = context.watch<AppState>();
         return LayoutBuilder(
           builder: (context, constraints) {
             // Calculate responsive sizes based on available space - INHERIT from parent
@@ -94,7 +95,13 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                   // Control tile area - controllable via _sliderTileHeightPercent
                   Expanded(
                     flex: (_sliderTileHeightPercent * 100).round(),
-                    child: _buildLoopsControl(playbackState, currentSection, contentHeight, padding, labelFontSize),
+                    child: (_selectedControl == 'STEPS' ||
+                            appState.activeTutorialStep ==
+                                TutorialStep.sequencerSectionTwoStepsHint)
+                        ? _buildStepsControl(tableState, currentSection,
+                            contentHeight, padding, appState)
+                        : _buildLoopsControl(playbackState, currentSection,
+                            contentHeight, padding, labelFontSize),
                   ),
                   
                   // Bottom spacer - controllable via _spacingHeight
@@ -168,6 +175,21 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                     });
                   }
                 ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.only(right: availableWidth * 0.02),
+              child: SizedBox(
+                width: availableWidth * 0.20, // 20% of available width
+                child: _buildSettingsButton(
+                    'STEPS',
+                    _selectedControl == 'STEPS',
+                    headerHeight * 0.7,
+                    labelFontSize, () {
+                  setState(() {
+                    _selectedControl = 'STEPS';
+                  });
+                }),
               ),
             ),
             
@@ -368,12 +390,14 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
   }
 
   Widget _buildArrowButton(BuildContext context, {
+    Key? key,
     required IconData icon,
     required VoidCallback onTap,
     required bool enabled,
     required double size,
   }) {
     return GestureDetector(
+      key: key,
       onTap: enabled ? onTap : null,
       child: Container(
         width: size,
@@ -400,6 +424,109 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
             size: size * 0.70, // 70% of button size for bigger arrows
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStepsControl(
+    TableState tableState,
+    int currentSection,
+    double height,
+    double padding,
+    AppState appState,
+  ) {
+    return Container(
+      padding:
+          EdgeInsets.symmetric(horizontal: padding * 0.3, vertical: padding * 0.15),
+      decoration: BoxDecoration(
+        color: AppColors.sequencerSurfaceRaised,
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(
+          color: AppColors.sequencerBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 1,
+            offset: const Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: Builder(
+        builder: (context) {
+          final stepCount = tableState.getSectionStepCount(currentSection);
+          final availableHeight = height - (padding * 0.3);
+          final buttonSize = availableHeight * 0.75;
+          final counterWidth = availableHeight * 1.05;
+          final counterHeight = availableHeight * 0.75;
+          final spacing = availableHeight * 0.3;
+
+          return Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildArrowButton(
+                  context,
+                  key: appState.activeTutorialStep ==
+                          TutorialStep.sequencerSectionTwoStepsHint
+                      ? appState.sectionStepsDecreaseTutorialKey
+                      : null,
+                  icon: Icons.chevron_left,
+                  onTap: () {
+                    if (stepCount > 1) {
+                      tableState.setSectionStepCount(currentSection, stepCount - 1);
+                      HapticFeedback.selectionClick();
+                    }
+                  },
+                  enabled: stepCount > 1,
+                  size: buttonSize,
+                ),
+                SizedBox(width: spacing),
+                Container(
+                  width: counterWidth,
+                  height: counterHeight,
+                  decoration: BoxDecoration(
+                    color: AppColors.sequencerSurfacePressed,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$stepCount',
+                      style: TextStyle(
+                        color: AppColors.sequencerAccent,
+                        fontSize: counterHeight * 0.6,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: spacing),
+                _buildArrowButton(
+                  context,
+                  key: appState.activeTutorialStep ==
+                          TutorialStep.sequencerSectionTwoStepsHint
+                      ? appState.sectionStepsIncreaseTutorialKey
+                      : null,
+                  icon: Icons.chevron_right,
+                  onTap: () {
+                    if (stepCount < tableState.maxSteps) {
+                      tableState.setSectionStepCount(currentSection, stepCount + 1);
+                      HapticFeedback.selectionClick();
+                    }
+                  },
+                  enabled: stepCount < tableState.maxSteps,
+                  size: buttonSize,
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

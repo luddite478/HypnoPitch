@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/app_colors.dart';
 import '../../../state/sequencer/edit.dart';
 import '../../../state/sequencer/multitask_panel.dart';
@@ -32,7 +31,7 @@ class EditButtonsWidget extends StatelessWidget {
       builder: (context, tableState, editState, sampleBankState, uiSelection,
           child) {
         final appState = context.watch<AppState>();
-        if (appState.activeTutorialStep == TutorialStep.sequencerSelectMultipleHint &&
+        if (appState.activeTutorialStep == TutorialStep.sequencerSelectModeHint &&
             editState.selectedCells.length > 1) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
@@ -40,7 +39,7 @@ class EditButtonsWidget extends StatelessWidget {
           });
         }
         if (appState.activeTutorialStep ==
-                TutorialStep.sequencerJumpValuePasteHint &&
+                TutorialStep.sequencerJumpPasteHint &&
             editState.stepInsertSize == 2) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
@@ -91,10 +90,7 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
-                        key: appState.activeTutorialStep ==
-                                TutorialStep.sequencerSelectModeHint
-                            ? appState.selectModeButtonTutorialKey
-                            : null,
+                        key: appState.selectModeButtonTutorialKey,
                         label: 'SELECT',
                         height: buttonHeight,
                         fontSize: textFontSize,
@@ -128,9 +124,7 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _JumpButtonWithFeedback(
-                        key: appState.activeTutorialStep == TutorialStep.sequencerJumpHint
-                            ? appState.jumpButtonTutorialKey
-                            : null,
+                        key: appState.jumpButtonTutorialKey,
                         label: 'JUMP ${editState.stepInsertSize}',
                         height: buttonHeight,
                         fontSize: textFontSize,
@@ -148,9 +142,7 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
-                        key: appState.activeTutorialStep == TutorialStep.sequencerDeleteHint
-                            ? appState.deleteButtonTutorialKey
-                            : null,
+                        key: appState.deleteButtonTutorialKey,
                         label: 'DEL',
                         height: buttonHeight,
                         fontSize: textFontSize,
@@ -195,9 +187,7 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
-                        key: appState.activeTutorialStep == TutorialStep.sequencerCopyPasteHint
-                            ? appState.copyButtonTutorialKey
-                            : null,
+                        key: appState.copyButtonTutorialKey,
                         label: 'COPY',
                         height: buttonHeight,
                         fontSize: textFontSize,
@@ -224,9 +214,7 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(
                       width: buttonWidth,
                       child: _buildTextActionButton(
-                        key: appState.activeTutorialStep == TutorialStep.sequencerCopyPasteHint
-                            ? appState.pasteButtonTutorialKey
-                            : null,
+                        key: appState.pasteButtonTutorialKey,
                         label: 'PASTE',
                         height: buttonHeight,
                         fontSize: textFontSize,

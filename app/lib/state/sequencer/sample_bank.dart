@@ -12,13 +12,14 @@ import 'package:path_provider/path_provider.dart';
 import '../../ffi/sample_bank_bindings.dart';
 import '../../utils/app_colors.dart';
 import 'ui_selection.dart';
+import 'sync_profiling_helpers.dart';
 
 /// Simple data class to hold native sample bank state snapshot
 class _NativeSampleBankState {
   final int maxSlots;
   final int loadedCount;
   final ffi.Pointer<Sample> samplesPtr;
-  
+
   const _NativeSampleBankState({
     required this.maxSlots,
     required this.loadedCount,
@@ -27,19 +28,20 @@ class _NativeSampleBankState {
 }
 
 /// Flutter state management for native sample bank
-/// 
+///
 /// This follows the same pattern as playback.dart with authoritative native state
 /// and seqlock-based synchronization. Native holds all sample loading state,
 /// Flutter only maintains UI helpers and ValueNotifiers for reactive updates.
 class SampleBankState extends ChangeNotifier {
   static const int maxSampleSlots = 26; // A-Z (0-25)
-  static const int _lastDedicatedUserSlot = 24; // Keep Z(25) for preview/recording paths
-  
+  static const int _lastDedicatedUserSlot =
+      24; // Keep Z(25) for preview/recording paths
+
   final SampleBankBindings _sample_bank_ffi;
-  
+
   // Auto-save callback (set by ThreadsState)
   void Function()? _onStateChanged;
-  
+
   // Private state fields (synced from native)
   int _maxSlots = 26;
   int _loadedCount = 0;
@@ -49,20 +51,25 @@ class SampleBankState extends ChangeNotifier {
   final Map<int, ValueNotifier<double>> _sampleVolumeNotifiers = {};
   final Map<int, ValueNotifier<double>> _samplePitchNotifiers = {};
   final Map<int, ValueNotifier<bool>> _sampleProcessingNotifiers = {};
-  
+
   // UI-only state (not synced from native)
   final List<String?> _slotNames = List.filled(maxSampleSlots, null);
   final List<String?> _slotPaths = List.filled(maxSampleSlots, null);
-  final List<Color?> _sampleColors = List.filled(maxSampleSlots, null); // Project-specific colors
+  final List<Color?> _sampleColors =
+      List.filled(maxSampleSlots, null); // Project-specific colors
   // Sample offsets (in frames at 48kHz) - managed by Flutter, synced to native via pattern updates
   final List<int> _sampleOffsets = List.filled(maxSampleSlots, 0);
   int _activeSlot = 0;
-  
+  int _lastSyncedVersion = -1;
+  final SyncProfiler _syncProfiler =
+      SyncProfiler(profileLabel: 'SAMPLE_BANK_PROFILE');
+
   // ValueNotifiers for UI binding
   final ValueNotifier<int> loadedCountNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<List<bool>> slotsLoadedNotifier = ValueNotifier<List<bool>>(List.filled(maxSampleSlots, false));
+  final ValueNotifier<List<bool>> slotsLoadedNotifier =
+      ValueNotifier<List<bool>>(List.filled(maxSampleSlots, false));
   final ValueNotifier<int> activeSlotNotifier = ValueNotifier<int>(0);
-  
+
   final UiSelectionState? _uiSelection; // optional injection
 
   SampleBankState({UiSelectionState? uiSelection})
@@ -70,44 +77,46 @@ class SampleBankState extends ChangeNotifier {
         _uiSelection = uiSelection {
     _initializeSampleBank();
   }
-  
+
   void _initializeSampleBank() {
     Log.d('🏗️ [SAMPLE_BANK_STATE] Initializing sample bank state');
-    
+
     // Ensure native sample bank is initialized/reset
     _sample_bank_ffi.sampleBankInit();
-    
+
     // Sync initial state from native
     syncSampleBankState();
-    
+
     Log.d('✅ [SAMPLE_BANK_STATE] Sample bank state initialized');
   }
-  
+
   /// Load sample into a slot by manifest ID (required).
   Future<bool> loadSample(int slot, String sampleId) async {
     return _loadSampleByManifestId(slot, sampleId);
   }
 
   /// Load recorded audio from file path (not asset)
-  /// 
+  ///
   /// This method loads audio files directly from the filesystem (e.g., recorded WAV files)
   /// rather than from Flutter assets. Used for loading microphone recordings into samples.
-  Future<bool> loadRecordedAudio(int slot, String filePath, {String? displayName}) async {
+  Future<bool> loadRecordedAudio(int slot, String filePath,
+      {String? displayName}) async {
     if (slot < 0 || slot >= maxSampleSlots) {
       Log.d('❌ [SAMPLE_BANK_STATE] Invalid slot: $slot');
       return false;
     }
-    
+
     try {
-      Log.d('🎙️ [SAMPLE_BANK_STATE] Loading recorded audio into slot $slot: $filePath');
-      
+      Log.d(
+          '🎙️ [SAMPLE_BANK_STATE] Loading recorded audio into slot $slot: $filePath');
+
       // Check if file exists
       final file = File(filePath);
       if (!await file.exists()) {
         Log.d('❌ [SAMPLE_BANK_STATE] File does not exist: $filePath');
         return false;
       }
-      
+
       // Convert file path to native C string
       final pathBytes = utf8.encode(filePath);
       final pathPtr = calloc<ffi.Char>(pathBytes.length + 1);
@@ -115,7 +124,7 @@ class SampleBankState extends ChangeNotifier {
         pathPtr[i] = pathBytes[i];
       }
       pathPtr[pathBytes.length] = 0;
-      
+
       // Use special ID for recorded audio with timestamp
       final sampleId = 'recording_${DateTime.now().millisecondsSinceEpoch}';
       final idBytes = utf8.encode(sampleId);
@@ -124,17 +133,18 @@ class SampleBankState extends ChangeNotifier {
         idPtr[i] = idBytes[i];
       }
       idPtr[idBytes.length] = 0;
-      
-      final result = _sample_bank_ffi.sampleBankLoadWithId(slot, pathPtr, idPtr);
-      
+
+      final result =
+          _sample_bank_ffi.sampleBankLoadWithId(slot, pathPtr, idPtr);
+
       calloc.free(pathPtr);
       calloc.free(idPtr);
-      
+
       if (result == 0) {
         _slotNames[slot] = displayName ?? 'Recorded Audio';
         _slotPaths[slot] = filePath;
         _sampleColors[slot] = const Color(0xFFE57373); // Red for recordings
-        
+
         Log.d('✅ [SAMPLE_BANK_STATE] Loaded recorded audio into slot $slot');
         syncSampleBankState();
         notifyListeners();
@@ -150,17 +160,20 @@ class SampleBankState extends ChangeNotifier {
   }
 
   /// Load sample from asset path into slot with a stable sampleId (internal)
-  Future<bool> _loadSampleWithId(int slot, String assetPath, String sampleId) async {
+  Future<bool> _loadSampleWithId(
+      int slot, String assetPath, String sampleId) async {
     if (slot < 0 || slot >= maxSampleSlots) {
       Log.d('❌ [SAMPLE_BANK_STATE] Invalid slot: $slot');
       return false;
     }
     try {
-      Log.d('📂 [SAMPLE_BANK_STATE] Loading sample with id into slot $slot: $assetPath (id=$sampleId)');
+      Log.d(
+          '📂 [SAMPLE_BANK_STATE] Loading sample with id into slot $slot: $assetPath (id=$sampleId)');
 
       final tempFilePath = await _copyAssetToTempFile(assetPath);
       if (tempFilePath == null) {
-        Log.d('❌ [SAMPLE_BANK_STATE] Failed to copy asset to temp file: $assetPath');
+        Log.d(
+            '❌ [SAMPLE_BANK_STATE] Failed to copy asset to temp file: $assetPath');
         return false;
       }
 
@@ -180,7 +193,8 @@ class SampleBankState extends ChangeNotifier {
       }
       idPtr[idBytes.length] = 0;
 
-      final result = _sample_bank_ffi.sampleBankLoadWithId(slot, pathPtr, idPtr);
+      final result =
+          _sample_bank_ffi.sampleBankLoadWithId(slot, pathPtr, idPtr);
 
       calloc.free(pathPtr);
       calloc.free(idPtr);
@@ -188,18 +202,20 @@ class SampleBankState extends ChangeNotifier {
       if (result == 0) {
         _slotNames[slot] = assetPath.split('/').last;
         _slotPaths[slot] = assetPath;
-        
+
         // Assign color from default palette if not already set (preserve project colors on import)
         if (_sampleColors[slot] == null) {
           final color = _defaultBankColors[slot % _defaultBankColors.length];
           _sampleColors[slot] = color;
           Log.d('🎨 [SAMPLE_BANK_STATE] Assigned color to slot $slot');
         }
-        
-        Log.d('✅ [SAMPLE_BANK_STATE] Loaded sample $slot with id: ${_slotNames[slot]}');
+
+        Log.d(
+            '✅ [SAMPLE_BANK_STATE] Loaded sample $slot with id: ${_slotNames[slot]}');
         return true;
       } else {
-        Log.d('❌ [SAMPLE_BANK_STATE] Failed to load sample with id $slot: $result');
+        Log.d(
+            '❌ [SAMPLE_BANK_STATE] Failed to load sample with id $slot: $result');
         return false;
       }
     } catch (e) {
@@ -211,7 +227,8 @@ class SampleBankState extends ChangeNotifier {
   /// Load sample by manifest id using samples_manifest.json (internal)
   Future<bool> _loadSampleByManifestId(int slot, String sampleId) async {
     try {
-      final manifestString = await rootBundle.loadString('samples_manifest.json');
+      final manifestString =
+          await rootBundle.loadString('samples_manifest.json');
       final fullManifest = json.decode(manifestString);
       if (fullManifest is Map && fullManifest.containsKey('samples')) {
         final samplesMap = fullManifest['samples'] as Map<String, dynamic>;
@@ -220,7 +237,8 @@ class SampleBankState extends ChangeNotifier {
           final assetPath = entry['path'] as String;
           return await _loadSampleWithId(slot, assetPath, sampleId);
         } else {
-          Log.d('❌ [SAMPLE_BANK_STATE] Manifest id not found or invalid: $sampleId');
+          Log.d(
+              '❌ [SAMPLE_BANK_STATE] Manifest id not found or invalid: $sampleId');
           return false;
         }
       } else {
@@ -232,25 +250,25 @@ class SampleBankState extends ChangeNotifier {
       return false;
     }
   }
-  
+
   /// Copy Flutter asset to temporary file for native access
   Future<String?> _copyAssetToTempFile(String assetPath) async {
     try {
       // Load asset as bytes
       final ByteData data = await rootBundle.load(assetPath);
       final Uint8List bytes = data.buffer.asUint8List();
-      
+
       // Get temporary directory
       final Directory tempDir = await getTemporaryDirectory();
-      
+
       // Create unique filename
       final String fileName = assetPath.split('/').last;
       final String tempPath = '${tempDir.path}/sample_$fileName';
-      
+
       // Write bytes to temp file
       final File tempFile = File(tempPath);
       await tempFile.writeAsBytes(bytes);
-      
+
       Log.d('📁 [SAMPLE_BANK_STATE] Copied asset to temp file: $tempPath');
       return tempPath;
     } catch (e) {
@@ -258,25 +276,25 @@ class SampleBankState extends ChangeNotifier {
       return null;
     }
   }
-  
+
   /// Unload sample from slot
   void unloadSample(int slot) {
     if (slot < 0 || slot >= maxSampleSlots) {
       Log.d('❌ [SAMPLE_BANK_STATE] Invalid slot: $slot');
       return;
     }
-    
+
     _sample_bank_ffi.sampleBankUnload(slot);
-    
+
     // Clear UI-only metadata
     _slotNames[slot] = null;
     _slotPaths[slot] = null;
     _sampleColors[slot] = null; // Clear color when unloading
-    
+
     // Native state will be synced automatically by timer
     Log.d('🗑️ [SAMPLE_BANK_STATE] Unloaded sample $slot');
   }
-  
+
   /// Set active slot for UI
   void setActiveSlot(int slot) {
     if (slot >= 0 && slot < maxSampleSlots) {
@@ -288,23 +306,24 @@ class SampleBankState extends ChangeNotifier {
       _uiSelection?.selectSampleBank(slot);
     }
   }
-  
+
   /// Get slot letter (A-Z)
   String getSlotLetter(int slot) {
     if (slot < 0 || slot >= maxSampleSlots) return '?';
     return String.fromCharCode(65 + slot); // A=65
   }
-  
+
   /// Get slot index from letter
   int getSlotFromLetter(String letter) {
     if (letter.length != 1) return -1;
     final code = letter.toUpperCase().codeUnitAt(0);
-    if (code >= 65 && code <= 90) { // A-Z
+    if (code >= 65 && code <= 90) {
+      // A-Z
       return code - 65;
     }
     return -1;
   }
-  
+
   // Direct sample access (like table system)
   ffi.Pointer<Sample> getSamplePointer(int slot) {
     return _sample_bank_ffi.sampleBankGetSample(slot);
@@ -336,21 +355,22 @@ class SampleBankState extends ChangeNotifier {
 
     return null;
   }
-  
+
   SampleData getSampleData(int slot) {
     final ptr = getSamplePointer(slot);
     if (ptr.address == 0) {
-      return const SampleData(loaded: false, volume: 1.0, pitch: 1.0, isProcessing: false);
+      return const SampleData(
+          loaded: false, volume: 1.0, pitch: 1.0, isProcessing: false);
     }
     return SampleData.fromPointer(ptr);
   }
-  
+
   void setSampleVolume(int slot, double volume) {
     _sample_bank_ffi.sampleBankSetSampleVolume(slot, volume);
     // Update notifier for reactive UI
     _sampleVolumeNotifiers[slot]?.value = volume;
   }
-  
+
   void setSamplePitch(int slot, double pitch) {
     _sample_bank_ffi.sampleBankSetSamplePitch(slot, pitch);
     // Update notifier for reactive UI
@@ -364,20 +384,22 @@ class SampleBankState extends ChangeNotifier {
     _sample_bank_ffi.sampleBankSetSampleSettings(slot, v, p);
     _sampleVolumeNotifiers[slot]?.value = v;
     _samplePitchNotifiers[slot]?.value = p;
-    Log.d('🎚️ [SAMPLE_BANK_STATE] Set sample settings slot=$slot vol=${volume?.toStringAsFixed(2)} pitch=${pitch?.toStringAsFixed(2)}');
+    Log.d(
+        '🎚️ [SAMPLE_BANK_STATE] Set sample settings slot=$slot vol=${volume?.toStringAsFixed(2)} pitch=${pitch?.toStringAsFixed(2)}');
   }
 
   /// Set offset for sample slot (in frames)
   void setSampleOffset(int slot, int offsetFrames) {
     if (slot >= 0 && slot < maxSampleSlots) {
       _sampleOffsets[slot] = offsetFrames.clamp(0, 16777215);
-      
+
       // TODO: Resync all cells using this sample
       // This would require calling sunvox_wrapper_sync_cell for each cell
       // For now, offset changes will be reflected on next pattern sync
-      
+
       notifyListeners();
-      Log.d('🎯 [SAMPLE_BANK_STATE] Set sample offset slot=$slot frames=$offsetFrames');
+      Log.d(
+          '🎯 [SAMPLE_BANK_STATE] Set sample offset slot=$slot frames=$offsetFrames');
     }
   }
 
@@ -388,30 +410,30 @@ class SampleBankState extends ChangeNotifier {
     }
     return 0;
   }
-  
+
   // Getters (state comes from native, metadata from local)
   bool isSlotLoaded(int slot) {
     if (slot < 0 || slot >= maxSampleSlots) return false;
     return _slotsLoaded[slot];
   }
-  
+
   String? getSlotName(int slot) {
     if (slot < 0 || slot >= maxSampleSlots) return null;
     return _slotNames[slot];
   }
-  
+
   String? getSlotPath(int slot) {
     if (slot < 0 || slot >= maxSampleSlots) return null;
     return _slotPaths[slot];
   }
-  
+
   int get activeSlot => _activeSlot;
   int get maxSlots => _maxSlots;
   int get loadedCount => _loadedCount;
   List<bool> get slotsLoaded => List.unmodifiable(_slotsLoaded);
   List<String?> get slotNames => List.unmodifiable(_slotNames);
   List<String?> get slotPaths => List.unmodifiable(_slotPaths);
-  
+
   // Convenience getter that uses native count instead of recalculating
   int get loadedSampleCount => _loadedCount;
 
@@ -422,7 +444,7 @@ class SampleBankState extends ChangeNotifier {
       return ValueNotifier<double>(data.volume);
     });
   }
-  
+
   ValueNotifier<double> getSamplePitchNotifier(int slot) {
     return _samplePitchNotifiers.putIfAbsent(slot, () {
       final data = getSampleData(slot);
@@ -436,7 +458,7 @@ class SampleBankState extends ChangeNotifier {
       return ValueNotifier<bool>(data.isProcessing);
     });
   }
-  
+
   // UI-only helpers for V2 compatibility
   static const List<Color> _defaultBankColors = [
     Color(0xFFE57373), // Red
@@ -456,14 +478,15 @@ class SampleBankState extends ChangeNotifier {
     Color(0xFF7986CB), // Indigo
     Color(0xFFB39DDB), // Deep Purple
   ];
-  
+
   /// Get colors for all slots - uses project-specific colors or defaults
   List<Color> get uiBankColors {
     return List.generate(maxSampleSlots, (i) {
-      return _sampleColors[i] ?? _defaultBankColors[i % _defaultBankColors.length];
+      return _sampleColors[i] ??
+          _defaultBankColors[i % _defaultBankColors.length];
     });
   }
-  
+
   /// Set color for a specific sample slot (project-specific)
   void setSampleColor(int slot, Color color) {
     if (slot >= 0 && slot < maxSampleSlots) {
@@ -471,7 +494,7 @@ class SampleBankState extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Get color for a specific sample slot (null if not set)
   Color? getSampleColor(int slot) {
     if (slot >= 0 && slot < maxSampleSlots) {
@@ -479,7 +502,7 @@ class SampleBankState extends ChangeNotifier {
     }
     return null;
   }
-  
+
   /// Clear all sample colors (used when loading new project)
   void clearAllColors() {
     for (int i = 0; i < maxSampleSlots; i++) {
@@ -487,41 +510,42 @@ class SampleBankState extends ChangeNotifier {
     }
     notifyListeners();
   }
-  
+
   /// Assign random colors from the dark forest/berry palette to all sample slots
-  /// 
+  ///
   /// This is called when creating a new project to give each project a unique
   /// color scheme. The 26 palette colors are shuffled randomly and assigned
   /// to slots A-Z, ensuring visual distinction between projects.
   void assignRandomProjectColors() {
     // Verify palette has exactly 26 unique colors
-    assert(AppColors.sampleBankPalette.length == maxSampleSlots, 
-      'Palette must have exactly 26 colors for 26 sample slots');
+    assert(AppColors.sampleBankPalette.length == maxSampleSlots,
+        'Palette must have exactly 26 colors for 26 sample slots');
     assert(AppColors.sampleBankPalette.toSet().length == maxSampleSlots,
-      'All 26 palette colors must be unique (found ${AppColors.sampleBankPalette.toSet().length} unique colors)');
-    
+        'All 26 palette colors must be unique (found ${AppColors.sampleBankPalette.toSet().length} unique colors)');
+
     // Create a copy of the palette and shuffle it
     final shuffledColors = List<Color>.from(AppColors.sampleBankPalette);
     shuffledColors.shuffle(math.Random());
-    
+
     // Assign shuffled colors to all 26 slots (one-to-one mapping, no duplicates)
     for (int i = 0; i < maxSampleSlots; i++) {
       _sampleColors[i] = shuffledColors[i];
     }
-    
-    Log.d('🎨 [SAMPLE_BANK_STATE] Assigned random project colors from dark forest palette');
-    
+
+    Log.d(
+        '🎨 [SAMPLE_BANK_STATE] Assigned random project colors from dark forest palette');
+
     // Notify UI listeners
     notifyListeners();
-    
+
     // Trigger auto-save if callback is set
     _onStateChanged?.call();
   }
-  
+
   void uiHandleBankChange(int slot) {
     setActiveSlot(slot);
   }
-  
+
   Future<void> uiPickFileForSlot(int slot) async {
     // Placeholder implementation - would open file picker in real implementation
     Log.d('🎵 [SAMPLE_BANK_STATE] Pick file for slot $slot (placeholder)');
@@ -529,15 +553,25 @@ class SampleBankState extends ChangeNotifier {
 
   /// Sync sample bank state from native using seqlock pattern (called by timer each frame)
   void syncSampleBankState() {
-    final ffi.Pointer<NativeSampleBankState> ptr = _sample_bank_ffi.sampleBankGetStatePtr();
+    final ffi.Pointer<NativeSampleBankState> ptr =
+        _sample_bank_ffi.sampleBankGetStatePtr();
+    if (ptr.address == 0) return;
+    final int initialVersion = ptr.ref.version;
+    if ((initialVersion & 1) == 0 && initialVersion == _lastSyncedVersion) {
+      return;
+    }
+
+    final syncWatch = Stopwatch()..start();
     int tries = 0;
     const int maxTries = 3;
     late final _NativeSampleBankState nativeSampleBankState;
-    
+    int stableVersion = initialVersion;
+
     // Seqlock pattern: read with version check for consistency
     while (true) {
       final v1 = ptr.ref.version;
-      if ((v1 & 1) != 0) { // writer in progress
+      if ((v1 & 1) != 0) {
+        // writer in progress
         if (++tries >= maxTries) return; // skip this frame
         continue;
       }
@@ -547,34 +581,41 @@ class SampleBankState extends ChangeNotifier {
         samplesPtr: ptr.ref.samples_ptr,
       );
       final v2 = ptr.ref.version;
-      if (v1 == v2) break;
+      if (v1 == v2) {
+        stableVersion = v2;
+        break;
+      }
       if (++tries >= maxTries) return;
     }
-    
+
+    _lastSyncedVersion = stableVersion;
     _updateStateFromNative(nativeSampleBankState);
+
+    syncWatch.stop();
+    _syncProfiler.recordCall(elapsedMicros: syncWatch.elapsedMicroseconds);
   }
 
   /// Update local state when native state changes
   void _updateStateFromNative(_NativeSampleBankState nativeSampleBankState) {
     bool anyChanged = false;
-    
+
     // Check and update each property
     if (_maxSlots != nativeSampleBankState.maxSlots) {
       _maxSlots = nativeSampleBankState.maxSlots;
       anyChanged = true;
     }
-    
+
     if (_loadedCount != nativeSampleBankState.loadedCount) {
       _loadedCount = nativeSampleBankState.loadedCount;
       loadedCountNotifier.value = nativeSampleBankState.loadedCount;
       anyChanged = true;
     }
-    
+
     if (_samplesPtr != nativeSampleBankState.samplesPtr) {
       _samplesPtr = nativeSampleBankState.samplesPtr;
       anyChanged = true;
     }
-    
+
     // Update slots from samples array directly
     bool slotsChanged = false;
     if (_samplesPtr.address != 0) {
@@ -587,11 +628,14 @@ class SampleBankState extends ChangeNotifier {
           slotsChanged = true;
           anyChanged = true;
         }
-        // keep UI names/paths in sync opportunistically if needed
-        final name = SampleData.fromPointer(samplePtr).displayName;
-        final path = SampleData.fromPointer(samplePtr).filePath;
-        _slotNames[i] = name;
-        _slotPaths[i] = path;
+        if (slotsChanged ||
+            isProcessing ||
+            _slotNames[i] == null ||
+            _slotPaths[i] == null) {
+          final sampleData = SampleData.fromPointer(samplePtr);
+          _slotNames[i] = sampleData.displayName;
+          _slotPaths[i] = sampleData.filePath;
+        }
 
         // Update processing notifier if exists
         final n = _sampleProcessingNotifiers[i];
@@ -600,34 +644,34 @@ class SampleBankState extends ChangeNotifier {
         }
       }
     }
-    
+
     if (slotsChanged) {
       slotsLoadedNotifier.value = List.from(_slotsLoaded);
     }
-    
+
     // Only notify listeners once if any changes occurred
     if (anyChanged) {
       notifyListeners();
     }
   }
-  
+
   /// Set callback for state changes (used by ThreadsState for auto-save)
   void setOnStateChanged(void Function()? callback) {
     _onStateChanged = callback;
   }
-  
+
   @override
   void notifyListeners() {
     super.notifyListeners();
-    
+
     // Trigger auto-save if callback is set
     _onStateChanged?.call();
   }
-  
+
   @override
   void dispose() {
     Log.d('🧹 [SAMPLE_BANK_STATE] Disposing sample bank state');
-    
+
     // Dispose ValueNotifiers
     loadedCountNotifier.dispose();
     slotsLoadedNotifier.dispose();
@@ -638,7 +682,7 @@ class SampleBankState extends ChangeNotifier {
     for (final n in _samplePitchNotifiers.values) {
       n.dispose();
     }
-    
+
     super.dispose();
   }
 }

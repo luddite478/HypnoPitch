@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../../utils/log.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../../../state/sequencer/table.dart';
@@ -17,6 +17,7 @@ import '../../../utils/app_colors.dart';
 import '../../stacked_cards_widget.dart';
 import '../../../state/sequencer/ui_selection.dart';
 import '../../../state/app_state.dart';
+import '../../../config/debug_flags.dart';
 import 'line_mic_waveform_widget.dart';
 
 // Custom ScrollPhysics to retain position when content changes
@@ -78,6 +79,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   Offset? _currentPanPosition;
   GestureMode _gestureMode = GestureMode.undetermined;
   static const double _gestureThreshold = 15.0;
+  int _gridBuildCount = 0;
 
   // CONFIGURABLE GRID DIMENSIONS - Easy to control cell sizing
   static const double cellWidthPercent =
@@ -297,6 +299,19 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
 
   @override
   Widget build(BuildContext context) {
+    _gridBuildCount++;
+    if (kShouldLogSequencerProfiling && (_gridBuildCount % 240 == 0)) {
+      Log.d('[SAMPLE_GRID_PROFILE] build_count=$_gridBuildCount', 'SOUND_GRID');
+    }
+    // Include layer sub-step flags: they change without activeTutorialStep changing.
+    final tutorialDeps = context.select((AppState s) => (
+          s.activeTutorialStep,
+          s.isLayersTabDone,
+          s.isLayersMuteDone,
+          s.isLayersUnmuteDone,
+        ));
+    final tutorialStep = tutorialDeps.$1;
+    final appState = context.read<AppState>();
     return Consumer<TableState>(
       builder: (context, tableState, child) {
         final int numSoundGrids =
@@ -333,7 +348,11 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
             ],
           ),
           child: isFlat
-              ? _buildFlatTabs(tableState)
+              ? _buildFlatTabs(
+                  tableState,
+                  tutorialStep: tutorialStep,
+                  appState: appState,
+                )
               : StackedCardsWidget(
                   numCards: numSoundGrids,
                   cardWidthFactor: 0.98,
@@ -397,6 +416,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                               actualSoundGridId: actualSoundGridId,
                               index: index,
                               tableState: tableState,
+                              tutorialStep: tutorialStep,
+                              appState: appState,
                             ),
                           ),
                           // Clickable tab label positioned above the card
@@ -414,6 +435,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                               tabWidth:
                                   _calculateTabWidth(width, numSoundGrids),
                               tableState: tableState,
+                              tutorialStep: tutorialStep,
+                              appState: appState,
                             ),
                           ),
                         ],
@@ -428,8 +451,14 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
 
   // 🎯 PERFORMANCE: Cell that only rebuilds when current step changes or cell data changes
   Widget _buildEnhancedGridCell(
-      BuildContext context, TableState tableState, int index) {
-    final appState = context.watch<AppState>();
+    BuildContext context,
+    TableState tableState,
+    int index, {
+    required int currentStep,
+    required Set<int> selectedSet,
+    required TutorialStep tutorialStep,
+    required AppState appState,
+  }) {
     final gridCols = tableState.getVisibleCols().length;
     final row = index ~/ gridCols;
     final col = index % gridCols;
@@ -449,201 +478,190 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     final layerStartCol = tableState.getLayerStartCol();
     final absoluteCol = layerStartCol + col;
 
-    final bool isTutorialCell =
-        widget.sectionIndexOverride == null &&
+    final bool isTutorialCell = widget.sectionIndexOverride == null &&
         row == 0 &&
         col == 0 &&
-        appState.activeTutorialStep == TutorialStep.sequencerFirstCellHint;
+        tutorialStep == TutorialStep.sequencerFirstCellHint;
 
-    return ValueListenableBuilder<int>(
-      valueListenable: context.read<PlaybackState>().currentStepNotifier,
-      builder: (context, currentStep, child) {
-        return ValueListenableBuilder<CellData>(
-          valueListenable:
-              tableState.getCellNotifier(absoluteStep, absoluteCol),
-          builder: (context, cellData, child) {
-            final isActivePad =
-                false; // UI-only highlight not yet wired in TableState
-            final isCurrentStep = widget.sectionIndexOverride == null &&
-                currentStep >= 0 &&
-                currentStep == absoluteStep;
-            final placedSample =
-                cellData.sampleSlot >= 0 ? cellData.sampleSlot : null;
-            final hasPlacedSample = placedSample != null;
+    return ValueListenableBuilder<CellData>(
+      valueListenable: tableState.getCellNotifier(absoluteStep, absoluteCol),
+      builder: (context, cellData, child) {
+        final isActivePad =
+            false; // UI-only highlight not yet wired in TableState
+        final isCurrentStep = widget.sectionIndexOverride == null &&
+            currentStep >= 0 &&
+            currentStep == absoluteStep;
+        final placedSample =
+            cellData.sampleSlot >= 0 ? cellData.sampleSlot : null;
+        final hasPlacedSample = placedSample != null;
 
-            // 🎯 PERFORMANCE: Light bulb-bluish-white highlight for current step
-            Color cellColor;
-            // ignore: dead_code
-            if (isActivePad) {
-              cellColor = AppColors.sequencerAccent.withOpacity(0.6);
-            } else if (isCurrentStep) {
-              // Light bulb-bluish-white highlight for current step
-              cellColor = hasPlacedSample
-                  ? _getSampleColorForGrid(placedSample, context)
-                      .withOpacity(0.9)
-                  : const Color(0xFF87CEEB)
-                      .withOpacity(0.4); // Light blue highlight
-            } else if (hasPlacedSample) {
-              cellColor = _getSampleColorForGrid(placedSample, context);
-            } else {
-              // Alternate cell color for every 4th row (1, 5, 9, etc. in 1-indexed terms)
-              final isAlternateRow = row % 4 == 0;
-              cellColor = isAlternateRow
-                  ? AppColors.sequencerCellEmptyAlternate
-                  : AppColors.sequencerCellEmpty;
-            }
+        // 🎯 PERFORMANCE: Light bulb-bluish-white highlight for current step
+        Color cellColor;
+        // ignore: dead_code
+        if (isActivePad) {
+          cellColor = AppColors.sequencerAccent.withOpacity(0.6);
+        } else if (isCurrentStep) {
+          // Light bulb-bluish-white highlight for current step
+          cellColor = hasPlacedSample
+              ? _getSampleColorForGrid(placedSample, context).withOpacity(0.9)
+              : const Color(0xFF87CEEB)
+                  .withOpacity(0.4); // Light blue highlight
+        } else if (hasPlacedSample) {
+          cellColor = _getSampleColorForGrid(placedSample, context);
+        } else {
+          // Alternate cell color for every 4th row (1, 5, 9, etc. in 1-indexed terms)
+          final isAlternateRow = row % 4 == 0;
+          cellColor = isAlternateRow
+              ? AppColors.sequencerCellEmptyAlternate
+              : AppColors.sequencerCellEmpty;
+        }
 
-            return DragTarget<int>(
-              onAccept: (int sampleSlot) {
-                // Use TableState instead of legacy SequencerState for drag operations
-                final tableState =
-                    Provider.of<TableState>(context, listen: false);
-                final gridCols = tableState.getVisibleCols().length;
-                final row = index ~/ gridCols;
-                final col = index % gridCols;
+        return DragTarget<int>(
+          onAccept: (int sampleSlot) {
+            // Use TableState instead of legacy SequencerState for drag operations
+            final tableState = Provider.of<TableState>(context, listen: false);
+            final gridCols = tableState.getVisibleCols().length;
+            final row = index ~/ gridCols;
+            final col = index % gridCols;
 
-                // Calculate absolute step and column based on current (or overridden) section and layer
-                final sectionIndex =
-                    widget.sectionIndexOverride ?? tableState.uiSelectedSection;
-                final absoluteStep =
-                    tableState.getSectionStartStep(sectionIndex) + row;
-                final layerStartCol = tableState.getLayerStartCol();
-                final absoluteCol = layerStartCol + col;
+            // Calculate absolute step and column based on current (or overridden) section and layer
+            final sectionIndex =
+                widget.sectionIndexOverride ?? tableState.uiSelectedSection;
+            final absoluteStep =
+                tableState.getSectionStartStep(sectionIndex) + row;
+            final layerStartCol = tableState.getLayerStartCol();
+            final absoluteCol = layerStartCol + col;
 
-                // Use the new table system with inheritance sentinels
-                tableState.setCell(
-                    absoluteStep, absoluteCol, sampleSlot, -1.0, -1.0);
-                Log.d(
-                    ' [DRAG] Set cell [$absoluteStep, $absoluteCol] = sample $sampleSlot');
+            // Use the new table system with inheritance sentinels
+            tableState.setCell(
+                absoluteStep, absoluteCol, sampleSlot, -1.0, -1.0);
+            Log.d(
+                ' [DRAG] Set cell [$absoluteStep, $absoluteCol] = sample $sampleSlot');
+          },
+          builder: (context, candidateData, rejectedData) {
+            final bool isDragHovering = candidateData.isNotEmpty;
+            final bool isSelected = selectedSet.contains(index);
+
+            return GestureDetector(
+              onTap: () {
+                context.read<UiSelectionState>().selectCells();
+                final edit = Provider.of<EditState>(context, listen: false);
+                if (edit.isInSelectionMode) {
+                  // A normal tap on the grid exits SELECT mode and keeps
+                  // only the tapped cell selected.
+                  edit.toggleSelectionMode();
+                  edit.selectSingleCell(index);
+                } else {
+                  edit.selectSingleCell(index);
+                }
+                tableState.uiHandlePadPress(index);
+
+                Provider.of<MultitaskPanelState>(context, listen: false)
+                    .showCellSettings();
+                if (isTutorialCell) {
+                  context.read<AppState>().advanceTutorialToSelectSample();
+                }
               },
-              builder: (context, candidateData, rejectedData) {
-                final bool isDragHovering = candidateData.isNotEmpty;
-
-                return GestureDetector(
-                  onTap: () {
-                    context.read<UiSelectionState>().selectCells();
-                    final edit = Provider.of<EditState>(context, listen: false);
-                    if (edit.isInSelectionMode) {
-                      // A normal tap on the grid exits SELECT mode and keeps
-                      // only the tapped cell selected.
-                      edit.toggleSelectionMode();
-                      edit.selectSingleCell(index);
-                    } else {
-                      edit.selectSingleCell(index);
-                    }
-                    tableState.uiHandlePadPress(index);
-
-                    Provider.of<MultitaskPanelState>(context, listen: false)
-                        .showCellSettings();
-                    if (isTutorialCell) {
-                      context.read<AppState>().advanceTutorialToSelectSample();
-                    }
-                  },
-                  child: ValueListenableBuilder<Set<int>>(
-                    valueListenable:
-                        context.read<EditState>().selectedCellsNotifier,
-                    builder: (context, selectedSet, _) {
-                      final bool isSelected = selectedSet.contains(index);
-                      return Container(
-                        key: isTutorialCell ? appState.firstCellTutorialKey : null,
-                        width: double.infinity, // Fill available width
-                        height: double.infinity, // Fill available height
-                        decoration: BoxDecoration(
-                          color: isDragHovering
-                              ? AppColors.sequencerAccent.withOpacity(0.8)
-                              : cellColor,
-                          borderRadius: BorderRadius.zero, // Sharp corners
-                          border: isSelected
+              child: Container(
+                key: isTutorialCell ? appState.firstCellTutorialKey : null,
+                width: double.infinity, // Fill available width
+                height: double.infinity, // Fill available height
+                decoration: BoxDecoration(
+                  color: isDragHovering
+                      ? AppColors.sequencerAccent.withOpacity(0.8)
+                      : cellColor,
+                  borderRadius: BorderRadius.zero, // Sharp corners
+                  border: isSelected
+                      ? Border.all(
+                          color: AppColors.sequencerSelectionBorder,
+                          width: 2,
+                        )
+                      : isCurrentStep
+                          ? Border.all(
+                              color: const Color(0xFF87CEEB),
+                              width: 1.5,
+                            ) // Light blue border for current step
+                          : isDragHovering
                               ? Border.all(
-                                  color: AppColors.sequencerSelectionBorder,
-                                  width: 2)
-                              : isCurrentStep
-                                  ? Border.all(
-                                      color: const Color(0xFF87CEEB),
-                                      width:
-                                          1.5) // Light blue border for current step
-                                  : isDragHovering
-                                      ? Border.all(
-                                          color: AppColors.sequencerAccent,
-                                          width: 0.75)
-                                      : Border.all(
-                                          color: cellBorderColor,
-                                          width: cellBorderWidth),
-                          boxShadow: isSelected
-                              ? null
-                              : isCurrentStep
-                                  ? [
-                                      // Extra glow for current step - light bulb effect
-                                      BoxShadow(
-                                        color: const Color(0xFF87CEEB)
-                                            .withOpacity(0.3),
-                                        blurRadius: 4,
-                                        spreadRadius: 1,
-                                        offset: const Offset(0, 0),
-                                      ),
-                                      BoxShadow(
-                                        color: AppColors.sequencerShadow,
-                                        blurRadius: 1,
-                                        offset: const Offset(0, 0.5),
-                                      ),
-                                    ]
-                                  : [
-                                      BoxShadow(
-                                        color: AppColors.sequencerShadow,
-                                        blurRadius: 1,
-                                        offset: const Offset(0, 0.5),
-                                      ),
-                                    ],
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Increase inner padding slightly to create space for thin selection border
-                            final basePadding = math.min(constraints.maxWidth,
-                                    constraints.maxHeight) *
-                                (cellPaddingPercent / 100.0);
-                            final actualPadding = basePadding + 1.0;
-                            return Stack(
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.all(
-                                      actualPadding), // Use percentage-based padding relative to cell size
-                                  child: hasPlacedSample
-                                      ? _buildSampleCellContent(
-                                          context,
-                                          tableState,
-                                          index,
-                                          placedSample,
-                                          isActivePad,
-                                          isCurrentStep,
-                                          isDragHovering)
-                                      : _buildEmptyCellContent(),
+                                  color: AppColors.sequencerAccent,
+                                  width: 0.75,
+                                )
+                              : Border.all(
+                                  color: cellBorderColor,
+                                  width: cellBorderWidth,
                                 ),
-                                if (mutedVisual)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: Container(
-                                        color: Colors.black.withOpacity(0.26),
-                                      ),
-                                    ),
-                                  ),
-                                if (!mutedVisual && soloVisual)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: Container(
-                                        color: const Color(0xFFF4D35E)
-                                            .withOpacity(0.18),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
+                  boxShadow: isSelected
+                      ? null
+                      : isCurrentStep
+                          ? [
+                              // Extra glow for current step - light bulb effect
+                              BoxShadow(
+                                color: const Color(0xFF87CEEB).withOpacity(0.3),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 0),
+                              ),
+                              BoxShadow(
+                                color: AppColors.sequencerShadow,
+                                blurRadius: 1,
+                                offset: const Offset(0, 0.5),
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: AppColors.sequencerShadow,
+                                blurRadius: 1,
+                                offset: const Offset(0, 0.5),
+                              ),
+                            ],
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Increase inner padding slightly to create space for thin selection border
+                    final basePadding =
+                        math.min(constraints.maxWidth, constraints.maxHeight) *
+                            (cellPaddingPercent / 100.0);
+                    final actualPadding = basePadding + 1.0;
+                    return Stack(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(
+                            actualPadding,
+                          ), // Use percentage-based padding relative to cell size
+                          child: hasPlacedSample
+                              ? _buildSampleCellContent(
+                                  context,
+                                  tableState,
+                                  index,
+                                  placedSample,
+                                  isActivePad,
+                                  isCurrentStep,
+                                  isDragHovering,
+                                )
+                              : _buildEmptyCellContent(),
                         ),
-                      );
-                    },
-                  ),
-                );
-              },
+                        if (mutedVisual)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Container(
+                                color: Colors.black.withOpacity(0.26),
+                              ),
+                            ),
+                          ),
+                        if (!mutedVisual && soloVisual)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Container(
+                                color:
+                                    const Color(0xFFF4D35E).withOpacity(0.18),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             );
           },
         );
@@ -651,13 +669,16 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     );
   }
 
-  Widget _buildFlatTabs(TableState tableState) {
-    final appState = context.watch<AppState>();
+  Widget _buildFlatTabs(
+    TableState tableState, {
+    required TutorialStep tutorialStep,
+    required AppState appState,
+  }) {
     final int numSoundGrids = tableState.totalLayers;
     return Column(
       children: [
         SizedBox(
-          key: appState.activeTutorialStep == TutorialStep.sequencerLayersHint
+          key: tutorialStep == TutorialStep.sequencerLayersHint
               ? appState.layersRowTutorialKey
               : null,
           height: 34,
@@ -674,6 +695,11 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                       final layerMode = tableState.getLayerMode(i);
                       return Expanded(
                         child: GestureDetector(
+                          key: tutorialStep == TutorialStep.sequencerLayersHint &&
+                                  !appState.isLayersTabDone &&
+                                  i == 0
+                              ? appState.layerTabTutorialKey
+                              : null,
                           onTap: () {
                             debugPrint(
                                 '🎨 [SOUND_GRID] Layer tab ${i + 1} tapped, current layer: $selectedLayer');
@@ -682,6 +708,10 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                             context
                                 .read<MultitaskPanelState>()
                                 .showLayerSettings();
+                            if (tutorialStep == TutorialStep.sequencerLayersHint &&
+                                i == 0) {
+                              context.read<AppState>().markLayersTabAction();
+                            }
                             debugPrint(
                                 '🎨 [SOUND_GRID] After tap, layer should be: $i');
                           },
@@ -714,7 +744,11 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                   // Force grid rebuild when layer changes by using selectedLayer as key
                   return KeyedSubtree(
                     key: ValueKey<int>(selectedLayer),
-                    child: _buildGridContent(tableState),
+                    child: _buildGridContent(
+                      tableState,
+                      tutorialStep: tutorialStep,
+                      appState: appState,
+                    ),
                   );
                 },
               );
@@ -869,13 +903,34 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   }
 
   Widget _buildGridCell(
-      BuildContext context, TableState tableState, int index) {
-    // 🎯 PERFORMANCE: Use enhanced cell that listens to currentStepNotifier
-    return _buildEnhancedGridCell(context, tableState, index);
+    BuildContext context,
+    TableState tableState,
+    int index, {
+    required int currentStep,
+    required Set<int> selectedSet,
+    required TutorialStep tutorialStep,
+    required AppState appState,
+  }) {
+    return _buildEnhancedGridCell(
+      context,
+      tableState,
+      index,
+      currentStep: currentStep,
+      selectedSet: selectedSet,
+      tutorialStep: tutorialStep,
+      appState: appState,
+    );
   }
 
   Widget _buildGridRow(
-      BuildContext context, TableState tableState, int rowIndex) {
+    BuildContext context,
+    TableState tableState,
+    int rowIndex, {
+    required int currentStep,
+    required Set<int> selectedSet,
+    required TutorialStep tutorialStep,
+    required AppState appState,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Calculate dimensions based on percentages
@@ -938,7 +993,15 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                         horizontal: actualCellSpacing /
                             2, // Use calculated cell spacing
                       ),
-                      child: _buildGridCell(context, tableState, cellIndex),
+                      child: _buildGridCell(
+                        context,
+                        tableState,
+                        cellIndex,
+                        currentStep: currentStep,
+                        selectedSet: selectedSet,
+                        tutorialStep: tutorialStep,
+                        appState: appState,
+                      ),
                     );
                   }),
                 ),
@@ -957,17 +1020,28 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     required int depth,
     required double tabWidth,
     required TableState tableState,
+    required TutorialStep tutorialStep,
+    required AppState appState,
   }) {
     return ValueListenableBuilder<int>(
       valueListenable: tableState.uiSelectedLayerNotifier,
       builder: (context, selectedLayer, _) {
         final bool isActive = selectedLayer == gridIndex;
         return GestureDetector(
+          key: tutorialStep == TutorialStep.sequencerLayersHint &&
+                  !appState.isLayersTabDone &&
+                  gridIndex == 0
+              ? appState.layerTabTutorialKey
+              : null,
           onTap: () {
             // Bring this grid to front and switch UI-visible layer
             tableState.uiBringGridToFront(gridIndex);
             tableState.setUiSelectedLayer(gridIndex);
             context.read<MultitaskPanelState>().showLayerSettings();
+            if (tutorialStep == TutorialStep.sequencerLayersHint &&
+                gridIndex == 0) {
+              context.read<AppState>().markLayersTabAction();
+            }
           },
           child: Container(
             width: tabWidth,
@@ -1078,6 +1152,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     required int actualSoundGridId,
     required int index,
     required TableState tableState,
+    required TutorialStep tutorialStep,
+    required AppState appState,
   }) {
     // Non-front cards are grayed out but still visible
     if (!isFrontCard) {
@@ -1192,7 +1268,11 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                       // Force grid rebuild when layer changes
                       return KeyedSubtree(
                         key: ValueKey<int>(selectedLayer),
-                        child: _buildGridContent(tableState),
+                        child: _buildGridContent(
+                          tableState,
+                          tutorialStep: tutorialStep,
+                          appState: appState,
+                        ),
                       );
                     },
                   );
@@ -1205,10 +1285,19 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     );
   }
 
-  Widget _buildGridContent(TableState tableState) {
-    final appState = context.watch<AppState>();
+  Widget _buildGridContent(
+    TableState tableState, {
+    required TutorialStep tutorialStep,
+    required AppState appState,
+  }) {
     return Container(
-      key: appState.sampleGridTutorialKey,
+      key: tutorialStep == TutorialStep.sequencerSelectModeHint ||
+              tutorialStep == TutorialStep.sequencerSectionsSwipeHint ||
+              tutorialStep == TutorialStep.sequencerSectionTwoSamplesHint ||
+              tutorialStep == TutorialStep.sequencerSectionsNavigateHint ||
+              tutorialStep == TutorialStep.sequencerLayersHint
+          ? appState.sampleGridTutorialKey
+          : null,
       color: gridBackgroundColor,
       child: GestureDetector(
         onPanStart: (details) {
@@ -1237,32 +1326,52 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
 
           // No-op for new selection logic: selection is finalized incrementally
         },
-        child: ListView.builder(
-          controller: _scrollController,
-          physics: (context.watch<EditState>().isInSelectionMode ||
-                  _gestureMode == GestureMode.selecting)
-              ? const NeverScrollableScrollPhysics()
-              : const PositionRetainedScrollPhysics(
-                  parent:
-                      ClampingScrollPhysics()), // Prevents jumping when rows are added/removed, no bounce at edges
-          itemCount: tableState.getSectionStepCount(
-                  widget.sectionIndexOverride ?? tableState.uiSelectedSection) +
-              1, // +1 for the control buttons at the bottom
-          itemBuilder: (context, index) {
-            if (index <
-                tableState.getSectionStepCount(widget.sectionIndexOverride ??
-                    tableState.uiSelectedSection)) {
-              // Build a row of grid cells
-              return _buildGridRow(context, tableState, index);
-            } else {
-              // Control buttons at the bottom
-              return RepaintBoundary(
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8, top: 4),
-                  child: _buildGridRowControls(tableState),
-                ),
-              );
-            }
+        child: ValueListenableBuilder<int>(
+          valueListenable: context.read<PlaybackState>().currentStepNotifier,
+          builder: (context, currentStep, _) {
+            return ValueListenableBuilder<Set<int>>(
+              valueListenable: context.read<EditState>().selectedCellsNotifier,
+              builder: (context, selectedSet, __) {
+                final isInSelectionMode =
+                    context.watch<EditState>().isInSelectionMode;
+                final sectionStepCount = tableState.getSectionStepCount(
+                  widget.sectionIndexOverride ?? tableState.uiSelectedSection,
+                );
+                return ListView.builder(
+                  controller: _scrollController,
+                  physics: (isInSelectionMode ||
+                          _gestureMode == GestureMode.selecting)
+                      ? const NeverScrollableScrollPhysics()
+                      : const PositionRetainedScrollPhysics(
+                          parent:
+                              ClampingScrollPhysics()), // Prevents jumping when rows are added/removed, no bounce at edges
+                  itemCount: sectionStepCount +
+                      1, // +1 for the control buttons at the bottom
+                  itemBuilder: (context, index) {
+                    if (index < sectionStepCount) {
+                      // Build a row of grid cells
+                      return _buildGridRow(
+                        context,
+                        tableState,
+                        index,
+                        currentStep: currentStep,
+                        selectedSet: selectedSet,
+                        tutorialStep: tutorialStep,
+                        appState: appState,
+                      );
+                    } else {
+                      // Control buttons at the bottom
+                      return RepaintBoundary(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8, top: 4),
+                          child: _buildGridRowControls(tableState),
+                        ),
+                      );
+                    }
+                  },
+                );
+              },
+            );
           },
         ),
       ),

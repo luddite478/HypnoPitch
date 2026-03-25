@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../state/app_state.dart';
 import '../state/patterns_state.dart';
 import '../state/audio_player_state.dart';
 import '../state/library_state.dart';
@@ -34,6 +36,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   Timer? _timestampUpdateTimer;
   int _refreshKey = 0; // Used to force rebuild of FutureBuilder
   AudioPlayerState? _audioPlayerRef;
+  final GlobalKey _dialogContentKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -100,6 +103,10 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   @override
   Widget build(BuildContext context) {
     final patternsState = context.watch<PatternsState>();
+    final appState = context.watch<AppState>();
+    final isTakesTutorialStep =
+        appState.activeTutorialStep == TutorialStep.sequencerTakesHint ||
+            appState.activeTutorialStep == TutorialStep.sequencerSecondTakeAddHint;
     final activePattern = patternsState.activePattern;
     
     if (activePattern == null) {
@@ -146,20 +153,23 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
         final recordings = snapshot.data!;
 
         return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.zero,
-      child: Center(
-        child: Container(
-          width: dialogWidth,
-          height: maxHeight,
-          decoration: BoxDecoration(
-            color: AppColors.sequencerSurfaceRaised,
-            borderRadius: BorderRadius.circular(1.0),
-            border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Center(
+            child: Container(
+              key: _dialogContentKey,
+              width: dialogWidth,
+              height: maxHeight,
+              decoration: BoxDecoration(
+                color: AppColors.sequencerSurfaceRaised,
+                borderRadius: BorderRadius.circular(1.0),
+                border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
+              ),
+              child: Stack(
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
           // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -185,8 +195,37 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                   ),
                 ),
                 IconButton(
+                  key: isTakesTutorialStep && appState.showTakesClosePointer
+                      ? appState.takesCloseButtonTutorialKey
+                      : null,
                   icon: Icon(Icons.close, color: AppColors.sequencerText),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    if (appState.activeTutorialStep == TutorialStep.sequencerTakesHint &&
+                        !appState.canCloseTakesTutorialStep) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(appState.takesStepInstruction),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                      return;
+                    }
+                    if (appState.activeTutorialStep ==
+                            TutorialStep.sequencerSecondTakeAddHint &&
+                        appState.showSecondTakeAddPointer) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(appState.secondTakeStepInstruction),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                      return;
+                    }
+                    if (appState.activeTutorialStep == TutorialStep.sequencerTakesHint) {
+                      appState.verifyTakesCloseStep();
+                    }
+                    Navigator.of(context).pop();
+                  },
                   iconSize: 18,
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(
@@ -208,15 +247,23 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                     separatorBuilder: (context, index) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final checkpoint = recordings[index];
-                      return _buildRecordingCard(checkpoint);
+                      return _buildRecordingCard(
+                        checkpoint,
+                        cardIndex: index,
+                        showTutorialPointers: isTakesTutorialStep,
+                      );
                     },
                   ),
           ),
-            ],
+                    ],
+                  ),
+                  if (isTakesTutorialStep)
+                    _buildTakesTutorialOverlay(appState, dialogWidth, maxHeight),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -283,8 +330,154 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
     );
   }
 
-  Widget _buildRecordingCard(Checkpoint checkpoint) {
+  Widget _buildTakesTutorialOverlay(
+      AppState appState, double dialogWidth, double dialogHeight) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+        final cardWidth = (viewport.width * 0.82).clamp(220.0, 420.0).toDouble();
+        const cardHeightEstimate = 118.0;
+        final cardLeft =
+            ((viewport.width - cardWidth) / 2).clamp(8.0, viewport.width).toDouble();
+        final cardTop = (viewport.height * 0.56 - cardHeightEstimate / 2)
+            .clamp(12.0, viewport.height - cardHeightEstimate - 12.0)
+            .toDouble();
+        final cardCenter =
+            Offset(cardLeft + cardWidth / 2, cardTop + cardHeightEstimate / 2);
+
+        final playRect =
+            _resolveRectInDialog(appState.takesPlayButtonTutorialKey, _dialogContentKey);
+        final addRect =
+            _resolveRectInDialog(appState.takesAddButtonTutorialKey, _dialogContentKey);
+        final closeRect =
+            _resolveRectInDialog(appState.takesCloseButtonTutorialKey, _dialogContentKey);
+
+        final arrowTargets = <Offset>[
+          if (appState.showTakesPlayPointer && playRect != null)
+            _resolveArrowTarget(
+              from: cardCenter,
+              targetRect: playRect,
+              edgePadding: 2,
+            ),
+          if ((appState.showTakesAddPointer || appState.showSecondTakeAddPointer) &&
+              addRect != null)
+            _resolveArrowTarget(
+              from: cardCenter,
+              targetRect: addRect,
+              edgePadding: 2,
+            ),
+          if (appState.showTakesClosePointer && closeRect != null)
+            _resolveArrowTarget(
+              from: cardCenter,
+              targetRect: closeRect,
+              edgePadding: 2,
+            ),
+        ];
+
+        return IgnorePointer(
+          ignoring: false,
+          child: Stack(
+            children: [
+              IgnorePointer(child: Container(color: Colors.black.withOpacity(0.08))),
+              if (arrowTargets.isNotEmpty)
+                IgnorePointer(
+                  child: CustomPaint(
+                    size: viewport,
+                    painter: _TakesTutorialPointersPainter(
+                      start: cardCenter,
+                      targets: arrowTargets,
+                      color: AppColors.sequencerAccent,
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: cardLeft,
+                top: cardTop,
+                width: cardWidth,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.sequencerSurfaceBase.withOpacity(0.92),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: AppColors.sequencerBorder, width: 0.8),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            appState.tutorialStepLabel,
+                            style: TextStyle(
+                              color: AppColors.sequencerText,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${appState.tutorialStepDisplayIndex}/${AppState.tutorialTotalSteps}',
+                            style: TextStyle(
+                              color: AppColors.sequencerText,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const Spacer(),
+                          ElevatedButton(
+                            onPressed: appState.goBackTutorialManually,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.sequencerSurfaceBase,
+                              foregroundColor: AppColors.sequencerText,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 7),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                            child: Text(
+                              'Back',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        appState.activeTutorialStep ==
+                                TutorialStep.sequencerSecondTakeAddHint
+                            ? appState.secondTakeStepInstruction
+                            : appState.takesStepInstruction,
+                        style: TextStyle(
+                          color: AppColors.sequencerText,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecordingCard(
+    Checkpoint checkpoint, {
+    required int cardIndex,
+    required bool showTutorialPointers,
+  }) {
     final audioPlayerState = context.watch<AudioPlayerState>();
+    final appState = context.read<AppState>();
     final isPlaying = audioPlayerState.isPlayingItem(checkpoint.id);
     final isLoadingAudio = audioPlayerState.isLoadingItem(checkpoint.id);
     final isAddingToLibrary = _addingToLibrary.contains(checkpoint.id);
@@ -292,13 +485,25 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
     final isHighlighted = _highlightedCheckpointId == checkpoint.id;
     
     // Get current position and duration for progress bar
-    final position = isPlaying ? audioPlayerState.position : Duration.zero;
+    final isCurrentItem = audioPlayerState.currentlyPlayingItemId == checkpoint.id;
+    final position = isCurrentItem ? audioPlayerState.position : Duration.zero;
     final duration = checkpoint.audioDuration != null 
         ? Duration(milliseconds: (checkpoint.audioDuration! * 1000).toInt())
         : Duration.zero;
     final progress = duration.inMilliseconds > 0 
         ? position.inMilliseconds / duration.inMilliseconds 
         : 0.0;
+    if (showTutorialPointers &&
+        cardIndex == 0 &&
+        appState.showTakesPlayPointer &&
+        position.inMilliseconds >= 2000) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+            context.read<AppState>().markTakesPlayAction(
+                  listenedDuration: position,
+                );
+      });
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -327,7 +532,12 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
               Row(
                 children: [
                   // Play/Pause button - Compact
-                  Container(
+              Container(
+                key: showTutorialPointers &&
+                        cardIndex == 0 &&
+                        appState.showTakesPlayPointer
+                    ? appState.takesPlayButtonTutorialKey
+                    : null,
                     width: 44,
                     height: 44,
                 decoration: BoxDecoration(
@@ -449,6 +659,12 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
               
               // Add to Library button - Icon only
               Container(
+                key: showTutorialPointers &&
+                        cardIndex == 0 &&
+                        (appState.showTakesAddPointer ||
+                            appState.showSecondTakeAddPointer)
+                    ? appState.takesAddButtonTutorialKey
+                    : null,
                 decoration: BoxDecoration(
                   border: Border(
                     left: BorderSide(color: AppColors.sequencerBorder, width: 0.5),
@@ -647,6 +863,10 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
           _addedToLibrary.add(checkpoint.id);
         }
       });
+      if (success) {
+        context.read<AppState>().markTakesAddToLibraryAction();
+        context.read<AppState>().markSecondTakeAddToLibraryAction();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -934,5 +1154,105 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
     final filtered = results.whereType<Checkpoint>().toList();
     debugPrint('💿 [RECORDINGS_OVERLAY] Filtered to ${filtered.length} recordings with existing files');
     return filtered;
+  }
+}
+
+Rect? _resolveRectInDialog(GlobalKey targetKey, GlobalKey dialogKey) {
+  final targetCtx = targetKey.currentContext;
+  final dialogCtx = dialogKey.currentContext;
+  if (targetCtx == null || dialogCtx == null) return null;
+  try {
+    final targetObj = targetCtx.findRenderObject();
+    final dialogObj = dialogCtx.findRenderObject();
+    if (targetObj is! RenderBox || dialogObj is! RenderBox) return null;
+    if (!targetObj.attached || !dialogObj.attached || !targetObj.hasSize) {
+      return null;
+    }
+    final targetGlobal = targetObj.localToGlobal(Offset.zero);
+    final dialogGlobal = dialogObj.localToGlobal(Offset.zero);
+    final topLeft = targetGlobal - dialogGlobal;
+    return topLeft & targetObj.size;
+  } catch (_) {
+    return null;
+  }
+}
+
+Offset _resolveArrowTarget({
+  required Offset from,
+  required Rect targetRect,
+  required double edgePadding,
+}) {
+  final center = targetRect.center;
+  final towardsText = from - center;
+  if (towardsText.distanceSquared < 0.0001) return center;
+
+  final halfW = targetRect.width / 2;
+  final halfH = targetRect.height / 2;
+  final scaleX = towardsText.dx.abs() < 0.0001
+      ? double.infinity
+      : halfW / towardsText.dx.abs();
+  final scaleY = towardsText.dy.abs() < 0.0001
+      ? double.infinity
+      : halfH / towardsText.dy.abs();
+  final scale = scaleX < scaleY ? scaleX : scaleY;
+  final edgePoint = Offset(
+    center.dx + towardsText.dx * scale,
+    center.dy + towardsText.dy * scale,
+  );
+  final toCenter = center - edgePoint;
+  final len = toCenter.distance;
+  if (len < 0.0001) return edgePoint;
+  final inset = edgePadding.clamp(0.0, 12.0).toDouble();
+  return Offset(
+    edgePoint.dx + (toCenter.dx / len) * inset,
+    edgePoint.dy + (toCenter.dy / len) * inset,
+  );
+}
+
+class _TakesTutorialPointersPainter extends CustomPainter {
+  final Offset start;
+  final List<Offset> targets;
+  final Color color;
+
+  _TakesTutorialPointersPainter({
+    required this.start,
+    required this.targets,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    for (final end in targets) {
+      canvas.drawLine(start, end, linePaint);
+      final direction = end - start;
+      final angle = direction.direction;
+      const arrowLength = 9.0;
+      const arrowSpread = 0.58;
+      final arrowPath = Path()
+        ..moveTo(end.dx, end.dy)
+        ..lineTo(
+          end.dx - arrowLength * cos(angle - arrowSpread),
+          end.dy - arrowLength * sin(angle - arrowSpread),
+        )
+        ..moveTo(end.dx, end.dy)
+        ..lineTo(
+          end.dx - arrowLength * cos(angle + arrowSpread),
+          end.dy - arrowLength * sin(angle + arrowSpread),
+        );
+      canvas.drawPath(arrowPath, linePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TakesTutorialPointersPainter oldDelegate) {
+    return oldDelegate.start != start ||
+        oldDelegate.targets != targets ||
+        oldDelegate.color != color;
   }
 }

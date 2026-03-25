@@ -103,6 +103,7 @@ class _MainPageState extends State<MainPage> {
     final patternsState = context.read<PatternsState>();
     final libraryState = context.read<LibraryState>();
     final appState = context.read<AppState>();
+    debugPrint('🧪 [MAIN] CLEAR_STORAGE flag: $_clearStorageOnLaunch');
     await _applyClearStorageIfRequested(patternsState, libraryState);
     
     await Future.wait([

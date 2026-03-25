@@ -56,5 +56,5 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "icons/rehorsed_blue.jpg"
+  image_path: "icons/white_mane1.jpg"
   remove_alpha_ios: true

@@ -54,6 +54,11 @@ typedef struct {
 typedef struct {
     // Seqlock version (even=stable, odd=writer in progress)
     uint32_t version;
+    // Lightweight dirty marker for Flutter.
+    // Unlike `version`, this does NOT guard read consistency; it only indicates
+    // "some table content changed since last observed epoch".
+    // Flutter uses it to skip expensive visible-cell scans when unchanged.
+    uint32_t content_epoch;
 
     // Scalars visible to Flutter
     int sections_count;             // number of sections
@@ -180,6 +185,11 @@ void table_reorder_section(int from_index, int to_index, int undo_record);
 // Return a stable pointer to the native TableState (prefix-mapped by Dart)
 __attribute__((visibility("default"))) __attribute__((used))
 const TableState* table_get_state_ptr(void);
+
+// Returns current content epoch (dirty marker).
+// Intended for change detection, not seqlock-style consistency checks.
+__attribute__((visibility("default"))) __attribute__((used))
+uint32_t table_get_content_epoch(void);
 
 // Accessor for full live state (read-only; do not mutate from Dart)
 __attribute__((visibility("default"))) __attribute__((used))

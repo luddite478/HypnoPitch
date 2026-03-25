@@ -5,8 +5,24 @@ set -e
 ENVIRONMENT="$1"
 DEVICE_TYPE="$2"
 IPHONE_MODEL="$3"
-DEV_USER_ID_ARG="$4"
-CLEAR_STORAGE="$5"
+DEV_USER_ID_ARG=""
+CLEAR_STORAGE=""
+
+# Parse optional args (from position 4 onward):
+# - first non-empty token becomes DEV_USER_ID_ARG
+# - token "clear" enables CLEAR_STORAGE regardless of position
+for arg in "${@:4}"; do
+  if [[ -z "$arg" ]]; then
+    continue
+  fi
+  if [[ "$arg" == "clear" ]]; then
+    CLEAR_STORAGE="clear"
+    continue
+  fi
+  if [[ -z "$DEV_USER_ID_ARG" ]]; then
+    DEV_USER_ID_ARG="$arg"
+  fi
+done
 
 # Validate arguments
 if [[ -z "$ENVIRONMENT" ]]; then
@@ -104,7 +120,10 @@ if [[ "$CLEAR_STORAGE" == "clear" ]]; then
   echo "🗑️ Clearing storage on next app launch."
 fi
 
-# Step 6: Run based on target
+# Step 6:   Generate launcher icons
+dart run flutter_launcher_icons 
+
+# Step 7: Run based on target
 if [[ "$DEVICE_TYPE" == "simulator" ]]; then
   echo "Running on iPhone Simulator ($IPHONE_MODEL)..."
   # Properly quote the device name to handle spaces

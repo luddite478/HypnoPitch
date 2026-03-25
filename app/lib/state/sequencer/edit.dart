@@ -567,8 +567,14 @@ class EditState extends ChangeNotifier {
   void setStepInsertSize(int size) {
     _stepInsertSize = size.clamp(0, 16);
     stepInsertSizeNotifier.value = _stepInsertSize;
+    final shouldEnableJumpMode = _stepInsertSize > 0;
+    if (_isStepInsertMode != shouldEnableJumpMode) {
+      _isStepInsertMode = shouldEnableJumpMode;
+      isStepInsertModeNotifier.value = _isStepInsertMode;
+    }
     notifyListeners();
-    debugPrint('🔗 [EDIT] Jump insert size: $_stepInsertSize');
+    debugPrint(
+        '🔗 [EDIT] Jump insert size: $_stepInsertSize, mode: $_isStepInsertMode');
   }
 
   void insertStepsAtPosition(int step) {

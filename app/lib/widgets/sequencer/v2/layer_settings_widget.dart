@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../state/sequencer/table.dart';
 import '../../../state/sequencer/playback.dart';
@@ -7,6 +6,7 @@ import '../../../state/sequencer/microphone.dart';
 import '../../../state/sequencer/recording.dart';
 import '../../../state/sequencer/recording_waveform.dart';
 import '../../../state/sequencer/slider_overlay.dart';
+import '../../../state/app_state.dart';
 import '../../../config/feature_flags.dart';
 import '../../../utils/app_colors.dart';
 import 'generic_slider.dart';
@@ -180,7 +180,23 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
                   tableState.isLayerMuted(layerIndex),
                   headerHeight * 0.7,
                   labelFontSize,
-                  () => tableState.setLayerMuted(layerIndex, !tableState.isLayerMuted(layerIndex)),
+                  () {
+                    final nextMuted = !tableState.isLayerMuted(layerIndex);
+                    tableState.setLayerMuted(layerIndex, nextMuted);
+                    final appState = context.read<AppState>();
+                    if (appState.activeTutorialStep ==
+                        TutorialStep.sequencerLayersHint) {
+                      appState.markLayersMuteToggleAction(
+                        isMutedAfterToggle: nextMuted,
+                      );
+                    }
+                  },
+                  key: context.watch<AppState>().activeTutorialStep ==
+                              TutorialStep.sequencerLayersHint &&
+                          context.watch<AppState>().isLayersTabDone &&
+                          !context.watch<AppState>().isLayersUnmuteDone
+                      ? context.read<AppState>().layerMuteButtonTutorialKey
+                      : null,
                 ),
               ),
             ),
@@ -375,8 +391,16 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
     return 'INPUT';
   }
 
-  Widget _buildSettingsButton(String label, bool isSelected, double height, double fontSize, VoidCallback? onTap) {
+  Widget _buildSettingsButton(
+    String label,
+    bool isSelected,
+    double height,
+    double fontSize,
+    VoidCallback? onTap, {
+    Key? key,
+  }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
         height: height,

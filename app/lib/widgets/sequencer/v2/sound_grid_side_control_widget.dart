@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // duplicate import removed
 import 'package:provider/provider.dart';
+import '../../../state/app_state.dart';
 import '../../../state/sequencer/section_settings.dart';
 import '../../../state/sequencer/multitask_panel.dart';
 import '../../../state/sequencer/undo_redo.dart';
@@ -26,6 +27,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     final sectionSettings = context.watch<SectionSettingsState>();
     final multitaskPanel = context.watch<MultitaskPanelState>();
     final playbackState = context.watch<PlaybackState>();
@@ -91,6 +93,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                         const SizedBox(height: 3),
                         // Sequencer: section / loop / redo / undo
                         Expanded(child: _SectionControlButton(
+                          key: appState.activeTutorialStep ==
+                                      TutorialStep.sequencerSectionLoopsHint
+                              ? appState.sectionSettingsButtonTutorialKey
+                              : null,
                           size: buttonWidth,
                           sectionNumber: tableState.uiSelectedSection + 1,
                           onPressed: () {
@@ -103,6 +109,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                         )),
                         const SizedBox(height: 3),
                         Expanded(child: _buildSquareButton(
+                          key: appState.activeTutorialStep ==
+                                      TutorialStep.sequencerSongModeHint
+                              ? appState.songModeButtonTutorialKey
+                              : null,
                           size: buttonWidth,
                           icon: Icons.repeat,
                           color: playbackState.songModeNotifier.value == false ? Colors.white : AppColors.sequencerLightText,
@@ -111,17 +121,35 @@ class SoundGridSideControlWidget extends StatelessWidget {
                         )),
                         const SizedBox(height: 3),
                         Expanded(child: _buildSquareButton(
+                          key: appState.activeTutorialStep ==
+                                      TutorialStep.sequencerUndoRedoHint
+                              ? appState.redoButtonTutorialKey
+                              : null,
                           size: buttonWidth,
                           icon: Icons.redo,
                           color: undoRedo.canRedo ? AppColors.sequencerAccent : AppColors.sequencerLightText,
-                          onPressed: undoRedo.canRedo ? () => undoRedo.redo() : null,
+                          onPressed: undoRedo.canRedo
+                              ? () {
+                                  undoRedo.redo();
+                                  appState.markRedoAction();
+                                }
+                              : null,
                         )),
                         const SizedBox(height: 3),
                         Expanded(child: _buildSquareButton(
+                          key: appState.activeTutorialStep ==
+                                      TutorialStep.sequencerUndoRedoHint
+                              ? appState.undoButtonTutorialKey
+                              : null,
                           size: buttonWidth,
                           icon: Icons.undo,
                           color: undoRedo.canUndo ? AppColors.sequencerAccent : AppColors.sequencerLightText,
-                          onPressed: undoRedo.canUndo ? () => undoRedo.undo() : null,
+                          onPressed: undoRedo.canUndo
+                              ? () {
+                                  undoRedo.undo();
+                                  appState.markUndoAction();
+                                }
+                              : null,
                         )),
                       ],
                     )
@@ -251,6 +279,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
 
   // Left-side panel button: fixed width, fills available height via Expanded
   Widget _buildSquareButton({
+    Key? key,
     required double size,
     required IconData icon,
     required Color color,
@@ -260,6 +289,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
     final isEnabled = onPressed != null;
     final iconSize = (size * 0.5).clamp(12.0, 22.0);
     return GestureDetector(
+      key: key,
       onTap: onPressed,
       child: Container(
         width: size,
@@ -291,6 +321,7 @@ class _SectionControlButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const _SectionControlButton({
+    super.key,
     required this.size,
     required this.sectionNumber,
     required this.onPressed,

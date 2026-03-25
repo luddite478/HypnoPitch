@@ -4,10 +4,9 @@ This document describes the in-app **quick tutorial** flow, current step order, 
 
 ## Current status
 
-- Tutorial runtime is intentionally **disabled** behind an internal flag:
-  - `TutorialService.isEnabled = false` in `app/lib/services/tutorial_service.dart`.
-- This keeps all tutorial code and steps documented/in-place while hiding it from users until finalized.
-- Re-enable by switching the flag to `true`.
+- Tutorial runtime is controlled by internal flag `TutorialService.isEnabled` in `app/lib/services/tutorial_service.dart`.
+- Tutorial overlays now show **label + counter + Back** (no Next button).
+- Related tutorial actions are merged under shared step labels.
 
 ## Purpose (when enabled)
 
@@ -34,45 +33,47 @@ flowchart TD
   prompt[showTutorialPromptThisSession]
   plus[projectsPlusButtonHint]
   cell[sequencerFirstCellHint]
-  jumpVal[sequencerJumpValuePasteHint]
-  play[sequencerPlayHint]
-  stop[sequencerStopHint]
+  select[sequencerSelectSampleHint]
+  copyPaste[sequencerCopyPasteHint]
+  deleteStep[sequencerDeleteHint]
+  jumpPaste[sequencerJumpPasteHint]
+  playback[sequencerPlaybackHint]
   selectMode[sequencerSelectModeHint]
-  selectMulti[sequencerSelectMultipleHint]
-  selectOff[sequencerDisableSelectModeHint]
   layers[sequencerLayersHint]
-  swipe[sequencerSwipeSectionHint]
-  playback[sequencerPlaybackModesHint]
-  record[sequencerRecordHint]
+  recording[sequencerRecordingHint]
+  takes[sequencerTakesHint]
+  secSwipe[sequencerSectionsSwipeHint]
+  secSamples[sequencerSectionTwoSamplesHint]
+  secNav[sequencerSectionsNavigateHint]
+  secMenu[sequencerSectionsMenuHint]
 
   none --> prompt
   prompt -->|"Run quick tutorial"| plus
   prompt -->|"Close session"| noneHide[Prompt hidden this session]
   plus -->|"Tap + create pattern"| cell
   cell -->|"Tap cell 1/1"| select
-  select --> jumpVal
-  jumpVal --> play --> stop --> selectMode --> selectMulti --> selectOff
-  selectOff --> layers --> swipe --> playback --> record --> endFlow[stopTutorial]
+  select --> copyPaste --> deleteStep --> jumpPaste
+  jumpPaste --> playback --> selectMode --> recording --> takes --> layers
+  secSwipe --> secSamples --> secNav --> secMenu --> endFlow[stopTutorial]
+  layers --> secSwipe
 ```
 
-### User-visible steps (current 16-step order)
+### User-visible steps (merged flow)
 
 1. `projectsPlusButtonHint` - Tap `+` to create new pattern.
-2. `sequencerFirstCellHint` - Press cell 1/1 in sample grid.
-3. `sequencerSelectSampleHint` - Select sample for the cell.
-4. `sequencerCopyPasteHint` - Copy and paste sample cell.
-5. `sequencerDeleteHint` - Delete created sample cell.
-6. `sequencerJumpHint` - Jump control explanation.
-7. `sequencerJumpValuePasteHint` - Set Jump=2, copy once, paste several times.
-8. `sequencerPlayHint` - Press Play and listen.
-9. `sequencerStopHint` - Press Stop to stop playback.
-10. `sequencerSelectModeHint` - Enter Select mode.
-11. `sequencerSelectMultipleHint` - Select multiple cells.
-12. `sequencerDisableSelectModeHint` - Disable Select mode.
-13. `sequencerLayersHint` - Layers explanation (all 5 layers).
-14. `sequencerSwipeSectionHint` - Swipe grid to create next section.
-15. `sequencerPlaybackModesHint` - Loop/Song playback modes.
-16. `sequencerRecordHint` - Recording step; tutorial completes after this.
+2. `sequencerFirstCellHint` + `sequencerSelectSampleHint` (`Select sample`) - Open cell 1/1 and select sample.
+3. `sequencerCopyPasteHint` (`Copy paste`) - Copy and paste sample cell.
+4. `sequencerDeleteHint` (`Delete`) - Delete created sample cell.
+5. `sequencerJumpPasteHint` (`Jump paste`) - Set Jump=2 and paste at least 3 times.
+6. `sequencerPlaybackHint` (`Playback`) - Press Play, then Stop.
+7. `sequencerSelectModeHint` (`Select mode`) - Enable Select, multi-select, then disable Select.
+8. `sequencerRecordingHint` (`Recording`) - Start recording, keep it active for more than 4 seconds, then stop recording.
+9. `sequencerTakesHint` (`Takes`) - Split into verified parts: (1) play take for >2s, (2) add to library, (3) close.
+10. `sequencerLayersHint` (`Layers`) - Select layer tab, mute, unmute.
+11. `sequencerSectionsSwipeHint` (`Sections swipe`) - Swipe to add a second section (verified when two sections exist); curved swipe hint on grid.
+12. `sequencerSectionTwoSamplesHint` (`Section 2 samples`) - Place samples in five cells in section 2 (any layers).
+13. `sequencerSectionsNavigateHint` (`Navigate sections`) - Swipe back to the previous section (verified when UI section index is 0).
+14. `sequencerSectionsMenuHint` (`Section menu`) - Open the section chain / section management control; tutorial completes.
 
 ## Sequence (user vs system)
 

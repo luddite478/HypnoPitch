@@ -47,6 +47,17 @@ static inline void state_write_end() {
     g_table_state.version++; // even = stable
 }
 
+// Dirty marker used by Flutter to avoid rescanning visible cells when table
+// content has not changed. This is separate from seqlock `version`:
+// - `version` protects snapshot consistency during concurrent writes.
+// - `content_epoch` signals that content changed since last seen value.
+static inline void table_mark_content_changed() {
+    g_table_state.content_epoch++;
+    if (g_table_state.content_epoch == 0) {
+        g_table_state.content_epoch = 1;
+    }
+}
+
 // Helper to set a cell to default values
 static inline void table_set_cell_defaults(Cell* cell) {
     if (!cell) return;
@@ -108,6 +119,7 @@ void table_init(void) {
 
     // Initialize FFI-visible fields for unified state
     g_table_state.version = 0;
+    g_table_state.content_epoch = 1;
     g_table_state.table_ptr = &g_table_state.table[0][0];
     g_table_state.sections_ptr = &g_table_state.sections[0];
     g_table_state.layers_ptr = &g_table_state.layers[0][0];
@@ -143,6 +155,7 @@ void table_set_cell(int step, int col, int sample_slot, float volume, float pitc
     cell->settings.volume = volume;
     cell->settings.pitch = pitch;
     cell->is_processing = 0;
+    table_mark_content_changed();
     
     prnt_debug("🎵 [TABLE] Set cell [%d, %d]: slot=%d, vol=%.2f, pitch=%.2f", 
          step, col, sample_slot, volume, pitch);
@@ -165,6 +178,7 @@ void table_set_cell_settings(int step, int col, float volume, float pitch, int u
 
     cell->settings.volume = volume;
     cell->settings.pitch = pitch;
+    table_mark_content_changed();
     prnt_debug("🎚️ [TABLE] Set settings [%d, %d]: vol=%.2f, pitch=%.2f", step, col, volume, pitch);
 
     // Sync cell to SunVox pattern (unless sync is disabled for bulk operations)
@@ -186,6 +200,7 @@ void table_set_cell_sample_slot(int step, int col, int sample_slot, int undo_rec
         return;
     }
     cell->sample_slot = sample_slot;
+    table_mark_content_changed();
     prnt("🎵 [TABLE] Set sample slot [%d, %d]: slot=%d", step, col, sample_slot);
     
     // Sync cell to SunVox pattern (unless sync is disabled for bulk operations)
@@ -204,6 +219,7 @@ void table_clear_cell(int step, int col, int undo_record) {
     if (!cell) return;
     
     table_set_cell_defaults(cell);
+    table_mark_content_changed();
     
     // prnt("🧹 [TABLE] Cleared cell [%d, %d]", step, col);  // Commented out to reduce log spam
 
@@ -234,6 +250,7 @@ void table_clear_all_cells(void) {
     }
     
     state_write_end();
+    table_mark_content_changed();
     
     prnt("✅ [TABLE] Bulk clear complete");
     
@@ -286,6 +303,7 @@ void table_insert_step(int section_index, int at_step, int undo_record) {
     table_recompute_section_starts();
 
     state_write_end();
+    table_mark_content_changed();
     
     prnt("➕ [TABLE] Inserted step at %d in section %d (section steps: %d, total steps: %d)", 
          at_step, section_index, g_table_state.sections[section_index].num_steps, total_steps + 1);
@@ -342,6 +360,7 @@ void table_delete_step(int section_index, int at_step, int undo_record) {
     table_recompute_section_starts();
 
     state_write_end();
+    table_mark_content_changed();
     
     prnt("➖ [TABLE] Deleted step at %d in section %d (section steps: %d, total steps: %d)", 
          at_step, section_index, g_table_state.sections[section_index].num_steps, total_steps - 1);
@@ -405,6 +424,7 @@ void table_set_section_step_count(int section_index, int steps, int undo_record)
         // Recompute all section start_step values to eliminate gaps
         table_recompute_section_starts();
         state_write_end();
+        table_mark_content_changed();
         
         prnt("📏 [TABLE] Set section %d step count to %d", section_index, steps);
         
@@ -474,6 +494,7 @@ void table_append_section(int steps, int copy_from_section, int undo_record) {
     table_recompute_section_starts();
 
     state_write_end();
+    table_mark_content_changed();
 
     prnt("🆕 [TABLE] Appended section %d (steps=%d, start=%d)", new_index, new_steps, start);
     
@@ -552,6 +573,7 @@ void table_delete_section(int section_index, int undo_record) {
     }
 
     state_write_end();
+    table_mark_content_changed();
 
     prnt("🗑️ [TABLE] Deleted section %d (steps=%d)", section_index, remove_steps);
     
@@ -687,6 +709,7 @@ void table_reorder_section(int from_index, int to_index, int undo_record) {
     }
 
     state_write_end();
+    table_mark_content_changed();
 
     free(temp_buffer);
     free(rebuild_buffer);
@@ -722,6 +745,7 @@ void table_set_section(int index, int start_step, int num_steps, int undo_record
     // Note: Recompute may overwrite start_step, but that's intentional to ensure consistency
     table_recompute_section_starts();
     state_write_end();
+    table_mark_content_changed();
 
     prnt("📐 [TABLE] Set section %d (start=%d, steps=%d)", index, start_step, num_steps);
 
@@ -748,6 +772,7 @@ void table_set_layer_len(int section_index, int layer_index, int len, int undo_r
     state_write_begin();
     g_table_state.layers[section_index][layer_index].len = len;
     state_write_end();
+    table_mark_content_changed();
 
     prnt("📏 [TABLE] Set layer len section=%d layer=%d len=%d", section_index, layer_index, len);
 
@@ -837,6 +862,9 @@ int table_get_col_in_layer(int section, int col) {
 // Return pointer to unified state for Flutter FFI access
 const TableState* table_get_state_ptr(void) { return &g_table_state; }
 
+// Exposes the dirty marker to Dart side for optional polling-based checks.
+uint32_t table_get_content_epoch(void) { return g_table_state.content_epoch; }
+
 // Expose live state for read
 const TableState* table_state_get_ptr(void) { return &g_table_state; }
 
@@ -878,5 +906,6 @@ void table_apply_state(const TableState* snap) {
     }
 
     state_write_end();
+    table_mark_content_changed();
     prnt("📥 [TABLE] Applied TableState (sections=%d)", g_table_state.sections_count);
 }

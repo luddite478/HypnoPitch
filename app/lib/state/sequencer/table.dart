@@ -3,35 +3,36 @@ import 'dart:ffi' as ffi;
 // removed unused json ffi imports
 import '../../ffi/table_bindings.dart';
 import '../../ffi/playback_bindings.dart';
+import 'sync_profiling_helpers.dart';
 // uses Cell/CellData types from table_bindings.dart
 
 /// ## How to Add a New Property
-/// 
+///
 /// To add a new property that syncs from native to Flutter state:
-/// 
+///
 /// 1. **Add private field to PlaybackState:**
 ///    ```dart
 ///    int _myNewProperty = 0;
 ///    ```
-/// 
+///
 /// 2. **Add ValueNotifier for UI binding:**
 ///    ```dart
 ///    final ValueNotifier<int> myNewPropertyNotifier = ValueNotifier<int>(0);
 ///    ```
-/// 
+///
 /// 3. **Add field to _NativePlaybackState:**
 ///    ```dart
 ///    class _NativePlaybackState {
 ///      // ... existing fields
 ///      final int myNewProperty;
-///      
+///
 ///      const _NativePlaybackState({
 ///        // ... existing parameters
 ///        required this.myNewProperty,
 ///      });
 ///    }
 ///    ```
-/// 
+///
 /// 4. **Update syncPlaybackState() to read native value:**
 ///    ```dart
 ///    nativePlaybackState = _NativePlaybackState(
@@ -39,7 +40,7 @@ import '../../ffi/playback_bindings.dart';
 ///      myNewProperty: ptr.ref.my_new_property,
 ///    );
 ///    ```
-/// 
+///
 /// 5. **Add comparison in _updateStateFromNative():**
 ///    ```dart
 ///    if (_myNewProperty != nativePlaybackState.myNewProperty) {
@@ -48,26 +49,31 @@ import '../../ffi/playback_bindings.dart';
 ///      anyChanged = true;
 ///    }
 ///    ```
-/// 
+///
 /// 6. **Add getter (optional):**
 ///    ```dart
 ///    int get myNewProperty => _myNewProperty;
 ///    ```
-/// 
+///
 /// 7. **Dispose the ValueNotifier:**
 ///    ```dart
 ///    myNewPropertyNotifier.dispose();
 ///    ```
-/// 
+///
 
 /// Simple data class to hold native table state snapshot
 class _NativeTableState {
+  // Dirty marker from native table state.
+  // Used as a fast change detector to decide whether visible cell notifiers
+  // need to be refreshed.
+  final int contentEpoch;
   final int sectionsCount;
   final ffi.Pointer<Cell> tablePtr;
   final ffi.Pointer<Section> sectionsPtr;
   final ffi.Pointer<Layer> layersPtr;
-  
+
   const _NativeTableState({
+    required this.contentEpoch,
     required this.sectionsCount,
     required this.tablePtr,
     required this.sectionsPtr,
@@ -78,11 +84,13 @@ class _NativeTableState {
 // Removed Flutter-side TableSnapshot; snapshot handled natively
 
 /// Flutter state management for native sequencer table
-/// 
+///
 /// This file maintains references/pointers to native table data and provides
 /// efficient change tracking using ValueNotifiers for UI updates.
 enum SoundGridViewMode { stack, flat }
+
 enum EditButtonsLayoutMode { v1, v2 }
+
 enum LayerMode { sequence, rec }
 
 class TableState extends ChangeNotifier {
@@ -90,44 +98,46 @@ class TableState extends ChangeNotifier {
   static const int maxLayersPerSection = 5;
   static const int maxColsPerLayer = 4;
   static const int maxSections = 64;
-  
+
   final TableBindings _table_ffi;
   final PlaybackBindings _playback_ffi;
-  
+
   // Auto-save callback (set by ThreadsState)
   void Function()? _onStateChanged;
-  
+
   // 2D array of ValueNotifiers for efficient cell updates (sized dynamically based on native table dimensions)
   late final List<List<ValueNotifier<CellData>?>> _cellNotifiers;
-  
+
   // Private state fields (synced from native)
   int _sectionsCount = 1;
   bool _initialized = false;
   ffi.Pointer<Cell> _tablePtr = ffi.nullptr;
   ffi.Pointer<Section> _sectionsPtr = ffi.nullptr;
-  
+  ffi.Pointer<Layer> _layersPtr = ffi.nullptr;
+
   // Table dimensions (constants from native)
   int _maxSteps = 2048;
   int _maxCols = 16;
-  
+
   // Flutter-only UI selection (for smart sync)
-  int _uiSelectedSection = 0;  // Which section UI is currently viewing
-  int _uiSelectedLayer = 0;    // Which layer UI is currently viewing
-  
+  int _uiSelectedSection = 0; // Which section UI is currently viewing
+  int _uiSelectedLayer = 0; // Which layer UI is currently viewing
+
   // ValueNotifier for selected layer to ensure UI always updates
   final ValueNotifier<int> uiSelectedLayerNotifier = ValueNotifier<int>(0);
-  
+
   // UI: sound grid view mode (stacked cards vs flat tabs)
   SoundGridViewMode _uiSoundGridViewMode = SoundGridViewMode.flat;
   // UI: edit buttons layout mode (v1 classic, v2 right-aligned large)
   EditButtonsLayoutMode _uiEditButtonsLayoutMode = EditButtonsLayoutMode.v2;
   // Layer operational mode (sequencer vs live recording)
   LayerMode _layerMode = LayerMode.sequence;
-  final ValueNotifier<LayerMode> layerModeNotifier = ValueNotifier<LayerMode>(LayerMode.sequence);
-  
+  final ValueNotifier<LayerMode> layerModeNotifier =
+      ValueNotifier<LayerMode>(LayerMode.sequence);
+
   // Per-layer operational mode persistence (SEQUENCE or REC)
   final Map<int, LayerMode> _layerModes = {};
-  
+
   // Per-layer mute/solo (synced to native via FFI)
   final Map<int, bool> _layerMuted = {};
   final Map<int, bool> _layerSoloed = {};
@@ -138,64 +148,79 @@ class TableState extends ChangeNotifier {
   final Map<int, bool> _layerColumnMuted = {};
   final Map<int, bool> _layerColumnSoloed = {};
   final ValueNotifier<void> columnMuteSoloNotifier = ValueNotifier<void>(null);
-  
+
   // Sound grid stack (multiple grids)
   int _uiCurrentSoundGridIndex = 0;
   final List<int> _uiSoundGridOrder = [0];
 
   int _activeSectionStepCount = defaultSectionSteps;
+  // Last seen native dirty marker. If unchanged, we can skip visible cell scan.
+  int _contentEpoch = 0;
+  int _lastSyncedContentEpoch = -1;
+  int _lastVisibleSection = -1;
+  int _lastVisibleLayer = -1;
+  final SyncProfiler _syncProfiler = SyncProfiler(profileLabel: 'TABLE_PROFILE');
 
-  TableState() : _table_ffi = TableBindings(), _playback_ffi = PlaybackBindings() {
+  TableState()
+      : _table_ffi = TableBindings(),
+        _playback_ffi = PlaybackBindings() {
     _initializeTable();
   }
-  
+
   void _initializeTable() {
     debugPrint('🏗️ [TABLE_STATE] Initializing native table');
     _table_ffi.tableInit();
     _maxSteps = _table_ffi.tableGetMaxSteps();
     _maxCols = _table_ffi.tableGetMaxCols();
-    
+
     // Initialize notifiers array based on actual table dimensions
-    _cellNotifiers = List.generate(_maxSteps, 
-      (_) => List.filled(_maxCols, null));
-    
+    _cellNotifiers =
+        List.generate(_maxSteps, (_) => List.filled(_maxCols, null));
+
     _initialized = true;
-    debugPrint('✅ [TABLE_STATE] Table initialized (${_maxSteps}x${_maxCols}, ${_maxSteps * _maxCols} cell capacity)');
+    debugPrint(
+        '✅ [TABLE_STATE] Table initialized (${_maxSteps}x${_maxCols}, ${_maxSteps * _maxCols} cell capacity)');
   }
-  
+
   /// Set UI selected section (Flutter-only, for smart sync optimization)
   void setUiSelectedSection(int section) {
     if (section >= 0 && section < _sectionsCount) {
       _uiSelectedSection = section;
       notifyListeners();
+      _refreshVisibleCellsNow();
       debugPrint('🎭 [TABLE_STATE] Set UI selected section to $section');
     }
   }
-  
+
   /// Set UI selected layer (Flutter-only, for smart sync optimization)
   void setUiSelectedLayer(int layer) {
     final layers = totalLayers;
     if (layer >= 0 && layer < layers) {
       final oldLayer = _uiSelectedLayer;
       _uiSelectedLayer = layer;
-      uiSelectedLayerNotifier.value = layer; // Update ValueNotifier for reliable UI updates
-      
+      uiSelectedLayerNotifier.value =
+          layer; // Update ValueNotifier for reliable UI updates
+
       // Update layer mode notifier to reflect the newly selected layer's mode
       final layerMode = getLayerMode(layer);
       _layerMode = layerMode;
       layerModeNotifier.value = layerMode;
-      
+
       if (oldLayer != layer) {
-        debugPrint('🎨 [TABLE_STATE] ✅ Switched UI layer from $oldLayer to $layer / totalLayers=$layers (mode: $layerMode)');
+        debugPrint(
+            '🎨 [TABLE_STATE] ✅ Switched UI layer from $oldLayer to $layer / totalLayers=$layers (mode: $layerMode)');
       } else {
-        debugPrint('🎨 [TABLE_STATE] Layer $layer reselected (forcing UI update)');
+        debugPrint(
+            '🎨 [TABLE_STATE] Layer $layer reselected (forcing UI update)');
       }
-      
+
       // Always call notifyListeners to ensure UI updates, even if layer didn't change
       // This handles cases where the UI state might be out of sync
       notifyListeners();
+      _refreshVisibleCellsNow();
     } else {
-      debugPrint('⚠️ [TABLE_STATE] Ignored setUiSelectedLayer($layer) out of range [0, ${layers - 1}]');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Ignored setUiSelectedLayer($layer) out of range [0, ${layers - 1}]');
     }
   }
 
@@ -219,25 +244,25 @@ class TableState extends ChangeNotifier {
   LayerMode getLayerMode(int layer) {
     return _layerModes[layer] ?? LayerMode.sequence;
   }
-  
+
   /// Set layer mode for specific layer (persisted per layer)
   void setLayerMode(int layer, LayerMode mode) {
     final oldMode = _layerModes[layer];
     _layerModes[layer] = mode;
-    
+
     // Only update global notifier if this is the currently selected layer
     if (layer == _uiSelectedLayer) {
       _layerMode = mode;
       layerModeNotifier.value = mode;
     }
-    
+
     // Only notify if mode actually changed
     if (oldMode != mode) {
       notifyListeners();
       debugPrint('📒 [TABLE_STATE] Set layer $layer mode to $mode');
     }
   }
-  
+
   /// Reset all layer modes to sequence (called when creating new pattern)
   void resetAllLayerModes() {
     _layerModes.clear();
@@ -253,7 +278,8 @@ class TableState extends ChangeNotifier {
   /// Get layer soloed state
   bool isLayerSoloed(int layer) => _layerSoloed[layer] ?? false;
 
-  int _layerColKey(int layer, int colInLayer) => (layer * maxColsPerLayer) + colInLayer;
+  int _layerColKey(int layer, int colInLayer) =>
+      (layer * maxColsPerLayer) + colInLayer;
 
   /// Get per-layer column muted state.
   bool isLayerColumnMuted(int layer, int colInLayer) {
@@ -430,7 +456,7 @@ class TableState extends ChangeNotifier {
   }
 
   // Removed: setUiColsPerLayer; using native layers config
-  
+
   /// Get pointer to native cell (direct memory access)
   ffi.Pointer<Cell> getCellPointer(int step, int col) {
     return _table_ffi.tableGetCell(step, col);
@@ -440,13 +466,15 @@ class TableState extends ChangeNotifier {
   ffi.Pointer<NativeTableState> getTableStatePtr() {
     return _table_ffi.tableGetStatePtr();
   }
-  
+
   /// CRUD operations (delegate to native and update UI)
-  void setCell(int step, int col, int sampleSlot, double volume, double pitch, {bool undoRecord = true}) {
-    _table_ffi.tableSetCell(step, col, sampleSlot, volume, pitch, undoRecord ? 1 : 0);
+  void setCell(int step, int col, int sampleSlot, double volume, double pitch,
+      {bool undoRecord = true}) {
+    _table_ffi.tableSetCell(
+        step, col, sampleSlot, volume, pitch, undoRecord ? 1 : 0);
     // debugPrint('✏️ [TABLE_STATE] Set cell [$step, $col]: slot=$sampleSlot, vol=${volume.toStringAsFixed(2)}');
   }
-  
+
   void clearCell(int step, int col, {bool undoRecord = true}) {
     _table_ffi.tableClearCell(step, col, undoRecord ? 1 : 0);
     // debugPrint('🧹 [TABLE_STATE] Cleared cell [$step, $col]');  // Commented out to reduce log spam
@@ -459,7 +487,7 @@ class TableState extends ChangeNotifier {
       debugPrint('⚠️ [TABLE_STATE] Cannot clear cells - table not initialized');
       return;
     }
-    
+
     debugPrint('🧹 [TABLE_STATE] Bulk clearing all cells');
     _table_ffi.tableClearAllCells();
     debugPrint('✅ [TABLE_STATE] Bulk clear complete');
@@ -468,10 +496,11 @@ class TableState extends ChangeNotifier {
   /// Disable automatic SunVox sync (for bulk operations like import)
   void disableSunvoxSync() {
     if (!_initialized) {
-      debugPrint('⚠️ [TABLE_STATE] Cannot disable sync - table not initialized');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Cannot disable sync - table not initialized');
       return;
     }
-    
+
     _table_ffi.tableDisableSunvoxSync();
   }
 
@@ -481,12 +510,13 @@ class TableState extends ChangeNotifier {
       debugPrint('⚠️ [TABLE_STATE] Cannot enable sync - table not initialized');
       return;
     }
-    
+
     _table_ffi.tableEnableSunvoxSync();
   }
 
   /// Update cell audio settings (volume, pitch) while preserving sample slot
-  void setCellSettings(int step, int col, {double? volume, double? pitch, bool undoRecord = true}) {
+  void setCellSettings(int step, int col,
+      {double? volume, double? pitch, bool undoRecord = true}) {
     final cellPtr = getCellPointer(step, col);
     if (cellPtr.address == 0) return;
     final current = cellPtr.ref;
@@ -497,28 +527,36 @@ class TableState extends ChangeNotifier {
     // For pitch, keep sentinel when not explicitly set; otherwise clamp to valid range
     double nextPitch = pitch ?? current.settings.pitch;
     if (nextPitch >= 0.0) nextPitch = nextPitch.clamp(0.03125, 32.0);
-    
-    _table_ffi.tableSetCell(step, col, current.sample_slot, nextVolume, nextPitch, undoRecord ? 1 : 0);
-    debugPrint('🎚️ [TABLE_STATE] Set cell settings [$step, $col]: vol=${nextVolume.toStringAsFixed(2)}, pitch=${nextPitch.toStringAsFixed(2)}');
+
+    _table_ffi.tableSetCell(step, col, current.sample_slot, nextVolume,
+        nextPitch, undoRecord ? 1 : 0);
+    debugPrint(
+        '🎚️ [TABLE_STATE] Set cell settings [$step, $col]: vol=${nextVolume.toStringAsFixed(2)}, pitch=${nextPitch.toStringAsFixed(2)}');
   }
 
   /// Apply same volume/pitch to multiple cells. Records a single undo step for the batch.
-  void setCellSettingsForCells(List<({int step, int col})> cells, {double? volume, double? pitch, bool undoRecord = true}) {
+  void setCellSettingsForCells(List<({int step, int col})> cells,
+      {double? volume, double? pitch, bool undoRecord = true}) {
     if (cells.isEmpty) return;
     for (var i = 0; i < cells.length; i++) {
       final c = cells[i];
-      setCellSettings(c.step, c.col, volume: volume, pitch: pitch, undoRecord: undoRecord && i == cells.length - 1);
+      setCellSettings(c.step, c.col,
+          volume: volume,
+          pitch: pitch,
+          undoRecord: undoRecord && i == cells.length - 1);
     }
   }
 
   void insertStep(int sectionIndex, int atStep, {bool undoRecord = true}) {
     _table_ffi.tableInsertStep(sectionIndex, atStep, undoRecord ? 1 : 0);
-    debugPrint('➕ [TABLE_STATE] Inserted step at $atStep in section $sectionIndex');
+    debugPrint(
+        '➕ [TABLE_STATE] Inserted step at $atStep in section $sectionIndex');
   }
-  
+
   void deleteStep(int sectionIndex, int atStep, {bool undoRecord = true}) {
     _table_ffi.tableDeleteStep(sectionIndex, atStep, undoRecord ? 1 : 0);
-    debugPrint('➖ [TABLE_STATE] Deleted step at $atStep in section $sectionIndex');
+    debugPrint(
+        '➖ [TABLE_STATE] Deleted step at $atStep in section $sectionIndex');
   }
 
   /// Bulk update of many cells (flat list of cells, row-major by MAX_COLS)
@@ -526,7 +564,8 @@ class TableState extends ChangeNotifier {
   void updateManyCells(int startRow, List<CellData> cellsFlat) {
     if (cellsFlat.isEmpty) return;
     if (cellsFlat.length % _maxCols != 0) {
-      throw ArgumentError('cellsFlat length (${cellsFlat.length}) must be a multiple of maxCols ($_maxCols)');
+      throw ArgumentError(
+          'cellsFlat length (${cellsFlat.length}) must be a multiple of maxCols ($_maxCols)');
     }
     final numRows = cellsFlat.length ~/ _maxCols;
     int idx = 0;
@@ -535,10 +574,12 @@ class TableState extends ChangeNotifier {
       for (int c = 0; c < _maxCols; c++) {
         final cell = cellsFlat[idx++];
         final isLast = (r == numRows - 1) && (c == _maxCols - 1);
-        _table_ffi.tableSetCell(step, c, cell.sampleSlot, cell.volume, cell.pitch, isLast ? 1 : 0);
+        _table_ffi.tableSetCell(
+            step, c, cell.sampleSlot, cell.volume, cell.pitch, isLast ? 1 : 0);
       }
     }
-    debugPrint('🧩 [TABLE_STATE] Updated many cells from row $startRow, rows=$numRows');
+    debugPrint(
+        '🧩 [TABLE_STATE] Updated many cells from row $startRow, rows=$numRows');
   }
 
   /// Bulk update of many sections using SectionData list
@@ -548,39 +589,46 @@ class TableState extends ChangeNotifier {
     for (int i = 0; i < count; i++) {
       final s = sections[i];
       final isLast = (i == count - 1);
-      _table_ffi.tableSetSection(startIndex + i, s.startStep, s.numSteps, isLast ? 1 : 0);
+      _table_ffi.tableSetSection(
+          startIndex + i, s.startStep, s.numSteps, isLast ? 1 : 0);
     }
-    debugPrint('🧭 [TABLE_STATE] Updated many sections from index $startIndex, count=$count');
+    debugPrint(
+        '🧭 [TABLE_STATE] Updated many sections from index $startIndex, count=$count');
   }
 
   /// Bulk update of many layers. layersLenFlat is row-major per section with MAX_LAYERS_PER_SECTION entries each
-  void updateManyLayers(int startSection, int countSections, List<int> layersLenFlat) {
+  void updateManyLayers(
+      int startSection, int countSections, List<int> layersLenFlat) {
     if (countSections <= 0) return;
     if (layersLenFlat.length != countSections * maxLayersPerSection) {
-      throw ArgumentError('layersLenFlat length (${layersLenFlat.length}) must equal countSections($countSections) * maxLayersPerSection($maxLayersPerSection)');
+      throw ArgumentError(
+          'layersLenFlat length (${layersLenFlat.length}) must equal countSections($countSections) * maxLayersPerSection($maxLayersPerSection)');
     }
     int k = 0;
     for (int s = 0; s < countSections; s++) {
       final sectionIndex = startSection + s;
       for (int l = 0; l < maxLayersPerSection; l++) {
-        final isLast = (s == countSections - 1) && (l == maxLayersPerSection - 1);
-        _table_ffi.tableSetLayerLen(sectionIndex, l, layersLenFlat[k++], isLast ? 1 : 0);
+        final isLast =
+            (s == countSections - 1) && (l == maxLayersPerSection - 1);
+        _table_ffi.tableSetLayerLen(
+            sectionIndex, l, layersLenFlat[k++], isLast ? 1 : 0);
       }
     }
-    debugPrint('🎚️ [TABLE_STATE] Updated many layers from section $startSection, count=$countSections');
+    debugPrint(
+        '🎚️ [TABLE_STATE] Updated many layers from section $startSection, count=$countSections');
   }
-    
+
   /// Get notifier for specific cell (efficient 2D array access, lazy initialization)
   ValueNotifier<CellData> getCellNotifier(int step, int col) {
     if (step >= _maxSteps || col >= _maxCols) {
-      throw ArgumentError('Cell out of bounds: [$step, $col] (max: $_maxSteps x $_maxCols)');
+      throw ArgumentError(
+          'Cell out of bounds: [$step, $col] (max: $_maxSteps x $_maxCols)');
     }
-    
+
     // Lazy initialization of notifiers
-    _cellNotifiers[step][col] ??= ValueNotifier(
-      CellData.fromPointer(getCellPointer(step, col))
-    );
-    
+    _cellNotifiers[step][col] ??=
+        ValueNotifier(CellData.fromPointer(getCellPointer(step, col)));
+
     return _cellNotifiers[step][col]!;
   }
 
@@ -589,24 +637,30 @@ class TableState extends ChangeNotifier {
     final ptr = getCellPointer(step, col);
     return CellData.fromPointer(ptr);
   }
-  
+
   /// Sync table state from native using seqlock pattern (called by timer each frame)
   void syncTableState() {
     if (!_initialized) return;
-    
+
+    final syncWatch = Stopwatch()..start();
     final ffi.Pointer<NativeTableState> ptr = _table_ffi.tableGetStatePtr();
+    if (ptr.address == 0) return;
     int tries = 0;
     const maxTries = 3;
     late final _NativeTableState nativeTableState;
-    
-    // Seqlock pattern: read with version check for consistency
+
+    // Seqlock pattern: read with version check for consistency.
+    // NOTE: this guarantees the snapshot is stable, while contentEpoch tells us
+    // whether we need to refresh visible cells.
     while (true) {
       final v1 = ptr.ref.version;
-      if ((v1 & 1) != 0) { // writer in progress
+      if ((v1 & 1) != 0) {
+        // writer in progress
         if (++tries >= maxTries) return; // skip this frame
         continue;
       }
       nativeTableState = _NativeTableState(
+        contentEpoch: ptr.ref.content_epoch,
         sectionsCount: ptr.ref.sections_count,
         tablePtr: ptr.ref.table_ptr,
         sectionsPtr: ptr.ref.sections_ptr,
@@ -616,66 +670,114 @@ class TableState extends ChangeNotifier {
       if (v1 == v2) break;
       if (++tries >= maxTries) return;
     }
-    
+
     _updateStateFromNative(nativeTableState);
+
+    syncWatch.stop();
+    _syncProfiler.recordCall(
+      elapsedMicros: syncWatch.elapsedMicroseconds,
+      detailsBuilder: () =>
+          '(epoch=$_contentEpoch, section=$_uiSelectedSection, layer=$_uiSelectedLayer)',
+    );
   }
 
   /// Update local state when native state changes
   void _updateStateFromNative(_NativeTableState nativeTableState) {
     bool anyChanged = false;
-    
+    bool shouldSyncVisibleCells = false;
+
     // Check and update each property
-    if (_sectionsCount != nativeTableState.sectionsCount) {
-      _sectionsCount = nativeTableState.sectionsCount;
-      anyChanged = true;
-    }
-    
-    if (_tablePtr != nativeTableState.tablePtr) {
-      _tablePtr = nativeTableState.tablePtr;
-      anyChanged = true;
-    }
-    
-    if (_sectionsPtr != nativeTableState.sectionsPtr) {
-      _sectionsPtr = nativeTableState.sectionsPtr;
+    if (_contentEpoch != nativeTableState.contentEpoch) {
+      _contentEpoch = nativeTableState.contentEpoch;
+      shouldSyncVisibleCells = true;
+      // Cell/sample edits bump content_epoch only; without this, TableState
+      // listeners (e.g. tutorial advance on sample count) never run.
       anyChanged = true;
     }
 
-    final activeSectionNumSteps = (_sectionsPtr + _uiSelectedSection).ref.num_steps;
-    if (activeSectionNumSteps != _activeSectionStepCount) {
-      _activeSectionStepCount = activeSectionNumSteps;
+    if (_sectionsCount != nativeTableState.sectionsCount) {
+      _sectionsCount = nativeTableState.sectionsCount;
       anyChanged = true;
+      shouldSyncVisibleCells = true;
     }
-    
+
+    if (_tablePtr != nativeTableState.tablePtr) {
+      _tablePtr = nativeTableState.tablePtr;
+      anyChanged = true;
+      shouldSyncVisibleCells = true;
+    }
+
+    if (_sectionsPtr != nativeTableState.sectionsPtr) {
+      _sectionsPtr = nativeTableState.sectionsPtr;
+      anyChanged = true;
+      shouldSyncVisibleCells = true;
+    }
+
+    if (_layersPtr != nativeTableState.layersPtr) {
+      _layersPtr = nativeTableState.layersPtr;
+      anyChanged = true;
+      shouldSyncVisibleCells = true;
+    }
+
+    if (_sectionsPtr != ffi.nullptr && _uiSelectedSection < _sectionsCount) {
+      final activeSectionNumSteps =
+          (_sectionsPtr + _uiSelectedSection).ref.num_steps;
+      if (activeSectionNumSteps != _activeSectionStepCount) {
+        _activeSectionStepCount = activeSectionNumSteps;
+        anyChanged = true;
+      }
+    }
+
     if (anyChanged) {
       notifyListeners();
     }
-    
-    _updateVisibleCells();
+
+    if (_lastVisibleSection != _uiSelectedSection ||
+        _lastVisibleLayer != _uiSelectedLayer) {
+      _lastVisibleSection = _uiSelectedSection;
+      _lastVisibleLayer = _uiSelectedLayer;
+      shouldSyncVisibleCells = true;
+    }
+
+    // Only refresh visible cells when dirty marker changed or UI viewport
+    // (selected section/layer) moved.
+    if (_lastSyncedContentEpoch != _contentEpoch) {
+      _lastSyncedContentEpoch = _contentEpoch;
+      shouldSyncVisibleCells = true;
+    }
+
+    if (shouldSyncVisibleCells) {
+      _updateVisibleCells();
+    }
   }
-  
+
   /// Smart cell synchronization: only sync cells in visible UI section/layer
   void _updateVisibleCells() {
     if (_tablePtr == ffi.nullptr || _sectionsPtr == ffi.nullptr) return;
     if (_uiSelectedSection >= _sectionsCount) return;
-    
+
     // Direct sections access: Get section bounds without FFI calls
     final sectionPtr = _sectionsPtr + _uiSelectedSection;
     final sectionStartStep = sectionPtr.ref.start_step;
     final sectionStepCount = sectionPtr.ref.num_steps;
     final sectionEndStep = sectionStartStep + sectionStepCount;
-    
+
     // Calculate visible layer bounds (columns) using native layers config
     final layerStartCol = getLayerStartCol(_uiSelectedLayer);
     final layerEndCol = getLayerEndCol(_uiSelectedLayer);
-    
+
     // Direct table access: Only sync cells in the visible rectangular area
-    for (int step = sectionStartStep; step < sectionEndStep && step < _maxSteps; step++) {
-      for (int col = layerStartCol; col < layerEndCol && col < _maxCols; col++) {
+    for (int step = sectionStartStep;
+        step < sectionEndStep && step < _maxSteps;
+        step++) {
+      for (int col = layerStartCol;
+          col < layerEndCol && col < _maxCols;
+          col++) {
         _notifyCellChangeDirect(step, col);
       }
     }
   }
-  
+
   /// Direct cell change notification using table pointer
   void _notifyCellChangeDirect(int step, int col) {
     if (step < _maxSteps && col < _maxCols) {
@@ -684,26 +786,40 @@ class TableState extends ChangeNotifier {
         // Direct access: calculate cell pointer from base table pointer
         final cellIndex = step * _maxCols + col;
         final cellPtr = _tablePtr + cellIndex;
-        notifier.value = CellData.fromPointer(cellPtr);
+        final cell = cellPtr.ref;
+        final current = notifier.value;
+        final sameAsCurrent = current.sampleSlot == cell.sample_slot &&
+            current.volume == cell.settings.volume &&
+            current.pitch == cell.settings.pitch &&
+            current.isProcessing == (cell.is_processing != 0);
+        if (!sameAsCurrent) {
+          notifier.value = CellData.fromPointer(cellPtr);
+        }
       }
     }
   }
-  
+
   /// Set section step count
-  void setSectionStepCount(int sectionIndex, int steps, {bool undoRecord = true}) {
+  void setSectionStepCount(int sectionIndex, int steps,
+      {bool undoRecord = true}) {
     if (steps > 0 && steps <= _maxSteps) {
-      _table_ffi.tableSetSectionStepCount(sectionIndex, steps, undoRecord ? 1 : 0);
+      _table_ffi.tableSetSectionStepCount(
+          sectionIndex, steps, undoRecord ? 1 : 0);
       // notifyListeners();
-      debugPrint('📏 [TABLE_STATE] Set section $sectionIndex step count to $steps');
+      debugPrint(
+          '📏 [TABLE_STATE] Set section $sectionIndex step count to $steps');
     }
   }
 
   void appendSection({int? copyFrom, bool undoRecord = true}) {
-    _table_ffi.tableAppendSection!(defaultSectionSteps, (copyFrom ?? -1), undoRecord ? 1 : 0);
-    final newIndex = (_sectionsCount); // new section will be at current count index
+    _table_ffi.tableAppendSection!(
+        defaultSectionSteps, (copyFrom ?? -1), undoRecord ? 1 : 0);
+    final newIndex =
+        (_sectionsCount); // new section will be at current count index
     _uiSelectedSection = newIndex;
     notifyListeners();
-    debugPrint('🆕 [TABLE_STATE] Appended section and selected index $newIndex');
+    debugPrint(
+        '🆕 [TABLE_STATE] Appended section and selected index $newIndex');
   }
 
   void deleteSection(int sectionIndex, {bool undoRecord = true}) {
@@ -720,44 +836,46 @@ class TableState extends ChangeNotifier {
 
   // Section management clipboard
   int? _copiedSectionIndex;
-  
-  bool get hasCopiedSection => _copiedSectionIndex != null && _copiedSectionIndex! < sectionsCount;
-  
+
+  bool get hasCopiedSection =>
+      _copiedSectionIndex != null && _copiedSectionIndex! < sectionsCount;
+
   void copySectionToClipboard(int sectionIndex) {
     _copiedSectionIndex = sectionIndex;
     debugPrint('📋 [TABLE_STATE] Copied section $sectionIndex to clipboard');
     notifyListeners();
   }
-  
+
   // Helper: Validate clipboard has valid section
   bool _hasValidClipboard() {
     if (_copiedSectionIndex == null || _copiedSectionIndex! >= sectionsCount) {
-      debugPrint('⚠️ [TABLE_STATE] Cannot paste - no valid section in clipboard');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Cannot paste - no valid section in clipboard');
       return false;
     }
     return true;
   }
-  
+
   // Helper: Insert section and reorder to target position
   void _insertSectionAt(int targetPosition, {int? copyFrom}) {
     final newIndex = _sectionsCount; // Read BEFORE appending
     appendSection(copyFrom: copyFrom ?? -1, undoRecord: true);
-    
+
     if (newIndex != targetPosition) {
       reorderSection(newIndex, targetPosition);
     }
-    
+
     _uiSelectedSection = targetPosition;
   }
-  
+
   void pasteSection(int targetSection) {
     if (!_hasValidClipboard()) return;
-    
+
     if (targetSection < 0 || targetSection >= sectionsCount) {
       debugPrint('⚠️ [TABLE_STATE] Invalid target section: $targetSection');
       return;
     }
-    
+
     // Get section pointers and bounds
     final sourceSectionPtr = _sectionsPtr + _copiedSectionIndex!;
     final targetSectionPtr = _sectionsPtr + targetSection;
@@ -765,45 +883,48 @@ class TableState extends ChangeNotifier {
     final sourceStepCount = sourceSectionPtr.ref.num_steps;
     final targetStartStep = targetSectionPtr.ref.start_step;
     final targetStepCount = targetSectionPtr.ref.num_steps;
-    
+
     // Resize target if needed
     if (targetStepCount != sourceStepCount) {
       setSectionStepCount(targetSection, sourceStepCount, undoRecord: true);
     }
-    
+
     // Copy all cells
     for (int step = 0; step < sourceStepCount && step < _maxSteps; step++) {
       for (int col = 0; col < _maxCols; col++) {
         final sourceCell = getCellPointer(sourceStartStep + step, col).ref;
         final targetStep = targetStartStep + step;
-        
+
         if (sourceCell.sample_slot >= 0) {
-          setCell(targetStep, col, sourceCell.sample_slot, 
-                 sourceCell.settings.volume, sourceCell.settings.pitch, undoRecord: false);
+          setCell(targetStep, col, sourceCell.sample_slot,
+              sourceCell.settings.volume, sourceCell.settings.pitch,
+              undoRecord: false);
         } else {
           clearCell(targetStep, col, undoRecord: false);
         }
       }
     }
-    
-    debugPrint('📋 [TABLE_STATE] Pasted section $_copiedSectionIndex contents into section $targetSection');
+
+    debugPrint(
+        '📋 [TABLE_STATE] Pasted section $_copiedSectionIndex contents into section $targetSection');
     notifyListeners();
   }
-  
+
   void pasteSectionAfter(int afterIndex) {
     if (!_hasValidClipboard()) return;
-    
+
     _insertSectionAt(afterIndex + 1, copyFrom: _copiedSectionIndex);
-    debugPrint('📋 [TABLE_STATE] Pasted section from clipboard after section $afterIndex');
+    debugPrint(
+        '📋 [TABLE_STATE] Pasted section from clipboard after section $afterIndex');
     notifyListeners();
   }
-  
+
   void addSectionAfter(int afterIndex) {
     _insertSectionAt(afterIndex + 1);
     debugPrint('➕ [TABLE_STATE] Added new section after section $afterIndex');
     notifyListeners();
   }
-  
+
   // Getters
   int get maxSteps => _maxSteps;
   int get maxCols => _maxCols;
@@ -822,23 +943,26 @@ class TableState extends ChangeNotifier {
     // All sections expose the same maxLayersPerSection, include empty ones
     return List<int>.filled(count, maxLayersPerSection);
   }
-  
+
   // Get section-specific data using direct sections access
   int getSectionStepCount([int? sectionIndex]) {
     final index = sectionIndex ?? _uiSelectedSection;
-    if (_sectionsPtr == ffi.nullptr || index >= _sectionsCount) return 16; // default
+    if (_sectionsPtr == ffi.nullptr || index >= _sectionsCount)
+      return 16; // default
     return (_sectionsPtr + index).ref.num_steps;
   }
-  
+
   int getSectionStartStep([int? sectionIndex]) {
     final index = sectionIndex ?? _uiSelectedSection;
-    if (_sectionsPtr == ffi.nullptr || index >= _sectionsCount) return 0; // default
+    if (_sectionsPtr == ffi.nullptr || index >= _sectionsCount)
+      return 0; // default
     return (_sectionsPtr + index).ref.start_step;
   }
-  
+
   int getSectionAtStep(int step) {
-    if (_sectionsPtr == ffi.nullptr) return _table_ffi.tableGetSectionAtStep(step);
-    
+    if (_sectionsPtr == ffi.nullptr)
+      return _table_ffi.tableGetSectionAtStep(step);
+
     // Direct search through sections
     for (int i = 0; i < _sectionsCount; i++) {
       final sectionPtr = _sectionsPtr + i;
@@ -850,11 +974,28 @@ class TableState extends ChangeNotifier {
     }
     return -1; // Not in any section
   }
-  
+
+  /// Counts cells with a placed sample (sampleSlot >= 0) in [sectionIndex].
+  int countCellsWithSamplesInSection(int sectionIndex) {
+    if (sectionIndex < 0 || sectionIndex >= sectionsCount) return 0;
+    final start = getSectionStartStep(sectionIndex);
+    final n = getSectionStepCount(sectionIndex);
+    var count = 0;
+    for (var i = 0; i < n; i++) {
+      final step = start + i;
+      for (var col = 0; col < _maxCols; col++) {
+        if (readCell(step, col).sampleSlot >= 0) count++;
+      }
+    }
+    return count;
+  }
+
   // Helper methods for UI layer calculations
   int getLayerStartCol([int? layer]) {
     final targetLayer = layer ?? _uiSelectedLayer;
-    final layersBase = _table_ffi.tableGetStatePtr().ref.layers_ptr;
+    if (_layersPtr == ffi.nullptr || _uiSelectedSection >= _sectionsCount)
+      return targetLayer * maxColsPerLayer;
+    final layersBase = _layersPtr;
     int start = 0;
     for (int l = 0; l < targetLayer; l++) {
       final li = _uiSelectedSection * maxLayersPerSection + l;
@@ -862,17 +1003,22 @@ class TableState extends ChangeNotifier {
     }
     return start;
   }
-  
+
   int getLayerEndCol([int? layer]) {
     final targetLayer = layer ?? _uiSelectedLayer;
-    if (_sectionsPtr == ffi.nullptr) return ((targetLayer + 1) * maxColsPerLayer).clamp(0, _maxCols);
-    final layersBase = _table_ffi.tableGetStatePtr().ref.layers_ptr;
-    final len = (layersBase + (_uiSelectedSection * maxLayersPerSection + targetLayer)).ref.len;
+    if (_sectionsPtr == ffi.nullptr || _layersPtr == ffi.nullptr) {
+      return ((targetLayer + 1) * maxColsPerLayer).clamp(0, _maxCols);
+    }
+    final layersBase = _layersPtr;
+    final len =
+        (layersBase + (_uiSelectedSection * maxLayersPerSection + targetLayer))
+            .ref
+            .len;
     final start = getLayerStartCol(targetLayer);
     final end = (start + len).clamp(0, _maxCols);
     return end;
   }
-  
+
   List<int> getVisibleCols([int? layer]) {
     final start = getLayerStartCol(layer);
     final end = getLayerEndCol(layer);
@@ -900,31 +1046,31 @@ class TableState extends ChangeNotifier {
 
   // Derived UI info
   int get totalLayers => maxLayersPerSection;
-  
 
   void uiAppendStep() {
     final currentSteps = getSectionStepCount(_uiSelectedSection);
     if (currentSteps < _maxSteps) {
       final sectionStart = getSectionStartStep(_uiSelectedSection);
       insertStep(_uiSelectedSection, sectionStart + currentSteps);
-      _playback_ffi.playbackSetRegion(sectionStart, sectionStart + currentSteps + 1);
+      _playback_ffi.playbackSetRegion(
+          sectionStart, sectionStart + currentSteps + 1);
     }
   }
-  
+
   void uiDeleteLastStep() {
     final currentSteps = getSectionStepCount(_uiSelectedSection);
     if (currentSteps > 1) {
       final sectionStart = getSectionStartStep(_uiSelectedSection);
       deleteStep(_uiSelectedSection, sectionStart + currentSteps - 1);
-      _playback_ffi.playbackSetRegion(sectionStart, sectionStart + currentSteps - 1);
+      _playback_ffi.playbackSetRegion(
+          sectionStart, sectionStart + currentSteps - 1);
     }
   }
 
-  
   // Sound grid stack
   int get uiCurrentSoundGridIndex => _uiCurrentSoundGridIndex;
   List<int> get uiSoundGridOrder => List.unmodifiable(_uiSoundGridOrder);
-  
+
   void uiInitializeSoundGrids(int count) {
     _uiSoundGridOrder.clear();
     for (int i = 0; i < count; i++) {
@@ -933,7 +1079,7 @@ class TableState extends ChangeNotifier {
     _uiCurrentSoundGridIndex = 0;
     notifyListeners();
   }
-  
+
   void uiBringGridToFront(int gridIndex) {
     if (_uiSoundGridOrder.contains(gridIndex)) {
       _uiSoundGridOrder.remove(gridIndex);
@@ -942,11 +1088,11 @@ class TableState extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   // (Removed) uiSlotPlaying accessors
-  
+
   // Essential grid methods (use ValueNotifiers from getCellNotifier instead of helper functions)
-  
+
   void uiPlaceSampleInGrid(int sampleSlot, int flatIndex) {
     final visibleCols = getVisibleCols().length;
     final row = flatIndex ~/ visibleCols;
@@ -954,13 +1100,13 @@ class TableState extends ChangeNotifier {
     final layerStart = getLayerStartCol(_uiSelectedLayer);
     final col = layerStart + colInSlice;
     final step = row + getSectionStartStep(_uiSelectedSection);
-    
+
     if (col < _maxCols && step < _maxSteps) {
       // Use sentinel defaults so volume/pitch inherit from sample bank until overridden
       setCell(step, col, sampleSlot, -1.0, -1.0);
     }
   }
-  
+
   void uiHandlePadPress(int flatIndex) {
     // Set active pad for UI highlighting
     debugPrint('🎵 [TABLE_STATE] Pad pressed: $flatIndex');
@@ -971,15 +1117,17 @@ class TableState extends ChangeNotifier {
   /// This ensures all cells in the section are properly synced to SunVox
   void syncSectionToSunVox(int sectionIndex) {
     if (!_initialized) {
-      debugPrint('⚠️ [TABLE_STATE] Cannot sync section - table not initialized');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Cannot sync section - table not initialized');
       return;
     }
-    
+
     if (sectionIndex < 0 || sectionIndex >= _sectionsCount) {
-      debugPrint('⚠️ [TABLE_STATE] Invalid section index: $sectionIndex (have $_sectionsCount sections)');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Invalid section index: $sectionIndex (have $_sectionsCount sections)');
       return;
     }
-    
+
     try {
       _playback_ffi.sunvoxSyncSection(sectionIndex);
     } catch (e) {
@@ -991,12 +1139,14 @@ class TableState extends ChangeNotifier {
   /// This ensures all table cells are properly synced to SunVox after bulk operations like import
   void syncAllSectionsToSunVox() {
     if (!_initialized) {
-      debugPrint('⚠️ [TABLE_STATE] Cannot sync sections - table not initialized');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Cannot sync sections - table not initialized');
       return;
     }
-    
+
     try {
-      debugPrint('🔄 [TABLE_STATE] Syncing all $_sectionsCount sections to SunVox');
+      debugPrint(
+          '🔄 [TABLE_STATE] Syncing all $_sectionsCount sections to SunVox');
       for (int i = 0; i < _sectionsCount; i++) {
         _playback_ffi.sunvoxSyncSection(i);
       }
@@ -1010,10 +1160,11 @@ class TableState extends ChangeNotifier {
   /// This completely removes all existing patterns and clears all mappings
   void resetAllSunVoxPatterns() {
     if (!_initialized) {
-      debugPrint('⚠️ [TABLE_STATE] Cannot reset patterns - table not initialized');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Cannot reset patterns - table not initialized');
       return;
     }
-    
+
     try {
       debugPrint('🔄 [TABLE_STATE] Resetting all SunVox patterns');
       _playback_ffi.sunvoxResetAllPatterns();
@@ -1028,10 +1179,11 @@ class TableState extends ChangeNotifier {
   /// Call this after bulk operations that create/resize patterns (like import)
   void updateTimelineSeamless() {
     if (!_initialized) {
-      debugPrint('⚠️ [TABLE_STATE] Cannot update timeline - table not initialized');
+      debugPrint(
+          '⚠️ [TABLE_STATE] Cannot update timeline - table not initialized');
       return;
     }
-    
+
     try {
       // Pass -1 to update all patterns (not a specific section)
       _playback_ffi.sunvoxUpdateTimelineSeamless(-1);
@@ -1044,31 +1196,38 @@ class TableState extends ChangeNotifier {
   void setOnStateChanged(void Function()? callback) {
     _onStateChanged = callback;
   }
-  
+
+  void _refreshVisibleCellsNow() {
+    if (_tablePtr == ffi.nullptr || _sectionsPtr == ffi.nullptr) return;
+    _lastVisibleSection = _uiSelectedSection;
+    _lastVisibleLayer = _uiSelectedLayer;
+    _updateVisibleCells();
+  }
+
   @override
   void notifyListeners() {
     super.notifyListeners();
-    
+
     // Trigger auto-save if callback is set
     _onStateChanged?.call();
   }
-  
+
   @override
   void dispose() {
     debugPrint('🧹 [TABLE_STATE] Disposing state and notifiers');
-    
+
     // Dispose all notifiers
     for (var row in _cellNotifiers) {
       for (var notifier in row) {
         notifier?.dispose();
       }
     }
-    
+
     uiSelectedLayerNotifier.dispose();
     layerModeNotifier.dispose();
     layerMuteSoloNotifier.dispose();
     columnMuteSoloNotifier.dispose();
-    
+
     super.dispose();
   }
 }
