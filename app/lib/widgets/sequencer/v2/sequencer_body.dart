@@ -83,8 +83,10 @@ class _SequencerBodyState extends State<SequencerBody> {
           final double? page = _pageController.page;
           final bool atTarget =
               page != null ? page.round() == data.currentIndex : false;
-          final bool swipingTowardCreation =
-              page != null && page > (data.numSections - 1) - 0.01;
+          final lastSectionIndex = data.numSections - 1;
+          final bool swipingTowardCreation = page != null &&
+              page > (lastSectionIndex + 0.01) &&
+              page < data.numSections;
           final bool creationOpen = sectionSettings.isSectionCreationOpen;
 
           if (!atTarget &&

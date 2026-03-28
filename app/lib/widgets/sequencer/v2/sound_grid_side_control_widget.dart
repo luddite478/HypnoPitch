@@ -87,9 +87,42 @@ class SoundGridSideControlWidget extends StatelessWidget {
                   ? Column(
                       children: [
                         // Nav: menu / settings / takes
-                        Expanded(child: _buildSquareButton(size: buttonWidth, icon: Icons.menu, color: AppColors.sequencerLightText, onPressed: onBack)),
+                        Expanded(
+                          child: _buildSquareButton(
+                            key: appState.activeTutorialStep ==
+                                        TutorialStep.sequencerBackToPatternHint
+                                ? appState.patternMenuButtonTutorialKey
+                                : null,
+                            size: buttonWidth,
+                            icon: Icons.menu,
+                            color: AppColors.sequencerLightText,
+                            onPressed: (appState.isTutorialRunning &&
+                                    appState.activeTutorialStep !=
+                                        TutorialStep.sequencerBackToPatternHint)
+                                ? null
+                                : () {
+                                    if (!appState.canInteractWithTutorialTarget(
+                                      TutorialInteractionTarget.patternMenuButton,
+                                    )) {
+                                      return;
+                                    }
+                                    onBack?.call();
+                                  },
+                          ),
+                        ),
                         const SizedBox(height: 3),
-                        Expanded(child: _buildSquareButton(size: buttonWidth, icon: Icons.graphic_eq, color: AppColors.sequencerAccent, onPressed: onRecordings)),
+                        Expanded(
+                          child: _buildSquareButton(
+                            size: buttonWidth,
+                            icon: Icons.graphic_eq,
+                            color: AppColors.sequencerAccent,
+                            onPressed: appState.canInteractWithTutorialTarget(
+                              TutorialInteractionTarget.recordingsButton,
+                            )
+                                ? onRecordings
+                                : null,
+                          ),
+                        ),
                         const SizedBox(height: 3),
                         // Sequencer: section / loop / redo / undo
                         Expanded(child: _SectionControlButton(
@@ -100,6 +133,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                           size: buttonWidth,
                           sectionNumber: tableState.uiSelectedSection + 1,
                           onPressed: () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.sectionSettingsButton)) {
+                              return;
+                            }
                             if (multitaskPanel.currentMode == MultitaskPanelMode.sectionSettings) {
                               multitaskPanel.showPlaceholder();
                             } else {
@@ -117,7 +154,12 @@ class SoundGridSideControlWidget extends StatelessWidget {
                           icon: Icons.repeat,
                           color: playbackState.songModeNotifier.value == false ? Colors.white : AppColors.sequencerLightText,
                           backgroundColor: playbackState.songModeNotifier.value == false ? AppColors.sequencerPrimaryButton : null,
-                          onPressed: () => playbackState.setSongMode(!playbackState.songModeNotifier.value),
+                          onPressed: appState.canInteractWithTutorialTarget(
+                            TutorialInteractionTarget.songModeButton,
+                          )
+                              ? () => playbackState
+                                  .setSongMode(!playbackState.songModeNotifier.value)
+                              : null,
                         )),
                         const SizedBox(height: 3),
                         Expanded(child: _buildSquareButton(
@@ -130,6 +172,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                           color: undoRedo.canRedo ? AppColors.sequencerAccent : AppColors.sequencerLightText,
                           onPressed: undoRedo.canRedo
                               ? () {
+                                  if (!appState.canInteractWithTutorialTarget(
+                                      TutorialInteractionTarget.redoButton)) {
+                                    return;
+                                  }
                                   undoRedo.redo();
                                   appState.markRedoAction();
                                 }
@@ -146,6 +192,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                           color: undoRedo.canUndo ? AppColors.sequencerAccent : AppColors.sequencerLightText,
                           onPressed: undoRedo.canUndo
                               ? () {
+                                  if (!appState.canInteractWithTutorialTarget(
+                                      TutorialInteractionTarget.undoButton)) {
+                                    return;
+                                  }
                                   undoRedo.undo();
                                   appState.markUndoAction();
                                 }
@@ -167,7 +217,9 @@ class SoundGridSideControlWidget extends StatelessWidget {
                         ? AppColors.sequencerLightText 
                         : AppColors.sequencerLightText.withOpacity(0.5),
                     onPressed: tableState.sectionsCount > 1 
-                        ? () => tableState.setUiSelectedSection((tableState.uiSelectedSection - 1).clamp(0, tableState.sectionsCount - 1))
+                        ? (appState.isTutorialRunning
+                            ? null
+                            : () => tableState.setUiSelectedSection((tableState.uiSelectedSection - 1).clamp(0, tableState.sectionsCount - 1)))
                         : null,
                     tooltip: tableState.sectionsCount > 1 
                         ? 'Previous Section (${tableState.uiSelectedSection + 1}/${tableState.sectionsCount})'
@@ -180,13 +232,15 @@ class SoundGridSideControlWidget extends StatelessWidget {
                     iconSize: iconSize,
                     icon: Icons.chevron_right,
                     color: AppColors.sequencerLightText,
-                    onPressed: () {
-                      if (tableState.uiSelectedSection == tableState.sectionsCount - 1) {
-                        sectionSettings.openSectionCreationOverlay();
-                      } else {
-                        tableState.setUiSelectedSection((tableState.uiSelectedSection + 1).clamp(0, tableState.sectionsCount - 1));
-                      }
-                    },
+                    onPressed: appState.isTutorialRunning
+                        ? null
+                        : () {
+                            if (tableState.uiSelectedSection == tableState.sectionsCount - 1) {
+                              sectionSettings.openSectionCreationOverlay();
+                            } else {
+                              tableState.setUiSelectedSection((tableState.uiSelectedSection + 1).clamp(0, tableState.sectionsCount - 1));
+                            }
+                          },
                     tooltip: tableState.uiSelectedSection == tableState.sectionsCount - 1 
                         ? 'New Section'
                         : 'Next Section (${tableState.uiSelectedSection + 2}/${tableState.sectionsCount})',
@@ -198,7 +252,12 @@ class SoundGridSideControlWidget extends StatelessWidget {
                     iconSize: iconSize,
                     icon: Icons.redo,
                     color: undoRedo.canRedo ? AppColors.sequencerAccent : AppColors.sequencerLightText,
-                    onPressed: undoRedo.canRedo ? () => undoRedo.redo() : null,
+                    onPressed: undoRedo.canRedo &&
+                            appState.canInteractWithTutorialTarget(
+                              TutorialInteractionTarget.redoButton,
+                            )
+                        ? () => undoRedo.redo()
+                        : null,
                     tooltip: undoRedo.canRedo ? 'Redo' : 'Nothing to Redo',
                   ),
                 ],

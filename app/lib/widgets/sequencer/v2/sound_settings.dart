@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../utils/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../state/sequencer/table.dart';
 import '../../../state/sequencer/sample_bank.dart';
 import '../../../state/sequencer/sample_browser.dart';
@@ -16,6 +15,7 @@ import 'generic_slider.dart';
 import '../../../state/sequencer/slider_overlay.dart';
 import 'wheel_select_widget.dart';
 import 'sample_selection_widget.dart';
+import '../../tutorial_pulse_widget.dart';
 
 // Pitch conversion utilities
 class PitchConversion {
@@ -441,6 +441,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
       EditState editState,
       int? currentIndex,
       _AllSimilarCells? allSimilarCells) {
+    final appState = context.watch<AppState>();
     final cellInfo = _resolveCellSelectionInfo(tableState, currentIndex);
     return Align(
       alignment: Alignment.centerLeft,
@@ -481,16 +482,36 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
               ),
             // Header buttons from the configuration
             ...widget.headerButtons.map((buttonName) {
+              final shouldPulseButton =
+                  widget.type == SettingsType.cell &&
+                      appState.activeTutorialStep ==
+                          TutorialStep.sequencerCellParamsHint &&
+                      ((buttonName == 'VOL' &&
+                              appState.showCellParamsVolumePointer) ||
+                          (buttonName == 'KEY' &&
+                              appState.showCellParamsKeyPointer));
+              final tutorialButtonKey =
+                  widget.type == SettingsType.cell &&
+                          appState.activeTutorialStep ==
+                              TutorialStep.sequencerCellParamsHint
+                      ? (buttonName == 'VOL'
+                          ? appState.cellParamsVolumeButtonTutorialKey
+                          : (buttonName == 'KEY'
+                              ? appState.cellParamsKeyButtonTutorialKey
+                              : null))
+                      : null;
               return Padding(
                 padding: const EdgeInsets.only(
                     right: 8.0), // Spacing between buttons
                 child: SizedBox(
+                  key: tutorialButtonKey,
                   width: 80, // Fixed width for each button
                   child: _buildSettingsButton(
                       buttonName,
                       _selectedControl == buttonName,
                       headerHeight * 0.7,
-                      labelFontSize, () {
+                      labelFontSize,
+                      shouldPulseButton, () {
                     setState(() {
                       _selectedControl = buttonName;
                     });
@@ -943,47 +964,58 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     );
   }
 
-  Widget _buildSettingsButton(String label, bool isSelected, double height,
-      double fontSize, VoidCallback? onTap) {
+  Widget _buildSettingsButton(
+      String label,
+      bool isSelected,
+      double height,
+      double fontSize,
+      bool pulseHighlight,
+      VoidCallback? onTap) {
+    final button = Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppColors.sequencerAccent
+            : AppColors.sequencerSurfaceRaised,
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(
+          color: AppColors.sequencerBorder,
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 1.5,
+            offset: const Offset(0, 1),
+          ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 0.5,
+            offset: const Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected
+                ? AppColors.sequencerPageBackground
+                : AppColors.sequencerText,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.sequencerAccent
-              : AppColors.sequencerSurfaceRaised,
-          borderRadius: BorderRadius.circular(2),
-          border: Border.all(
-            color: AppColors.sequencerBorder,
-            width: 0.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.sequencerShadow,
-              blurRadius: 1.5,
-              offset: const Offset(0, 1),
-            ),
-            BoxShadow(
-              color: AppColors.sequencerSurfaceRaised,
-              blurRadius: 0.5,
-              offset: const Offset(0, -0.5),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected
-                  ? AppColors.sequencerPageBackground
-                  : AppColors.sequencerText,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
+      child: TutorialPulseWidget(
+        enabled: pulseHighlight,
+        borderRadius: BorderRadius.circular(2),
+        child: button,
       ),
     );
   }
@@ -1030,6 +1062,10 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
 
     return GestureDetector(
       onTap: () {
+        if (!appState.canInteractWithTutorialTarget(
+            TutorialInteractionTarget.selectSampleButton)) {
+          return;
+        }
         final sampleBrowser = context.read<SampleBrowserState>();
         final sampleBank = context.read<SampleBankState>();
         final playback = context.read<PlaybackState>();
@@ -1187,6 +1223,9 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     return ValueListenableBuilder<CellData>(
       valueListenable: cellNotifier,
       builder: (context, cell, _) {
+        final appState = context.read<AppState>();
+        final playback = context.read<PlaybackState>();
+        final sliderOverlay = context.read<SliderOverlayState>();
         final sampleBank = context.read<SampleBankState>();
         double defaultVol = 1.0;
         if (cell.sampleSlot >= 0) {
@@ -1203,6 +1242,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
           type: SliderType.volume,
           onChanged: (value) {
             if (cell.isNotEmpty && cell.sampleSlot != -1) {
+              appState.markCellVolumeAdjusted(value);
+              appState.markSelectModeVolumeChanged(value);
               _cellVolumeDebounceTimer?.cancel();
               _cellVolumeDebounceTimer =
                   Timer(const Duration(milliseconds: 150), () {
@@ -1210,7 +1251,6 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
               });
 
               // Live preview: debounce and restart note
-              final playback = context.read<PlaybackState>();
               _previewDebounceTimer?.cancel();
               _previewDebounceTimer =
                   Timer(Duration(milliseconds: _previewDebounceMs), () {
@@ -1235,9 +1275,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             }
           },
           height: height,
-          sliderOverlay: context.read<SliderOverlayState>(),
+          sliderOverlay: sliderOverlay,
           onChangeStart: (v) {
-            final playback = context.read<PlaybackState>();
             if (v <= 0.0 || !cell.isNotEmpty || cell.sampleSlot == -1) {
               playback.stopPreview();
               return;
@@ -1253,7 +1292,6 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                 step: step, colAbs: colAbs, pitchRatio: effPitch, volume01: v);
           },
           onChangeEnd: (_) {
-            final playback = context.read<PlaybackState>();
             playback.stopPreview();
           },
           contextLabel: allSimilarCells != null
@@ -1278,6 +1316,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     return ValueListenableBuilder<CellData>(
       valueListenable: cellNotifier,
       builder: (context, cell, _) {
+        final appState = context.read<AppState>();
+        final playback = context.read<PlaybackState>();
         final sampleBank = context.read<SampleBankState>();
         double defaultPitch = 1.0;
         if (cell.sampleSlot >= 0) {
@@ -1292,6 +1332,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             semitones: semitones,
             onSemitonesChanged: (newSemitones) {
               if (cell.isNotEmpty && cell.sampleSlot != -1) {
+                appState.markCellPitchAdjusted(newSemitones);
                 final ratio =
                     PitchConversion.semitonesToPitchRatio(newSemitones);
 
@@ -1303,7 +1344,6 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                 });
 
                 // Live preview: immediate restart of note with new pitch
-                final playback = context.read<PlaybackState>();
                 final sampleBank = context.read<SampleBankState>();
                 // Resolve effective volume
                 double defaultVol = 1.0;
@@ -1334,7 +1374,6 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             },
             onChangeEnd: () {
               // Stop preview when scrolling ends
-              final playback = context.read<PlaybackState>();
               playback.stopPreview();
             },
           );

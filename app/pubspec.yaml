@@ -45,7 +45,7 @@ dependencies:
   wheel_chooser: ^1.1.2
   uuid: ^4.5.1
   permission_handler: ^11.3.1
-name: rehorsed
+name: tonecascade
 publish_to: none
 dev_dependencies:
   flutter_test:

@@ -566,7 +566,12 @@ void switch_to_section(int section_index) {
     g_current_step = was_playing ? section_start_step : -1;
     
     int section_steps_num = table_get_section_step_count(g_playback_state.current_section);
-    playback_set_region(section_start_step, section_start_step + section_steps_num);
+    // Section navigation should not create undo history.
+    // Apply region directly here instead of calling playback_set_region()
+    // because playback_set_region() records undo.
+    g_playback_state.region_start = section_start_step;
+    g_playback_state.region_end = section_start_step + section_steps_num;
+    sunvox_wrapper_set_region(g_playback_state.region_start, g_playback_state.region_end);
     
     // Update SunVox timeline for this section (this will also rewind to 0)
     sunvox_wrapper_set_playback_mode(g_playback_state.song_mode, section_index, 0);
@@ -583,7 +588,6 @@ void switch_to_section(int section_index) {
         playback_start(g_playback_state.bpm, g_current_step);
     }
     
-    UndoRedoManager_record();
 }
 
 // Set section loops count

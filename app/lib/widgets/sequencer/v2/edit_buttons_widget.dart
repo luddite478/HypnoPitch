@@ -8,6 +8,7 @@ import '../../../state/sequencer/sample_bank.dart';
 import '../../../state/sequencer/ui_selection.dart';
 import '../../../state/app_state.dart';
 import '../../../ffi/table_bindings.dart' show CellData;
+import '../../tutorial_pulse_widget.dart';
 
 class EditButtonsWidget extends StatelessWidget {
   const EditButtonsWidget({super.key});
@@ -38,8 +39,10 @@ class EditButtonsWidget extends StatelessWidget {
             context.read<AppState>().verifyMultiSelectStep();
           });
         }
-        if (appState.activeTutorialStep ==
-                TutorialStep.sequencerJumpPasteHint &&
+        if ((appState.activeTutorialStep ==
+                    TutorialStep.sequencerJumpPasteHint ||
+                appState.activeTutorialStep ==
+                    TutorialStep.sequencerJumpValueTwoHint) &&
             editState.stepInsertSize == 2) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
@@ -94,8 +97,14 @@ class EditButtonsWidget extends StatelessWidget {
                         label: 'SELECT',
                         height: buttonHeight,
                         fontSize: textFontSize,
-                        enabled: true,
+                        enabled: appState.canInteractWithTutorialTarget(
+                          TutorialInteractionTarget.selectModeButton,
+                        ),
                         onPressed: () {
+                          if (!appState.canInteractWithTutorialTarget(
+                              TutorialInteractionTarget.selectModeButton)) {
+                            return;
+                          }
                           final wasInSelectionMode = editState.isInSelectionMode;
                           final multitaskPanel =
                               Provider.of<MultitaskPanelState>(context,
@@ -123,19 +132,28 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(width: spacing),
                     SizedBox(
                       width: buttonWidth,
-                      child: _JumpButtonWithFeedback(
-                        key: appState.jumpButtonTutorialKey,
-                        label: 'JUMP ${editState.stepInsertSize}',
-                        height: buttonHeight,
-                        fontSize: textFontSize,
-                        horizontalPadding: buttonHPad,
-                        onPressed: () {
-                          editState.toggleStepInsertMode();
-                          Provider.of<MultitaskPanelState>(context,
-                                  listen: false)
-                              .showStepInsertSettings();
-                          appState.markJumpAction();
-                        },
+                      child: TutorialPulseWidget(
+                        enabled: appState.activeTutorialStep ==
+                                TutorialStep.sequencerJumpValueTwoHint,
+                        borderRadius: BorderRadius.circular(2),
+                        child: _JumpButtonWithFeedback(
+                          key: appState.jumpButtonTutorialKey,
+                          label: 'JUMP ${editState.stepInsertSize}',
+                          height: buttonHeight,
+                          fontSize: textFontSize,
+                          horizontalPadding: buttonHPad,
+                          onPressed: () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.jumpButton)) {
+                              return;
+                            }
+                            editState.toggleStepInsertMode();
+                            Provider.of<MultitaskPanelState>(context,
+                                    listen: false)
+                                .showStepInsertSettings();
+                            appState.markJumpAction();
+                          },
+                        ),
                       ),
                     ),
                     SizedBox(width: spacing),
@@ -153,6 +171,10 @@ class EditButtonsWidget extends StatelessWidget {
                                 uiSelection.isSampleBank ||
                                 uiSelection.isSection)
                             ? () {
+                                if (!appState.canInteractWithTutorialTarget(
+                                    TutorialInteractionTarget.deleteButton)) {
+                                  return;
+                                }
                                 if (uiSelection.isSampleBank) {
                                   final slot = uiSelection.selectedSampleSlot ??
                                       sampleBankState.activeSlot;
@@ -186,61 +208,81 @@ class EditButtonsWidget extends StatelessWidget {
                     SizedBox(width: spacing),
                     SizedBox(
                       width: buttonWidth,
-                      child: _buildTextActionButton(
-                        key: appState.copyButtonTutorialKey,
-                        label: 'COPY',
-                        height: buttonHeight,
-                        fontSize: textFontSize,
-                        enabled:
-                            editState.hasSelection || uiSelection.isSection,
-                        onPressed:
-                            (editState.hasSelection || uiSelection.isSection)
-                                ? () {
-                                    if (uiSelection.isSection) {
-                                      tableState.copySectionToClipboard(
-                                          uiSelection.selectedSection!);
-                                    } else {
-                                      editState.copyCells();
+                      child: TutorialPulseWidget(
+                        enabled: appState.activeTutorialStep ==
+                                TutorialStep.sequencerJumpPasteHint &&
+                            appState.showJumpCopyPointer,
+                        borderRadius: BorderRadius.circular(2),
+                        child: _buildTextActionButton(
+                          key: appState.copyButtonTutorialKey,
+                          label: 'COPY',
+                          height: buttonHeight,
+                          fontSize: textFontSize,
+                          enabled:
+                              editState.hasSelection || uiSelection.isSection,
+                          onPressed:
+                              (editState.hasSelection || uiSelection.isSection)
+                                  ? () {
+                                      if (!appState.canInteractWithTutorialTarget(
+                                          TutorialInteractionTarget.copyButton)) {
+                                        return;
+                                      }
+                                      if (uiSelection.isSection) {
+                                        tableState.copySectionToClipboard(
+                                            uiSelection.selectedSection!);
+                                      } else {
+                                        editState.copyCells();
+                                      }
+                                      appState.markCopyAction();
+                                      appState.markJumpValueCopyAction();
                                     }
-                                    appState.markCopyAction();
-                                    appState.markJumpValueCopyAction();
-                                  }
-                                : null,
-                        isActive: false,
-                        horizontalPadding: buttonHPad,
+                                  : null,
+                          isActive: false,
+                          horizontalPadding: buttonHPad,
+                        ),
                       ),
                     ),
                     SizedBox(width: spacing),
                     SizedBox(
                       width: buttonWidth,
-                      child: _buildTextActionButton(
-                        key: appState.pasteButtonTutorialKey,
-                        label: 'PASTE',
-                        height: buttonHeight,
-                        fontSize: textFontSize,
-                        enabled: (editState.hasClipboardData &&
-                                editState.hasSelection) ||
-                            (tableState.hasCopiedSection &&
-                                uiSelection.isSection),
-                        onPressed: ((editState.hasClipboardData &&
-                                    editState.hasSelection) ||
-                                (tableState.hasCopiedSection &&
-                                    uiSelection.isSection))
-                            ? () {
-                                if (uiSelection.isSection &&
-                                    tableState.hasCopiedSection) {
-                                  // Paste section contents INTO selected section (replace)
-                                  tableState.pasteSection(
-                                      uiSelection.selectedSection!);
-                                } else {
-                                  editState.pasteCells();
+                      child: TutorialPulseWidget(
+                        enabled: appState.activeTutorialStep ==
+                                TutorialStep.sequencerJumpPasteHint &&
+                            appState.showJumpPastePointer,
+                        borderRadius: BorderRadius.circular(2),
+                        child: _buildTextActionButton(
+                          key: appState.pasteButtonTutorialKey,
+                          label: 'PASTE',
+                          height: buttonHeight,
+                          fontSize: textFontSize,
+                          enabled: (editState.hasClipboardData &&
+                                  editState.hasSelection) ||
+                              (tableState.hasCopiedSection &&
+                                  uiSelection.isSection),
+                          onPressed: ((editState.hasClipboardData &&
+                                      editState.hasSelection) ||
+                                  (tableState.hasCopiedSection &&
+                                      uiSelection.isSection))
+                              ? () {
+                                  if (!appState.canInteractWithTutorialTarget(
+                                      TutorialInteractionTarget.pasteButton)) {
+                                    return;
+                                  }
+                                  if (uiSelection.isSection &&
+                                      tableState.hasCopiedSection) {
+                                    // Paste section contents INTO selected section (replace)
+                                    tableState.pasteSection(
+                                        uiSelection.selectedSection!);
+                                  } else {
+                                    editState.pasteCells();
+                                  }
+                                  appState.markPasteAction();
+                                  appState.markJumpValuePasteAction();
                                 }
-                                appState.markPasteAction();
-                                appState.markJumpValuePasteAction();
-                              }
-                            : null,
-                        isActive: false,
-                        horizontalPadding: buttonHPad,
+                              : null,
+                          isActive: false,
+                          horizontalPadding: buttonHPad,
+                        ),
                       ),
                     ),
                   ],
@@ -284,7 +326,10 @@ class EditButtonsWidget extends StatelessWidget {
                     color: editState.isInSelectionMode
                         ? AppColors.sequencerAccent
                         : AppColors.sequencerLightText,
-                    onPressed: () => editState.toggleSelectionMode(),
+                    onPressed: appState.canInteractWithTutorialTarget(
+                            TutorialInteractionTarget.selectModeButton)
+                        ? () => editState.toggleSelectionMode()
+                        : null,
                     tooltip: editState.isInSelectionMode
                         ? 'Exit Selection Mode'
                         : 'Enter Selection Mode',
@@ -306,6 +351,10 @@ class EditButtonsWidget extends StatelessWidget {
                     onPressed: (editState.hasSelection ||
                             context.read<UiSelectionState>().isSampleBank)
                         ? () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.deleteButton)) {
+                              return;
+                            }
                             final uiSel = context.read<UiSelectionState>();
                             final sb = context.read<SampleBankState>();
                             if (uiSel.isSampleBank) {
@@ -328,7 +377,13 @@ class EditButtonsWidget extends StatelessWidget {
                         ? AppColors.sequencerAccent
                         : AppColors.sequencerLightText,
                     onPressed: editState.hasSelection
-                        ? () => editState.copyCells()
+                        ? () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.copyButton)) {
+                              return;
+                            }
+                            editState.copyCells();
+                          }
                         : null,
                     tooltip: 'Copy Selected Cells',
                   ),
@@ -341,7 +396,13 @@ class EditButtonsWidget extends StatelessWidget {
                         : AppColors.sequencerLightText,
                     onPressed:
                         editState.hasClipboardData && editState.hasSelection
-                            ? () => editState.pasteCells()
+                            ? () {
+                                if (!appState.canInteractWithTutorialTarget(
+                                    TutorialInteractionTarget.pasteButton)) {
+                                  return;
+                                }
+                                editState.pasteCells();
+                              }
                             : null,
                     tooltip: 'Paste to Selected Cells',
                   ),
@@ -423,6 +484,7 @@ class EditButtonsWidget extends StatelessWidget {
     required EditState editState,
     required BuildContext context,
   }) {
+    final appState = context.read<AppState>();
     return Container(
       width: size,
       height: size,
@@ -453,6 +515,10 @@ class EditButtonsWidget extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            if (!appState.canInteractWithTutorialTarget(
+                TutorialInteractionTarget.jumpButton)) {
+              return;
+            }
             editState.toggleStepInsertMode();
             // Open jump insert settings when toggled
             Provider.of<MultitaskPanelState>(context, listen: false)

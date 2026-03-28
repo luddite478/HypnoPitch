@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../state/sequencer/edit.dart';
+import '../../../state/app_state.dart';
 import '../../../utils/app_colors.dart';
 import 'wheel_select_widget.dart';
 
@@ -19,8 +20,8 @@ class _StepInsertSettingsWidgetState extends State<StepInsertSettingsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<EditState>(
-      builder: (context, editState, child) {
+    return Consumer2<EditState, AppState>(
+      builder: (context, editState, appState, child) {
         return LayoutBuilder(
           builder: (context, constraints) {
             // Calculate responsive sizes based on available space - INHERIT from parent
@@ -80,7 +81,13 @@ class _StepInsertSettingsWidgetState extends State<StepInsertSettingsWidget> {
                   // Control tile area - controllable via _sliderTileHeightPercent
                   Expanded(
                     flex: (_sliderTileHeightPercent * 100).round(),
-                    child: _buildJumpControl(editState, contentHeight, padding, labelFontSize),
+                    child: _buildJumpControl(
+                      editState,
+                      appState,
+                      contentHeight,
+                      padding,
+                      labelFontSize,
+                    ),
                   ),
                   
                   // Bottom spacer - controllable via _spacingHeight
@@ -134,7 +141,13 @@ class _StepInsertSettingsWidgetState extends State<StepInsertSettingsWidget> {
   }
 
 
-  Widget _buildJumpControl(EditState editState, double height, double padding, double fontSize) {
+  Widget _buildJumpControl(
+    EditState editState,
+    AppState appState,
+    double height,
+    double padding,
+    double fontSize,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: padding * 0.3, vertical: padding * 0.15),
       decoration: BoxDecoration(
@@ -165,6 +178,14 @@ class _StepInsertSettingsWidgetState extends State<StepInsertSettingsWidget> {
           onValueChanged: (value) {
             editState.setStepInsertSize(value);
           },
+          tutorialHighlightValue: appState.activeTutorialStep ==
+                  TutorialStep.sequencerJumpValueTwoHint
+              ? 2
+              : null,
+          tutorialItemKey: appState.activeTutorialStep ==
+                  TutorialStep.sequencerJumpValueTwoHint
+              ? appState.jumpValueTwoDisplayTutorialKey
+              : null,
         ),
       ),
     );

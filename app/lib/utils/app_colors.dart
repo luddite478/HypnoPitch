@@ -23,6 +23,9 @@ class AppColors {
   static const Color sequencerSecondaryButton = Color(0xFF6A6A67); // Grayed out secondary buttons
   static const Color sequencerSecondaryButtonAlt = Color(0xFF5A5A57); // Alternative secondary button
   static const Color sequencerPrimaryButton = Color(0xFF9B8365); // Lighter main action button
+  static const Color tutorialPulseColor = Color.fromARGB(255, 65, 185, 255); // Shared tutorial pulse/highlight color
+  static const Color tutorialArrowColor = Color.fromARGB(235, 32, 13, 173); // Shared tutorial arrow color
+  static const Color tutorialTextOverlayColor = Color.fromARGB(235, 78, 58, 228); // Shared tutorial text-card background color
   
   // Selection visuals
   static const Color sequencerSelectionBorder = Color(0xFFFFFFFF); // White border for selected items

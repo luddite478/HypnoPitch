@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../state/app_state.dart';
 import '../../../state/sequencer/table.dart';
 import '../../../state/sequencer/playback.dart';
+import '../../tutorial_pulse_widget.dart';
 
 class SectionSettingsWidget extends StatefulWidget {
   final VoidCallback closeAction;
@@ -101,7 +102,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                         ? _buildStepsControl(tableState, currentSection,
                             contentHeight, padding, appState)
                         : _buildLoopsControl(playbackState, currentSection,
-                            contentHeight, padding, labelFontSize),
+                            contentHeight, padding, labelFontSize, appState),
                   ),
                   
                   // Bottom spacer - controllable via _spacingHeight
@@ -280,7 +281,14 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
     );
   }
 
-  Widget _buildLoopsControl(PlaybackState playbackState, int currentSection, double height, double padding, double fontSize) {
+  Widget _buildLoopsControl(
+    PlaybackState playbackState,
+    int currentSection,
+    double height,
+    double padding,
+    double fontSize,
+    AppState appState,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: padding * 0.3, vertical: padding * 0.15),
       decoration: BoxDecoration(
@@ -331,6 +339,10 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                           context,
                           icon: Icons.chevron_left,
                           onTap: () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.sectionLoopsControl)) {
+                              return;
+                            }
                             if (loopCount > PlaybackState.minLoopsPerSection) {
                               playbackState.setSectionLoopsNum(currentSection, loopCount - 1);
                               HapticFeedback.selectionClick();
@@ -369,6 +381,10 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                           context,
                           icon: Icons.chevron_right,
                           onTap: () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.sectionLoopsControl)) {
+                              return;
+                            }
                             if (loopCount < PlaybackState.maxLoopsPerSection) {
                               playbackState.setSectionLoopsNum(currentSection, loopCount + 1);
                               HapticFeedback.selectionClick();
@@ -395,33 +411,39 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
     required VoidCallback onTap,
     required bool enabled,
     required double size,
+    bool pulseHighlight = false,
   }) {
     return GestureDetector(
       key: key,
+      behavior: HitTestBehavior.opaque,
       onTap: enabled ? onTap : null,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: enabled 
-              ? AppColors.sequencerSurfaceRaised
-              : AppColors.sequencerSurfacePressed,
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: enabled ? [
-            BoxShadow(
-              color: AppColors.sequencerShadow,
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ] : null,
-        ),
-        child: Center(
-          child: Icon(
-            icon,
+      child: TutorialPulseWidget(
+        enabled: pulseHighlight,
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
             color: enabled 
-                ? AppColors.sequencerAccent
-                : AppColors.sequencerBorder,
-            size: size * 0.70, // 70% of button size for bigger arrows
+                ? AppColors.sequencerSurfaceRaised
+                : AppColors.sequencerSurfacePressed,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: enabled ? [
+              BoxShadow(
+                color: AppColors.sequencerShadow,
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ] : null,
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              color: enabled 
+                  ? AppColors.sequencerAccent
+                  : AppColors.sequencerBorder,
+              size: size * 0.70, // 70% of button size for bigger arrows
+            ),
           ),
         ),
       ),
@@ -479,6 +501,10 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                       : null,
                   icon: Icons.chevron_left,
                   onTap: () {
+                    if (!appState.canInteractWithTutorialTarget(
+                        TutorialInteractionTarget.sectionStepsDecrease)) {
+                      return;
+                    }
                     if (stepCount > 1) {
                       tableState.setSectionStepCount(currentSection, stepCount - 1);
                       HapticFeedback.selectionClick();
@@ -513,8 +539,14 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                           TutorialStep.sequencerSectionTwoStepsHint
                       ? appState.sectionStepsIncreaseTutorialKey
                       : null,
+                  pulseHighlight: appState.activeTutorialStep ==
+                      TutorialStep.sequencerSectionTwoStepsHint,
                   icon: Icons.chevron_right,
                   onTap: () {
+                    if (!appState.canInteractWithTutorialTarget(
+                        TutorialInteractionTarget.sectionStepsIncrease)) {
+                      return;
+                    }
                     if (stepCount < tableState.maxSteps) {
                       tableState.setSectionStepCount(currentSection, stepCount + 1);
                       HapticFeedback.selectionClick();

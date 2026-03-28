@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wheel_chooser/wheel_chooser.dart';
 import '../../../utils/app_colors.dart';
+import '../../tutorial_pulse_widget.dart';
 
 /// A reusable horizontal wheel selector widget for numeric values
 /// 
@@ -31,6 +32,12 @@ class WheelSelectWidget extends StatelessWidget {
   /// Whether to trigger haptic feedback on value change (default: true)
   final bool enableHaptic;
 
+  /// When set with [tutorialItemKey], uses the custom wheel so this value's
+  /// label can be anchored (e.g. tutorial highlight on "2").
+  final int? tutorialHighlightValue;
+
+  final GlobalKey? tutorialItemKey;
+
   const WheelSelectWidget({
     super.key,
     required this.value,
@@ -39,6 +46,8 @@ class WheelSelectWidget extends StatelessWidget {
     required this.onValueChanged,
     this.valueFormatter,
     this.enableHaptic = true,
+    this.tutorialHighlightValue,
+    this.tutorialItemKey,
   });
 
   @override
@@ -47,14 +56,22 @@ class WheelSelectWidget extends StatelessWidget {
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
         final availableWidth = constraints.maxWidth;
-        
-        // If we have a custom formatter, create a list of formatted items
-        if (valueFormatter != null) {
+
+        final bool useCustomWheel =
+            valueFormatter != null || tutorialItemKey != null;
+
+        // Custom list wheel (formatter and/or tutorial anchor on one item).
+        if (useCustomWheel) {
           final items = List.generate(
             maxValue - minValue + 1,
-            (index) => valueFormatter!(minValue + index),
+            (index) => valueFormatter != null
+                ? valueFormatter!(minValue + index)
+                : '${minValue + index}',
           );
-          
+          final int? highlightIndex = tutorialHighlightValue != null
+              ? (tutorialHighlightValue! - minValue).clamp(0, items.length - 1)
+              : null;
+
           return ClipRect(
             child: SizedBox(
               height: availableHeight,
@@ -71,11 +88,13 @@ class WheelSelectWidget extends StatelessWidget {
                 },
                 availableHeight: availableHeight,
                 availableWidth: availableWidth,
+                tutorialItemKey: tutorialItemKey,
+                tutorialHighlightIndex: highlightIndex,
               ),
             ),
           );
         }
-        
+
         // Default: use integer wheel
         return ClipRect(
           child: SizedBox(
@@ -230,6 +249,8 @@ class _CustomWheelWithGradient extends StatefulWidget {
   final ValueChanged<int> onValueChanged;
   final double availableHeight;
   final double availableWidth;
+  final GlobalKey? tutorialItemKey;
+  final int? tutorialHighlightIndex;
 
   const _CustomWheelWithGradient({
     required this.items,
@@ -237,6 +258,8 @@ class _CustomWheelWithGradient extends StatefulWidget {
     required this.onValueChanged,
     required this.availableHeight,
     required this.availableWidth,
+    this.tutorialItemKey,
+    this.tutorialHighlightIndex,
   });
 
   @override
@@ -320,12 +343,12 @@ class _CustomWheelWithGradientState extends State<_CustomWheelWithGradient> {
                     // Reduced fade rate from 0.4 to 0.25 for gentler gradient
                     final opacity = (1.0 - (distance * 0.25)).clamp(0.7, 1.0);
                     final isSelected = distance < 0.5;
-                    
-                    return Text(
+
+                    Widget label = Text(
                       widget.items[index],
                       textAlign: TextAlign.center,
                       style: GoogleFonts.crimsonPro(
-                        color: isSelected 
+                        color: isSelected
                             ? AppColors.sequencerAccent
                             : AppColors.sequencerLightText.withOpacity(opacity),
                         fontSize: widget.availableHeight * 0.38,
@@ -333,6 +356,19 @@ class _CustomWheelWithGradientState extends State<_CustomWheelWithGradient> {
                         height: 1.0,
                       ),
                     );
+                    if (widget.tutorialItemKey != null &&
+                        widget.tutorialHighlightIndex != null &&
+                        index == widget.tutorialHighlightIndex) {
+                      label = KeyedSubtree(
+                        key: widget.tutorialItemKey,
+                        child: TutorialPulseWidget(
+                          enabled: true,
+                          borderRadius: BorderRadius.circular(4),
+                          child: label,
+                        ),
+                      );
+                    }
+                    return label;
                   },
                 ),
               ),

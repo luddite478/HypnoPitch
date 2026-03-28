@@ -18,8 +18,8 @@ import '../ffi/table_bindings.dart';
 import '../ffi/playback_bindings.dart';
 import '../ffi/sample_bank_bindings.dart';
 import '../state/sequencer/table.dart';
-import '../services/cache/working_state_cache_service.dart';
 import '../state/app_state.dart';
+import '../services/cache/working_state_cache_service.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({Key? key}) : super(key: key);
@@ -37,7 +37,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   
   // Cache snapshot Futures to prevent recreation on rebuilds (eliminates flicker)
   final Map<String, Future<Map<String, dynamic>?>> _snapshotFutureCache = {};
-  final GlobalKey _fabKey = GlobalKey();
 
   // ============================================================================
   // LAYOUT CONTROL VARIABLES - CENTRALIZED CONFIGURATION
@@ -311,7 +310,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-
     return Scaffold(
       backgroundColor: AppColors.sequencerPageBackground,
       body: Stack(
@@ -388,8 +386,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           Positioned(
             right: _fabRightOffset,
             bottom: _fabBottomOffset,
-            child: Material(
-              key: _fabKey,
+              child: Material(
               color: _fabBackgroundColor,
               elevation: _fabElevation,
               borderRadius: BorderRadius.circular(_fabCornerRadius),
@@ -426,7 +423,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   }
                   
                   // Navigate to sequencer
-                  appState.advanceTutorialFromProjectsPlus();
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -452,151 +448,81 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               ),
             ),
           ),
-          if (appState.isInitialized && appState.showTutorialPromptThisSession)
-            _buildQuickTutorialPrompt(appState),
-          if (appState.activeTutorialStep == TutorialStep.projectsPlusButtonHint)
-            _buildPlusButtonCoachMark(appState),
+          if (appState.activeTutorialStep ==
+              TutorialStep.sequencerProjectsLibraryHint)
+            _buildLibraryFolderCoachMark(appState),
         ],
       ),
     );
   }
 
-  Widget _buildQuickTutorialPrompt(AppState appState) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth * 0.82).clamp(240.0, 420.0).toDouble();
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: false,
-        child: Container(
-          alignment: Alignment.center,
-          color: Colors.black.withOpacity(0.22),
-          child: Material(
-            color: AppColors.sequencerSurfaceRaised.withOpacity(0.98),
-            elevation: 12,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: cardWidth,
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.sequencerBorder, width: 1),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                      onPressed: appState.dismissTutorialPromptForSession,
-                      icon: Icon(Icons.close, color: AppColors.sequencerLightText, size: 22),
-                      tooltip: 'Dismiss',
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: appState.startProjectsQuickTutorial,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.sequencerAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        'Run quick tutorial',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlusButtonCoachMark(AppState appState) {
+  Widget _buildLibraryFolderCoachMark(AppState appState) {
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
-          final fabRect = _resolveFabRect(viewportSize);
-          final safeTop = MediaQuery.of(context).padding.top;
-          final textWidth = (viewportSize.width * 0.62).clamp(200.0, 340.0).toDouble();
+          final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+          final iconRect = _resolveTutorialRect(
+            appState.projectsLibraryFolderTutorialKey,
+            context,
+          );
+          if (iconRect == null) {
+            return const SizedBox.shrink();
+          }
 
-          double textLeft = (viewportSize.width - textWidth) / 2;
-          textLeft = textLeft
-              .clamp(16.0, viewportSize.width - textWidth - 16.0)
-              .toDouble();
+          const horizontalInset = 12.0;
+          final cardWidth = (viewport.width * 0.56).clamp(220.0, 320.0).toDouble();
+          final desiredLeft = iconRect.center.dx - cardWidth + 28;
+          final maxLeft = max(
+            horizontalInset,
+            viewport.width - cardWidth - horizontalInset,
+          );
+          final cardLeft = desiredLeft.clamp(horizontalInset, maxLeft).toDouble();
+          final minTop = MediaQuery.paddingOf(context).top + 6;
+          final desiredTop = iconRect.bottom + 10;
+          final maxTop = max(minTop, viewport.height - 130);
+          final cardTop = desiredTop.clamp(minTop, maxTop).toDouble();
 
-          double textTop = (viewportSize.height * 0.5) - 32;
-          final minTextTop = safeTop + 24;
-          final maxTextTop = viewportSize.height - 140;
-          textTop = textTop.clamp(minTextTop, maxTextTop).toDouble();
-
-          final textCenter = Offset(textLeft + textWidth / 2, textTop + 30);
-          final arrowTarget = _resolveArrowTarget(
-            from: textCenter,
-            targetRect: fabRect,
+          final arrowStart = Offset(cardLeft + cardWidth - 24, cardTop + 10);
+          final arrowEnd = _resolveArrowTarget(
+            from: arrowStart,
+            targetRect: iconRect,
             edgePadding: 4,
           );
 
           return Stack(
             children: [
               IgnorePointer(
-                child: Container(
-                  color: Colors.black.withOpacity(0.12),
-                ),
-              ),
-              IgnorePointer(
                 child: CustomPaint(
-                  painter: _TutorialArrowPainter(
-                    start: textCenter,
-                    end: arrowTarget,
-                    color: AppColors.sequencerAccent,
+                  size: viewport,
+                  painter: _ProjectsTutorialArrowPainter(
+                    start: arrowStart,
+                    end: arrowEnd,
+                    color: AppColors.tutorialArrowColor,
                   ),
-                  size: viewportSize,
                 ),
               ),
               Positioned(
-                left: textLeft,
-                top: textTop,
-                width: textWidth,
+                left: cardLeft,
+                top: cardTop,
+                width: cardWidth,
                 child: IgnorePointer(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.sequencerSurfaceBase.withOpacity(0.88),
+                      color: AppColors.tutorialTextOverlayColor,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppColors.sequencerBorder, width: 0.8),
                     ),
                     child: Text(
-                      'Tap + button to create new pattern',
+                      'Navigate to library now.',
                       style: TextStyle(
                         color: AppColors.sequencerText,
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                top: 72,
-                right: 16,
-                child: _buildTutorialControls(appState),
               ),
             ],
           );
@@ -605,98 +531,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     );
   }
 
-  Widget _buildTutorialControls(AppState appState) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxW = constraints.maxWidth.isFinite
-            ? constraints.maxWidth
-            : MediaQuery.sizeOf(context).width;
-        return ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxW),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.sequencerSurfaceRaised.withOpacity(0.92),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.sequencerBorder, width: 0.8),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        appState.tutorialStepLabel,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: TextStyle(
-                          color: AppColors.sequencerText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${appState.tutorialStepDisplayIndex}/${AppState.tutorialTotalSteps}',
-                      style: TextStyle(
-                        color: AppColors.sequencerText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    ElevatedButton(
-                      onPressed: appState.goBackTutorialManually,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.sequencerSurfaceBase,
-                        foregroundColor: AppColors.sequencerText,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                      ),
-                      child: Text(
-                        'Back',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Rect _resolveFabRect(Size viewportSize) {
-    final context = _fabKey.currentContext;
-    if (context != null) {
-      final box = context.findRenderObject();
-      if (box is RenderBox && box.hasSize) {
-        final topLeft = box.localToGlobal(Offset.zero);
-        return topLeft & box.size;
-      }
-    }
-
-    return Rect.fromLTWH(
-      viewportSize.width - _fabRightOffset - _fabSize,
-      viewportSize.height - _fabBottomOffset - _fabSize,
-      _fabSize,
-      _fabSize,
-    );
+  /// [overlayContext] must be a descendant of the same overlay [Stack] so
+  /// bounds match [CustomPaint] / [Positioned] (screen-global rects misalign).
+  Rect? _resolveTutorialRect(GlobalKey key, BuildContext overlayContext) {
+    final targetContext = key.currentContext;
+    if (targetContext == null) return null;
+    final renderObject = targetContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    final overlay = overlayContext.findRenderObject();
+    if (overlay is! RenderBox) return null;
+    final topLeft = renderObject.localToGlobal(Offset.zero, ancestor: overlay);
+    return topLeft & renderObject.size;
   }
 
   Offset _resolveArrowTarget({
@@ -706,10 +551,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }) {
     final center = targetRect.center;
     final towardsText = from - center;
-
-    if (towardsText.distanceSquared < 0.0001) {
-      return center;
-    }
+    if (towardsText.distanceSquared < 0.0001) return center;
 
     final halfW = targetRect.width / 2;
     final halfH = targetRect.height / 2;
@@ -717,18 +559,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         towardsText.dx.abs() < 0.0001 ? double.infinity : halfW / towardsText.dx.abs();
     final scaleY =
         towardsText.dy.abs() < 0.0001 ? double.infinity : halfH / towardsText.dy.abs();
-    final scale = scaleX < scaleY ? scaleX : scaleY;
-
+    final scale = min(scaleX, scaleY);
     final edgePoint = Offset(
       center.dx + towardsText.dx * scale,
       center.dy + towardsText.dy * scale,
     );
-
     final toCenter = center - edgePoint;
     final len = toCenter.distance;
     if (len < 0.0001) return edgePoint;
-
-    final inset = edgePadding.clamp(0.0, 12.0).toDouble();
+    final inset = edgePadding.clamp(0.0, 10.0);
     return Offset(
       edgePoint.dx + (toCenter.dx / len) * inset,
       edgePoint.dy + (toCenter.dy / len) * inset,
@@ -1405,12 +1244,12 @@ class _OverlayGradientPainter extends CustomPainter {
   }
 }
 
-class _TutorialArrowPainter extends CustomPainter {
+class _ProjectsTutorialArrowPainter extends CustomPainter {
   final Offset start;
   final Offset end;
   final Color color;
 
-  _TutorialArrowPainter({
+  _ProjectsTutorialArrowPainter({
     required this.start,
     required this.end,
     required this.color,
@@ -1418,23 +1257,18 @@ class _TutorialArrowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(start.dx, start.dy)
-      ..lineTo(end.dx, end.dy);
-
     final linePaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
+      ..strokeWidth = 2.4
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawPath(path, linePaint);
+    canvas.drawLine(start, end, linePaint);
 
     final direction = (end - start);
     final angle = direction.direction;
-    const arrowLength = 11.0;
+    const arrowLength = 10.0;
     const arrowSpread = 0.6;
-
     final arrowPath = Path()
       ..moveTo(end.dx, end.dy)
       ..lineTo(
@@ -1446,14 +1280,14 @@ class _TutorialArrowPainter extends CustomPainter {
         end.dx - arrowLength * cos(angle + arrowSpread),
         end.dy - arrowLength * sin(angle + arrowSpread),
       );
-
     canvas.drawPath(arrowPath, linePaint);
   }
 
   @override
-  bool shouldRepaint(covariant _TutorialArrowPainter oldDelegate) {
+  bool shouldRepaint(covariant _ProjectsTutorialArrowPainter oldDelegate) {
     return oldDelegate.start != start ||
         oldDelegate.end != end ||
         oldDelegate.color != color;
   }
 }
+

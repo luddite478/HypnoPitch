@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import '../services/tutorial_service.dart';
 
-export '../services/tutorial_service.dart' show TutorialStep;
+export '../services/tutorial_service.dart'
+    show TutorialInteractionTarget, TutorialStep, TutorialTextInsets;
 
 class AppState extends ChangeNotifier {
   static const int tutorialTotalSteps = TutorialService.tutorialTotalSteps;
@@ -19,20 +20,54 @@ class AppState extends ChangeNotifier {
       _tutorialService.showTutorialPromptThisSession;
   TutorialStep get activeTutorialStep => _tutorialService.activeTutorialStep;
   bool get isTutorialRunning => _tutorialService.isTutorialRunning;
+  bool get showCellParamsVolumePointer =>
+      _tutorialService.showCellParamsVolumePointer;
+  bool get showCellParamsKeyPointer => _tutorialService.showCellParamsKeyPointer;
+  bool get showCopyPointer => _tutorialService.showCopyPointer;
+  bool get showPastePointer => _tutorialService.showPastePointer;
+  bool get showJumpValueTwoPointer =>
+      _tutorialService.showJumpValueTwoPointer;
+  bool get showJumpCopyPointer => _tutorialService.showJumpCopyPointer;
+  bool get showJumpPastePointer => _tutorialService.showJumpPastePointer;
+  bool get showJumpPasteTargetCellPointer =>
+      _tutorialService.showJumpPasteTargetCellPointer;
+  bool get showJumpPasteButtonOnlyPointer =>
+      _tutorialService.showJumpPasteButtonOnlyPointer;
+  bool get showRecordingRecordPointer => _tutorialService.showRecordingRecordPointer;
+  bool get showRecordingPlayPointer => _tutorialService.showRecordingPlayPointer;
+  bool get showSongRecordingRecordPointer =>
+      _tutorialService.showSongRecordingRecordPointer;
+  bool get showSelectModeButtonPointer => _tutorialService.showSelectModeButtonPointer;
+  bool get showSelectModeVolumePointer => _tutorialService.showSelectModeVolumePointer;
+  String get selectModeStepInstruction => _tutorialService.selectModeStepInstruction;
   int get tutorialStepDisplayIndex => _tutorialService.tutorialStepDisplayIndex;
   String get tutorialStepLabel => _tutorialService.tutorialStepLabel;
 
   GlobalKey get firstCellTutorialKey => _tutorialService.firstCellTutorialKey;
   GlobalKey get selectSampleTutorialKey =>
       _tutorialService.selectSampleTutorialKey;
+  GlobalKey get multitaskPanelTutorialKey =>
+      _tutorialService.multitaskPanelTutorialKey;
+  GlobalKey get cellParamsVolumeButtonTutorialKey =>
+      _tutorialService.cellParamsVolumeButtonTutorialKey;
+  GlobalKey get cellParamsKeyButtonTutorialKey =>
+      _tutorialService.cellParamsKeyButtonTutorialKey;
   GlobalKey get copyButtonTutorialKey => _tutorialService.copyButtonTutorialKey;
   GlobalKey get pasteButtonTutorialKey =>
       _tutorialService.pasteButtonTutorialKey;
+  GlobalKey get copyPasteTargetCellTutorialKey =>
+      _tutorialService.copyPasteTargetCellTutorialKey;
   GlobalKey get deleteButtonTutorialKey =>
       _tutorialService.deleteButtonTutorialKey;
   GlobalKey get undoButtonTutorialKey => _tutorialService.undoButtonTutorialKey;
   GlobalKey get redoButtonTutorialKey => _tutorialService.redoButtonTutorialKey;
   GlobalKey get jumpButtonTutorialKey => _tutorialService.jumpButtonTutorialKey;
+  GlobalKey get jumpValueTwoDisplayTutorialKey =>
+      _tutorialService.jumpValueTwoDisplayTutorialKey;
+  GlobalKey get jumpPasteSourceCellTutorialKey =>
+      _tutorialService.jumpPasteSourceCellTutorialKey;
+  GlobalKey get jumpPasteTargetCellTutorialKey =>
+      _tutorialService.jumpPasteTargetCellTutorialKey;
   GlobalKey get playButtonTutorialKey => _tutorialService.playButtonTutorialKey;
   GlobalKey get recordButtonTutorialKey =>
       _tutorialService.recordButtonTutorialKey;
@@ -59,17 +94,28 @@ class AppState extends ChangeNotifier {
       _tutorialService.sectionStepsDecreaseTutorialKey;
   GlobalKey get sectionStepsIncreaseTutorialKey =>
       _tutorialService.sectionStepsIncreaseTutorialKey;
+  GlobalKey get patternMenuButtonTutorialKey =>
+      _tutorialService.patternMenuButtonTutorialKey;
+  GlobalKey get projectsLibraryFolderTutorialKey =>
+      _tutorialService.projectsLibraryFolderTutorialKey;
+  GlobalKey get libraryLatestRecordingTutorialKey =>
+      _tutorialService.libraryLatestRecordingTutorialKey;
+  GlobalKey get libraryLatestRecordingShareTutorialKey =>
+      _tutorialService.libraryLatestRecordingShareTutorialKey;
 
   Future<void> initialize() => _tutorialService.initialize();
   void dismissTutorialPromptForSession() =>
       _tutorialService.dismissTutorialPromptForSession();
-  void startProjectsQuickTutorial() => _tutorialService.startProjectsQuickTutorial();
-  void advanceTutorialFromProjectsPlus() =>
-      _tutorialService.advanceTutorialFromProjectsPlus();
+  void startSequencerQuickTutorial() =>
+      _tutorialService.startSequencerQuickTutorial();
   void advanceTutorialToSelectSample() =>
       _tutorialService.advanceTutorialToSelectSample();
   void completeSampleSelectionStep() =>
       _tutorialService.completeSampleSelectionStep();
+  void markCellVolumeAdjusted(double value) =>
+      _tutorialService.markCellVolumeAdjusted(value);
+  void markCellPitchAdjusted(num semitones) =>
+      _tutorialService.markCellPitchAdjusted(semitones);
   void markCopyAction() => _tutorialService.markCopyAction();
   void markPasteAction() => _tutorialService.markPasteAction();
   void verifyDeletionStep() => _tutorialService.verifyDeletionStep();
@@ -104,8 +150,16 @@ class AppState extends ChangeNotifier {
   bool get showTakesClosePointer => _tutorialService.showTakesClosePointer;
   bool get canCloseTakesTutorialStep => _tutorialService.canCloseTakesTutorialStep;
   bool get showSecondTakeAddPointer => _tutorialService.showSecondTakeAddPointer;
+  bool get showSecondTakeClosePointer =>
+      _tutorialService.showSecondTakeClosePointer;
   String get secondTakeStepInstruction =>
       _tutorialService.secondTakeStepInstruction;
+  bool get showLibraryLatestRecordingPointer =>
+      _tutorialService.showLibraryLatestRecordingPointer;
+  bool get showLibraryLatestRecordingSharePointer =>
+      _tutorialService.showLibraryLatestRecordingSharePointer;
+  String get libraryLatestRecordingStepInstruction =>
+      _tutorialService.libraryLatestRecordingStepInstruction;
   void verifyTakesCloseStep() => _tutorialService.verifyTakesCloseStep();
   bool get isLayersTabDone => _tutorialService.isLayersTabDone;
   bool get isLayersMuteDone => _tutorialService.isLayersMuteDone;
@@ -119,12 +173,14 @@ class AppState extends ChangeNotifier {
   void completeSelectModeInfoStep() =>
       _tutorialService.completeSelectModeInfoStep();
   void verifyMultiSelectStep() => _tutorialService.verifyMultiSelectStep();
+  void markSelectModeVolumeChanged(double value) =>
+      _tutorialService.markSelectModeVolumeChanged(value);
   void verifyDisableSelectModeStep() =>
       _tutorialService.verifyDisableSelectModeStep();
   void verifySecondSectionCreated() =>
       _tutorialService.verifySecondSectionCreated();
-  void verifySectionTwoStepsSetToEightStep() =>
-      _tutorialService.verifySectionTwoStepsSetToEightStep();
+  void verifySectionTwoStepsSetToThirtyTwoStep() =>
+      _tutorialService.verifySectionTwoStepsSetToThirtyTwoStep();
   void verifySectionTwoFiveSamplesStep() =>
       _tutorialService.verifySectionTwoFiveSamplesStep();
   void verifyNavigatedToPreviousSectionStep() =>
@@ -150,9 +206,22 @@ class AppState extends ChangeNotifier {
       );
   void markSecondTakeAddToLibraryAction() =>
       _tutorialService.markSecondTakeAddToLibraryAction();
+  void markSecondTakeCloseAction() => _tutorialService.markSecondTakeCloseAction();
+  void markPatternMenuBackAction() => _tutorialService.markPatternMenuBackAction();
+  void markProjectsLibraryFolderOpenAction() =>
+      _tutorialService.markProjectsLibraryFolderOpenAction();
+  void markLibraryLatestRecordingOpenAction() =>
+      _tutorialService.markLibraryLatestRecordingOpenAction();
+  void markLibraryLatestRecordingShareAction() =>
+      _tutorialService.markLibraryLatestRecordingShareAction();
   void advanceTutorialManually() => _tutorialService.advanceTutorialManually();
   void goBackTutorialManually() => _tutorialService.goBackTutorialManually();
   void stopTutorial() => _tutorialService.stopTutorial();
+  bool canInteractWithTutorialTarget(TutorialInteractionTarget target) =>
+      _tutorialService.canInteractWithTutorialTarget(target);
+
+  TutorialTextInsets get activeTutorialTextInsets =>
+      _tutorialService.activeTutorialTextInsets;
 
   void _onTutorialChanged() {
     notifyListeners();

@@ -47,7 +47,7 @@ class SequencerScreenV2 extends StatefulWidget {
 
 class _SequencerScreenV2State extends State<SequencerScreenV2>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  static const double _floatingPlaybackBarHeight = 66.0;
+  static const double _floatingPlaybackBarHeight = 52.8;
   // Layout flexes:
   // - Edit buttons and multitask panel are each reduced by 10%
   // - Freed space is reassigned to the sequencer body above
@@ -182,8 +182,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         break;
       case TutorialStep.sequencerSectionTwoStepsHint:
         if (_tableState.sectionsCount > 1 &&
-            _tableState.getSectionStepCount(1) == 8) {
-          appState.verifySectionTwoStepsSetToEightStep();
+            _tableState.getSectionStepCount(1) >= 32) {
+          appState.verifySectionTwoStepsSetToThirtyTwoStep();
         }
         break;
       case TutorialStep.sequencerSectionsNavigateHint:
@@ -507,6 +507,11 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
           children: [
             // Sequencer view only (thread view removed)
             _buildSequencerView(),
+            if (appState.showTutorialPromptThisSession &&
+                tutorialStep == TutorialStep.none)
+              Positioned.fill(
+                child: _buildTutorialEntryDialog(appState),
+              ),
 
             // Floating playback bar
             Positioned(
@@ -566,9 +571,22 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                 label: appState.tutorialStepLabel,
                 text: 'Select sample for this cell',
               ),
+            if (tutorialStep == TutorialStep.sequencerCellParamsHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.showCellParamsVolumePointer
+                    ? appState.cellParamsVolumeButtonTutorialKey
+                    : appState.cellParamsKeyButtonTutorialKey,
+                label: appState.tutorialStepLabel,
+                text:
+                    'Set Volume (Vol) to 80% and scroll Key control to D# for created sample cell.',
+                centerText: true,
+                centerInRectKey: appState.sampleGridTutorialKey,
+              ),
             if (tutorialStep == TutorialStep.sequencerCopyPasteHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.copyButtonTutorialKey,
+                anchorKey: appState.showCopyPointer
+                    ? appState.copyButtonTutorialKey
+                    : appState.copyPasteTargetCellTutorialKey,
                 label: appState.tutorialStepLabel,
                 text: 'Try to copy and paste the sample cell',
               ),
@@ -585,12 +603,28 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                 label: appState.tutorialStepLabel,
                 text: 'Press Undo to restore the deleted sample and then press Redo to delete it again.',
               ),
-            if (tutorialStep == TutorialStep.sequencerJumpPasteHint)
+            if (tutorialStep == TutorialStep.sequencerJumpValueTwoHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.jumpButtonTutorialKey,
+                anchorKey: appState.jumpValueTwoDisplayTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Set Jump value to 2 and Copy a sample and press Paste 3 times.',
+                    'Set Jump to 2. Tap JUMP to open the wheel, then scroll to 2.',
+              ),
+            if (tutorialStep == TutorialStep.sequencerJumpPasteHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.showJumpCopyPointer
+                    ? appState.copyButtonTutorialKey
+                    : (appState.showJumpPasteTargetCellPointer
+                        ? appState.jumpPasteTargetCellTutorialKey
+                        : appState.pasteButtonTutorialKey),
+                secondaryAnchorKey: appState.showJumpCopyPointer
+                    ? appState.jumpPasteSourceCellTutorialKey
+                    : (appState.showJumpPasteTargetCellPointer
+                        ? appState.pasteButtonTutorialKey
+                        : null),
+                label: appState.tutorialStepLabel,
+                text:
+                    'Copy a sample, then press Paste three times (Jump spacing is 2).',
               ),
             if (tutorialStep == TutorialStep.sequencerPlaybackHint)
               _SequencerTutorialAnchorOverlay(
@@ -600,10 +634,12 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               ),
             if (tutorialStep == TutorialStep.sequencerRecordingHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.recordButtonTutorialKey,
+                anchorKey: appState.showRecordingPlayPointer
+                    ? appState.playButtonTutorialKey
+                    : appState.recordButtonTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Press Record, then press Play, record at least 4 seconds, then press Record button again to stop.',
+                    'Press Record, then press Play, then press Record button again after some time to stop recording.',
               ),
             if (tutorialStep == TutorialStep.sequencerLayersHint)
               _SequencerTutorialAnchorOverlay(
@@ -612,7 +648,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                     : appState.layersRowTutorialKey,
                 label: appState.tutorialStepLabel,
                 text: !appState.isLayersTabDone
-                    ? 'These are section layers. All of them play simultaneously. Arrange samples across them however you want.\nNow select layer 1 tab.'
+                    ? 'These are section layers.\n\nAll of them play simultaneously. Arrange samples across them however you want.\n\nNow select layer A tab.'
                     : (!appState.isLayersMuteDone
                         ? 'Now press Mute layer button.'
                         : 'Now unmute the layer by pressing Mute again.'),
@@ -622,47 +658,48 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               ),
             if (tutorialStep == TutorialStep.sequencerSelectModeHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.selectModeButtonTutorialKey,
+                anchorKey: appState.showSelectModeVolumePointer
+                    ? appState.multitaskPanelTutorialKey
+                    : appState.selectModeButtonTutorialKey,
                 label: appState.tutorialStepLabel,
-                text:
-                    'Press Select, choose multiple cells, then disable Select mode.',
+                text: appState.selectModeStepInstruction,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionsSwipeHint)
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.sampleGridTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Swipe the sound grid left to create a second section. We continue when two sections exist.',
+                    'Swipe the sound grid left and create a second section.',
                 centerText: true,
                 centerInRectKey: appState.sampleGridTutorialKey,
                 drawCurvedSwipeHint: true,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionTwoStepsHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.sectionStepsDecreaseTutorialKey,
-                secondaryAnchorKey: appState.sectionStepsIncreaseTutorialKey,
+                anchorKey: appState.sectionStepsIncreaseTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Use section steps arrows and decrease section 2 steps to 8.',
+                    'Scroll down and use + (plus) to increase the step count of section 2 to 32.',
+                textPosition: _TutorialTextPosition.top,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionTwoSamplesHint)
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.sampleGridTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Go to section 2 and place samples in five different cells (any layers).',
+                    'Place at least 5 samples in five different cells in this new section.',
                 centerText: true,
                 centerInRectKey: appState.sampleGridTutorialKey,
+                drawCoachArrow: false,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionsNavigateHint)
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.sampleGridTutorialKey,
                 label: appState.tutorialStepLabel,
-                text: 'Swipe right to go back to section 1.',
+                text: 'Swipe right to go back to section 1 or select section 1 in section management menu.',
                 centerText: true,
                 centerInRectKey: appState.sampleGridTutorialKey,
-                drawCurvedSwipeHint: true,
-                swipeHintLeftToRight: true,
+                drawCoachArrow: false,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionsMenuHint)
               _SequencerTutorialAnchorOverlay(
@@ -675,8 +712,9 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.songModeButtonTutorialKey,
                 label: appState.tutorialStepLabel,
+                textPosition: _TutorialTextPosition.center,
                 text:
-                    'Sequencer could be in loop and song modes. In loop mode section plays indefinitely, in song mode sections are iterated.\nPress this button to enter song mode.',
+                    'Sequencer could be in loop and song modes.\n\nIn loop mode section plays indefinitely, in song mode sections are iterated.\n\nPress this button to enter song mode.',
               ),
             if (tutorialStep == TutorialStep.sequencerSectionLoopsHint)
               _SequencerTutorialAnchorOverlay(
@@ -687,14 +725,135 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               ),
             if (tutorialStep == TutorialStep.sequencerSongRecordingHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.recordButtonTutorialKey,
+                anchorKey: appState.showSongRecordingRecordPointer
+                    ? appState.recordButtonTutorialKey
+                    : appState.playButtonTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Press Record again and Play to record the song made from 2 sections.\nWhen song is finished playing, press Record button again.',
+                    'Press Record and Play to record the song made from 2 sections.\nWhen playback finishes, you will be taken to Takes automatically.',
+              ),
+            if (tutorialStep == TutorialStep.sequencerBackToPatternHint)
+              _SequencerTutorialAnchorOverlay(
+                anchorKey: appState.patternMenuButtonTutorialKey,
+                label: appState.tutorialStepLabel,
+                text: 'Press Pattern menu button to return to the patterns page.',
               ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTutorialEntryDialog(AppState appState) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+        final gridRect =
+            _tutorialResolveAnchorRect(appState.sampleGridTutorialKey, viewport);
+        final dialogCenter = gridRect?.center ??
+            Offset(viewport.width / 2, viewport.height / 2);
+        final dialogWidth = min(290.0, max(220.0, viewport.width - 24));
+        const dialogHeightEstimate = 126.0;
+        final left = (dialogCenter.dx - dialogWidth / 2)
+            .clamp(12.0, max(12.0, viewport.width - dialogWidth - 12.0))
+            .toDouble();
+        final top = (dialogCenter.dy - dialogHeightEstimate / 2)
+            .clamp(
+              MediaQuery.paddingOf(context).top + 10,
+              max(
+                MediaQuery.paddingOf(context).top + 10,
+                viewport.height - dialogHeightEstimate - 12.0,
+              ),
+            )
+            .toDouble();
+
+        return Container(
+          color: Colors.black.withOpacity(0.18),
+          child: Stack(
+            children: [
+              Positioned(
+                left: left,
+                top: top,
+                width: dialogWidth,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.sequencerSurfaceRaised.withOpacity(0.96),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AppColors.sequencerBorder, width: 0.8),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Run quick tutorial?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.sequencerText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: appState.startSequencerQuickTutorial,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.sequencerAccent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 9),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Yes',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: appState.dismissTutorialPromptForSession,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.sequencerSurfaceBase,
+                              foregroundColor: AppColors.sequencerText,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 9),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'No',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -709,9 +868,11 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
       );
       return;
     }
-    final tutorialStep = context.read<AppState>().activeTutorialStep;
+    final appState = context.read<AppState>();
+    final tutorialStep = appState.activeTutorialStep;
     final isTakesTutorialStep = tutorialStep == TutorialStep.sequencerTakesHint ||
-        tutorialStep == TutorialStep.sequencerSecondTakeAddHint;
+        appState.showSecondTakeAddPointer ||
+        appState.showSecondTakeClosePointer;
     showDialog(
       context: context,
       barrierDismissible: !isTakesTutorialStep,
@@ -721,6 +882,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
   }
 
   Widget _buildSequencerView() {
+    final appState = context.watch<AppState>();
+    final tutorialStep = appState.activeTutorialStep;
     return Stack(
       children: [
         SafeArea(
@@ -731,6 +894,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                 child: SequencerBody(
                   onBack: () async {
                     if (_playbackState.isPlaying) _playbackState.stop();
+                    context.read<AppState>().markPatternMenuBackAction();
                     try {
                       context.read<AudioPlayerState>().stop();
                     } catch (_) {}
@@ -751,6 +915,9 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               Expanded(
                 flex: _multitaskPanelFlex,
                 child: RepaintBoundary(
+                  key: tutorialStep == TutorialStep.sequencerCellParamsHint
+                      ? appState.multitaskPanelTutorialKey
+                      : null,
                   child: const v2.MultitaskPanelWidget(),
                 ),
               ),
@@ -865,6 +1032,13 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                               onTap: isRecording
                                                   ? null
                                                   : () {
+                                                      if (!appState
+                                                          .canInteractWithTutorialTarget(
+                                                        TutorialInteractionTarget
+                                                            .sectionMenuButton,
+                                                      )) {
+                                                        return;
+                                                      }
                                                       final multitaskPanelState =
                                                           context.read<
                                                               MultitaskPanelState>();
@@ -1045,6 +1219,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                     ],
                                                     onPressed: (index) async {
                                                       if (index == 0) {
+                                                        if (appState
+                                                            .isTutorialRunning) {
+                                                          return;
+                                                        }
                                                         // Master settings button - toggle
                                                         Log.d(
                                                             'Master settings button pressed',
@@ -1060,6 +1238,13 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                               .showMasterSettings();
                                                         }
                                                       } else if (index == 1) {
+                                                        if (!appState
+                                                            .canInteractWithTutorialTarget(
+                                                          TutorialInteractionTarget
+                                                              .recordButton,
+                                                        )) {
+                                                          return;
+                                                        }
                                                         if (isRecording ||
                                                             isArmed) {
                                                           appState
@@ -1096,6 +1281,13 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                                       currentLayer);
                                                         }
                                                       } else if (index == 2) {
+                                                        if (!appState
+                                                            .canInteractWithTutorialTarget(
+                                                          TutorialInteractionTarget
+                                                              .playButton,
+                                                        )) {
+                                                          return;
+                                                        }
                                                         if (isPlaying) {
                                                           playbackState.stop();
                                                           appState
@@ -1104,6 +1296,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                           playbackState.start();
                                                           appState
                                                               .markPlayAction();
+                                                          appState
+                                                              .markRecordingPlayAction();
                                                           appState
                                                               .markSongRecordingPlayAction();
                                                         }
@@ -1431,26 +1625,28 @@ class _SequencerTutorialAnchorOverlay extends StatefulWidget {
   final GlobalKey? secondaryAnchorKey;
   final String label;
   final String text;
+  final _TutorialTextPosition textPosition;
   final bool centerText;
   final GlobalKey? centerInRectKey;
   final bool drawLayerPointers;
   final int layerPointersCount;
   /// Cubic swipe arrow on the sound grid (no straight coach-mark arrow).
   final bool drawCurvedSwipeHint;
-  /// Swipe direction along the grid: `true` = left→right, `false` = right→left (back).
-  final bool swipeHintLeftToRight;
+  /// Draw default straight arrow from text card to target.
+  final bool drawCoachArrow;
 
   const _SequencerTutorialAnchorOverlay({
     required this.anchorKey,
     this.secondaryAnchorKey,
     required this.label,
     required this.text,
+    this.textPosition = _TutorialTextPosition.center,
     this.centerText = false,
     this.centerInRectKey,
     this.drawLayerPointers = false,
     this.layerPointersCount = 5,
     this.drawCurvedSwipeHint = false,
-    this.swipeHintLeftToRight = true,
+    this.drawCoachArrow = true,
   });
 
   @override
@@ -1459,9 +1655,32 @@ class _SequencerTutorialAnchorOverlay extends StatefulWidget {
 }
 
 class _SequencerTutorialAnchorOverlayState
-    extends State<_SequencerTutorialAnchorOverlay> {
+    extends State<_SequencerTutorialAnchorOverlay>
+    with SingleTickerProviderStateMixin {
   int _layoutTick = 0;
   static const int _maxLayoutWaits = 48;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )
+      ..addListener(_onPulseTick)
+      ..repeat(reverse: true);
+    _pulse = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
+  }
+
+  void _onPulseTick() {
+    // Keep anchor-driven arrow/spotlight aligned with moving targets
+    // (e.g. scrollable VOL/KEY header buttons) while tutorial overlay is visible.
+    if (!mounted) return;
+    if (!widget.drawCoachArrow) return;
+    setState(() {});
+  }
 
   @override
   void didUpdateWidget(covariant _SequencerTutorialAnchorOverlay oldWidget) {
@@ -1470,6 +1689,13 @@ class _SequencerTutorialAnchorOverlayState
         oldWidget.secondaryAnchorKey != widget.secondaryAnchorKey) {
       _layoutTick = 0;
     }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.removeListener(_onPulseTick);
+    _pulseController.dispose();
+    super.dispose();
   }
 
   @override
@@ -1484,21 +1710,6 @@ class _SequencerTutorialAnchorOverlayState
           final secondaryAnchorRect = widget.secondaryAnchorKey == null
               ? null
               : _tutorialResolveAnchorRect(widget.secondaryAnchorKey!, viewport);
-          if (anchorRect == null ||
-              (widget.secondaryAnchorKey != null &&
-                  secondaryAnchorRect == null)) {
-            if (_layoutTick < _maxLayoutWaits) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                setState(() => _layoutTick++);
-              });
-            }
-            return IgnorePointer(
-              child: Container(color: Colors.black.withOpacity(0.06)),
-            );
-          }
-
-          final safeTop = MediaQuery.of(context).padding.top + 10;
           final centerRect = _tutorialResolveAnchorRect(
                 widget.centerInRectKey ?? appState.sampleGridTutorialKey,
                 viewport,
@@ -1508,41 +1719,133 @@ class _SequencerTutorialAnchorOverlayState
                 width: viewport.width,
                 height: viewport.height,
               );
-          // Never wider than viewport minus margins (avoids Row/Text overflow on narrow screens).
-          final horizontalInset = 12.0;
+          final anchorsReady = anchorRect != null &&
+              (widget.secondaryAnchorKey == null || secondaryAnchorRect != null);
+          if (!anchorsReady) {
+            if (_layoutTick < _maxLayoutWaits) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() => _layoutTick++);
+              });
+            }
+          }
+
+          final safeTop = MediaQuery.of(context).padding.top + 10;
+          final resolvedAnchorRect = anchorRect ?? centerRect;
+          final resolvedSecondaryAnchorRect = anchorsReady
+              ? secondaryAnchorRect
+              : null;
+          // Percent-based insets with safety buffer to prevent edge overflow.
+          final leftInset = max(8.0,
+              (viewport.width * appState.activeTutorialTextInsets.left).floorToDouble());
+          final rightInset = max(8.0,
+              (viewport.width * appState.activeTutorialTextInsets.right).floorToDouble());
+          final topInset = max(0.0,
+              (viewport.height * appState.activeTutorialTextInsets.top).floorToDouble());
+          final bottomInset = max(0.0,
+              (viewport.height * appState.activeTutorialTextInsets.bottom).floorToDouble());
           final availableForCard =
-              max(0.0, viewport.width - horizontalInset * 2);
-          final textWidth =
-              min(320.0, availableForCard).floorToDouble();
-          final desiredLeft = centerRect.center.dx - textWidth / 2;
-          final minL = horizontalInset;
-          final maxL = max(minL, viewport.width - textWidth - horizontalInset);
-          final textLeft = desiredLeft.clamp(minL, maxL).toDouble();
+              max(0.0, viewport.width - leftInset - rightInset);
+          final textWidth = min(272.0, availableForCard * 0.995).floorToDouble();
           const cardHeightEstimate = 126.0;
-          final desiredTop = centerRect.center.dy - (cardHeightEstimate / 2);
-          final textTop =
-              desiredTop.clamp(safeTop, viewport.height - 120.0).toDouble();
+          final minL = leftInset;
+          final maxL = max(minL, viewport.width - textWidth - rightInset);
+          // Absolute top/bottom bounds that account for safe area + percent inset.
+          final absoluteMinTop = max(safeTop, safeTop + topInset);
+          final absoluteMaxTop = max(
+            absoluteMinTop,
+            viewport.height - cardHeightEstimate - bottomInset - 8,
+          );
+          final position = widget.centerText
+              ? _TutorialTextPosition.center
+              : widget.textPosition;
+          double desiredLeft;
+          double desiredTop;
+          switch (position) {
+            case _TutorialTextPosition.top:
+              desiredLeft = centerRect.center.dx - textWidth / 2;
+              desiredTop = absoluteMinTop + 6;
+              break;
+            case _TutorialTextPosition.right:
+              desiredLeft = resolvedAnchorRect.right + 12;
+              desiredTop = resolvedAnchorRect.center.dy - (cardHeightEstimate / 2);
+              break;
+            case _TutorialTextPosition.center:
+              desiredLeft = centerRect.center.dx - textWidth / 2;
+              desiredTop = centerRect.center.dy - (cardHeightEstimate / 2);
+              break;
+          }
+
+          final textLeft = (() {
+            if (position == _TutorialTextPosition.center) {
+              final minAllowedLeft = max(minL, centerRect.left + 8);
+              final maxAllowedLeft = max(
+                minAllowedLeft,
+                min(maxL, centerRect.right - textWidth - 8),
+              );
+              return desiredLeft.clamp(minAllowedLeft, maxAllowedLeft).toDouble();
+            }
+            return desiredLeft.clamp(minL, maxL).toDouble();
+          })();
+
+          final textTop = (() {
+            if (position == _TutorialTextPosition.center) {
+              final minTop = max(absoluteMinTop, centerRect.top + 8);
+              final maxTop = min(
+                absoluteMaxTop,
+                centerRect.bottom - cardHeightEstimate - 8,
+              );
+              return desiredTop.clamp(minTop, max(minTop, maxTop)).toDouble();
+            }
+            return desiredTop.clamp(absoluteMinTop, absoluteMaxTop).toDouble();
+          })();
           final textCenter = Offset(
               textLeft + (textWidth / 2), textTop + (cardHeightEstimate / 2));
-          final swipeHintTopUpper = max(anchorRect.top, anchorRect.bottom - 12.0);
+          final swipeHintTopUpper =
+              max(resolvedAnchorRect.top, resolvedAnchorRect.bottom - 12.0);
           final swipeHintTop =
-              (textTop + cardHeightEstimate + 8.0).clamp(anchorRect.top, swipeHintTopUpper).toDouble();
+              (textTop + cardHeightEstimate + 8.0)
+                  .clamp(resolvedAnchorRect.top, swipeHintTopUpper)
+                  .toDouble();
           final swipeHintRect =
-              Rect.fromLTRB(anchorRect.left, swipeHintTop, anchorRect.right,
-                  anchorRect.bottom);
+              Rect.fromLTRB(resolvedAnchorRect.left, swipeHintTop,
+                  resolvedAnchorRect.right, resolvedAnchorRect.bottom);
           final arrowEnd = _tutorialResolveArrowTarget(
             from: textCenter,
-            targetRect: anchorRect,
+            targetRect: resolvedAnchorRect,
             edgePadding: 4,
           );
+          final spotlightRects = appState.activeTutorialStep ==
+                  TutorialStep.sequencerFirstCellHint
+              ? <Rect>[centerRect]
+              : <Rect>[
+                  resolvedAnchorRect,
+                  if (resolvedSecondaryAnchorRect != null)
+                    resolvedSecondaryAnchorRect,
+                ];
+          final pulseRects = <Rect>[
+            if (_shouldPulseTargetRect(resolvedAnchorRect, viewport))
+              resolvedAnchorRect,
+            if (resolvedSecondaryAnchorRect != null &&
+                _shouldPulseTargetRect(resolvedSecondaryAnchorRect, viewport))
+              resolvedSecondaryAnchorRect,
+          ];
 
           return Stack(
             children: [
               IgnorePointer(
-                child: Container(color: Colors.black.withOpacity(0.1)),
+                child: CustomPaint(
+                  size: viewport,
+                  painter: _TutorialSpotlightPainter(
+                    targetRects: spotlightRects,
+                    scrimColor: Colors.transparent,
+                  ),
+                ),
               ),
-              if (!widget.drawLayerPointers &&
-                  !widget.drawCurvedSwipeHint)
+              if (widget.drawCoachArrow &&
+                  !widget.drawLayerPointers &&
+                  !widget.drawCurvedSwipeHint &&
+                  anchorsReady)
                 IgnorePointer(
                   child: CustomPaint(
                     size: viewport,
@@ -1550,35 +1853,55 @@ class _SequencerTutorialAnchorOverlayState
                       start: textCenter,
                       ends: [
                         arrowEnd,
-                        if (secondaryAnchorRect != null)
+                        if (resolvedSecondaryAnchorRect != null)
                           _tutorialResolveArrowTarget(
                             from: textCenter,
-                            targetRect: secondaryAnchorRect,
+                            targetRect: resolvedSecondaryAnchorRect,
                             edgePadding: 4,
                           ),
                       ],
-                      color: AppColors.sequencerAccent,
+                      color: AppColors.tutorialArrowColor,
                     ),
                   ),
                 ),
-              if (widget.drawCurvedSwipeHint)
+              if (widget.drawCoachArrow &&
+                  !widget.drawLayerPointers &&
+                  !widget.drawCurvedSwipeHint &&
+                  anchorsReady &&
+                  pulseRects.isNotEmpty)
+                IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: viewport,
+                        painter: _TutorialTargetPulsePainter(
+                          targetRects: pulseRects,
+                          color: AppColors.tutorialPulseColor,
+                          intensity: _pulse.value,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              if (widget.drawCurvedSwipeHint && anchorsReady)
                 IgnorePointer(
                   child: CustomPaint(
                     size: viewport,
                     painter: _CurvedSwipeHintPainter(
                       targetRect: swipeHintRect,
-                      color: AppColors.sequencerAccent,
-                      leftToRight: widget.swipeHintLeftToRight,
+                      color: AppColors.tutorialArrowColor,
+                      leftToRight: true,
                     ),
                   ),
                 ),
-              if (widget.drawLayerPointers)
+              if (widget.drawLayerPointers && anchorsReady)
                 IgnorePointer(
                   child: CustomPaint(
                     size: viewport,
                     painter: _LayerPointersPainter(
-                      targetRect: anchorRect,
-                      color: AppColors.sequencerAccent,
+                      targetRect: resolvedAnchorRect,
+                      color: AppColors.tutorialArrowColor,
                       count: widget.layerPointersCount,
                     ),
                   ),
@@ -1589,9 +1912,9 @@ class _SequencerTutorialAnchorOverlayState
                 width: textWidth,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.sequencerSurfaceBase.withOpacity(0.9),
+                    color: AppColors.tutorialTextOverlayColor,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                         color: AppColors.sequencerBorder, width: 0.8),
@@ -1634,7 +1957,23 @@ class _SequencerTutorialAnchorOverlayState
                                   fontSize: 12,
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.text,
+                            softWrap: true,
+                            style: const TextStyle(
+                              color: AppColors.sequencerText,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              height: 1.25,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
                               ElevatedButton(
                                 onPressed: appState.goBackTutorialManually,
                                 style: ElevatedButton.styleFrom(
@@ -1657,18 +1996,30 @@ class _SequencerTutorialAnchorOverlayState
                                       fontSize: 12),
                                 ),
                               ),
+                              const SizedBox(width: 6),
+                              ElevatedButton(
+                                onPressed: appState.stopTutorial,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      AppColors.sequencerSurfaceBase,
+                                  foregroundColor: AppColors.sequencerText,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 6),
+                                  minimumSize: const Size(0, 0),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(7),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Quit tutorial',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12),
+                                ),
+                              ),
                             ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.text,
-                            softWrap: true,
-                            style: const TextStyle(
-                              color: AppColors.sequencerText,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              height: 1.25,
-                            ),
                           ),
                         ],
                       ),
@@ -1682,6 +2033,18 @@ class _SequencerTutorialAnchorOverlayState
       ),
     );
   }
+
+  bool _shouldPulseTargetRect(Rect rect, Size viewport) {
+    final maxW = viewport.width * 0.72;
+    final maxH = viewport.height * 0.28;
+    return rect.width <= maxW && rect.height <= maxH;
+  }
+}
+
+enum _TutorialTextPosition {
+  center,
+  top,
+  right,
 }
 
 Rect? _tutorialResolveAnchorRect(GlobalKey key, Size viewport) {
@@ -1780,6 +2143,83 @@ class _TutorialOverlayArrowsPainter extends CustomPainter {
     return oldDelegate.start != start ||
         oldDelegate.ends != ends ||
         oldDelegate.color != color;
+  }
+}
+
+class _TutorialSpotlightPainter extends CustomPainter {
+  final List<Rect> targetRects;
+  final Color scrimColor;
+
+  _TutorialSpotlightPainter({
+    required this.targetRects,
+    required this.scrimColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final overlayPath = Path()..addRect(Offset.zero & size);
+    for (final rect in targetRects) {
+      final expanded = rect.inflate(6.0);
+      overlayPath.addRRect(
+        RRect.fromRectAndRadius(expanded, const Radius.circular(8)),
+      );
+    }
+    overlayPath.fillType = PathFillType.evenOdd;
+
+    final paint = Paint()
+      ..color = scrimColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(overlayPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TutorialSpotlightPainter oldDelegate) {
+    return oldDelegate.targetRects != targetRects ||
+        oldDelegate.scrimColor != scrimColor;
+  }
+}
+
+class _TutorialTargetPulsePainter extends CustomPainter {
+  final List<Rect> targetRects;
+  final Color color;
+  final double intensity;
+
+  _TutorialTargetPulsePainter({
+    required this.targetRects,
+    required this.color,
+    required this.intensity,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = intensity.clamp(0.0, 1.0);
+    for (final rect in targetRects) {
+      final expanded = rect.inflate(2.0 + (2.0 * t));
+      final rrect = RRect.fromRectAndRadius(expanded, const Radius.circular(7));
+      final fill = Paint()
+        ..style = PaintingStyle.fill
+        ..color = color.withOpacity(0.08 + (0.14 * t));
+      final stroke = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = color.withOpacity(0.35 + (0.45 * t));
+      final glow = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4.0 + (2.0 * t)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5)
+        ..color = color.withOpacity(0.16 + (0.12 * t));
+
+      canvas.drawRRect(rrect, glow);
+      canvas.drawRRect(rrect, fill);
+      canvas.drawRRect(rrect, stroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TutorialTargetPulsePainter oldDelegate) {
+    return oldDelegate.targetRects != targetRects ||
+        oldDelegate.color != color ||
+        oldDelegate.intensity != intensity;
   }
 }
 

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
 import '../screens/library_screen.dart';
+import '../state/app_state.dart';
+import 'tutorial_pulse_widget.dart';
 
 class SimplifiedHeaderWidget extends StatelessWidget {
   const SimplifiedHeaderWidget({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -41,25 +45,35 @@ class SimplifiedHeaderWidget extends StatelessWidget {
           ),
           
           // Right side - Library icon
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const LibraryScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.folder_outlined,
-              color: AppColors.sequencerText,
-              size: 28,
+          TutorialPulseWidget(
+            enabled: appState.activeTutorialStep ==
+                TutorialStep.sequencerProjectsLibraryHint,
+            borderRadius: BorderRadius.circular(10),
+            child: IconButton(
+              key: appState.activeTutorialStep ==
+                      TutorialStep.sequencerProjectsLibraryHint
+                  ? appState.projectsLibraryFolderTutorialKey
+                  : null,
+              onPressed: () {
+                appState.markProjectsLibraryFolderOpenAction();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LibraryScreen(),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.folder_outlined,
+                color: AppColors.sequencerText,
+                size: 28,
+              ),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.transparent,
+              ),
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             ),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.transparent,
-            ),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
         ],
       ),

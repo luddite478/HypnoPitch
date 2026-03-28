@@ -1,143 +1,124 @@
-## Undo/Redo (Snapshot-Based)
+## Undo/Redo (Current Implementation)
 
 ### Overview
 
-Undo/Redo uses simple, self-contained snapshots of native module state:
+Undo/redo is still snapshot-based, but now includes batched table-edit transactions for multi-cell actions.
 
-- 100-entry linear history managed by `UndoRedoManager` (oldest entries are dropped when full)
-- Each history entry is a composite sequencer snapshot (`SequencerSnapshot`) built via the shared snapshot module:
-  - `TableState`
-  - `PlaybackState`
-  - `SampleBankState`
-- Snapshots are recorded after each mutation (post-state), so each entry represents the user-visible state immediately after an action
-- Undo/Redo applies module `*_apply_state` functions to restore state
-- A small public, seqlock-protected struct exposes Undo/Redo availability to Flutter without calls
-
-
-### Native data structures
-
-- `PublicUndoRedoState` (read-only, seqlock)
-  - `uint32_t version` (even=stable, odd=writer)
-  - `int count`, `int cursor`
-  - `int can_undo`, `int can_redo`
-  - Getter: `const PublicUndoRedoState* UndoRedoManager_get_state_ptr(void)`
-
-- `SequencerSnapshot` (defined in `sequencer_snapshot.h`)
-  - `TableState table`
-  - `PlaybackState playback`
-  - `SampleBankState sample_bank`
-
-- `TableState`
-  - Inline `table[MAX_SEQUENCER_STEPS][MAX_SEQUENCER_COLS]`
-  - Inline arrays for `sections` and `layers`
-
-- `PlaybackState` (no pointers, no play/transport)
-  - `int bpm`
-  - `int region_start`, `region_end`
-  - `int song_mode`
-  - `int current_section`, `current_section_loop`
-  - `int sections_loops_num[MAX_SECTIONS]`
-  - Excludes `is_playing`/`current_step` to avoid unwanted transport side-effects during undo/redo
-
-- `SampleBankState` (no pointers)
-  - `int loaded[MAX_SAMPLE_SLOTS]`
-  - `float volume[MAX_SAMPLE_SLOTS]`, `pitch[MAX_SAMPLE_SLOTS]`
-  - `char file_path[MAX_SAMPLE_SLOTS][SAMPLE_MAX_PATH]`
-  - `char display_name[MAX_SAMPLE_SLOTS][SAMPLE_MAX_NAME]`
-  - `char sample_id[MAX_SAMPLE_SLOTS][SAMPLE_MAX_ID]`
+- History: `UNDO_REDO_MAX_HISTORY = 100` entries (oldest dropped when full).
+- Snapshot type: `SequencerSnapshot` with pointers to copied module states:
+  - `TableState*`
+  - `PlaybackState*`
+  - `SampleBankState*`
+- Snapshots are captured post-mutation by `UndoRedoManager_record()`.
+- Undo/redo applies module states in fixed order, then reconciles SunVox pattern content.
 
 
-### Native APIs
+### Native state and FFI surface
 
-- Manager
-  - `void UndoRedoManager_init(void)` / `void UndoRedoManager_clear(void)`
-  - `int UndoRedoManager_canUndo(void)` / `int UndoRedoManager_canRedo(void)`
-  - `int UndoRedoManager_undo(void)` / `int UndoRedoManager_redo(void)`
-  - `const PublicUndoRedoState* UndoRedoManager_get_state_ptr(void)`
-  - Recording (post-mutation): `void UndoRedoManager_record(void)`
-
-- Table
-  - `const TableState* table_state_get_ptr(void)`
-  - `void table_apply_state(const TableState*)`
-
-- Playback
-  - `const PlaybackState* playback_state_get_ptr(void)`
-  - `void playback_apply_state(const PlaybackState*)`
-
-- Sample bank
-  - `const SampleBankState* sample_bank_state_get_ptr(void)`
-  - `void sample_bank_apply_state(const SampleBankState*)`
-
-- Snapshot module
-  - `void sequencer_capture_snapshot(SequencerSnapshot* out)`
-  - `void sequencer_apply_snapshot(const SequencerSnapshot* s)`
+- Public read model for Flutter is the prefix of native `UndoRedoState`:
+  - `version`, `count`, `cursor`, `can_undo`, `can_redo`
+  - Exposed by `UndoRedoManager_get_state_ptr()`
+- Flutter maps that prefix via `NativePublicUndoRedoState` in `app/lib/ffi/undo_redo_bindings.dart`.
+- `UndoRedoState.syncFromNative()` (Dart) uses seqlock-style version checks.
 
 
-### Recording strategy (modules)
+### Recording model
 
-Record a snapshot after each user-visible mutation. One Undo reverts exactly one action.
+#### Single-action recording
 
-- Table: `table_set_cell`, `table_clear_cell`, `table_insert_step`, `table_delete_step`, `table_set_section_step_count`, `table_append_section`, `table_delete_section`, `table_update_many_(cells|sections|layers)`
-- Playback: `playback_set_bpm`, `playback_set_region`, `playback_set_mode`, `switch_to_section`, `playback_set_section_loops_num`
-- Sample bank: `sample_bank_load`, `sample_bank_load_with_id` (no extra record beyond load), `sample_bank_unload`, `sample_bank_set_sample_volume`, `sample_bank_set_sample_pitch`
+Most mutators still record immediately:
 
-On first init of each module, seed a baseline snapshot to allow Undo of the first change.
+- Table (`app/native/table.mm`):
+  - `table_set_cell`
+  - `table_clear_cell`
+  - `table_set_cell_settings`
+  - `table_set_cell_sample_slot`
+  - step/section/layer mutations (`insert/delete step`, `set section step count`, `append/delete/reorder section`, `set section`, `set_layer_len`)
+- Playback (`app/native/playback_sunvox.mm`):
+  - `playback_set_bpm`
+  - `playback_set_region`
+  - `playback_set_mode`
+  - `playback_set_section_loops_num`
 
+`switch_to_section` is treated as navigation and does not record undo.
+- Sample bank (`app/native/sample_bank.mm`):
+  - `sample_bank_load`
+  - `sample_bank_unload`
+  - `sample_bank_set_sample_volume`
+  - `sample_bank_set_sample_pitch`
+  - `sample_bank_set_sample_settings`
 
-### Global consistency per entry
+#### Batched multi-cell recording
 
-Even when only one module changed, the manager captures a full composite snapshot so Undo/Redo always restores a consistent system-wide state.
+New table transaction APIs in `app/native/table.h` / `table.mm`:
 
+- `table_begin_edit_transaction()`
+- `table_mark_step_touched(int step)`
+- `table_end_edit_transaction(int record_undo)`
 
-### Apply order
+Behavior during transaction:
 
-When undoing/redoing, the manager applies in order:
-1) `table_apply_state`
-2) `playback_apply_state`
-3) `sample_bank_apply_state`
-This order preserves dependencies.
+- Per-cell `sunvox_wrapper_sync_cell()` is suppressed.
+- Per-cell `UndoRedoManager_record()` is suppressed.
+- Touched sections are tracked.
+- On transaction end:
+  - touched sections are synced once via `sunvox_wrapper_sync_section(section)`;
+  - one undo record is written when `record_undo=1`.
 
+Dart wrappers in `TableState`:
 
-### Flutter integration
+- `beginCellBatchEdit()`
+- `endCellBatchEdit()`
+- `runCellBatchEdit(...)`
 
-- FFI mapping for `PublicUndoRedoState` mirrors native layout.
-- A `UndoRedoState.syncFromNative()` method uses seqlock reads to update `canUndo`/`canRedo` ValueNotifiers.
-- The frame ticker (`TimerState`) calls `undoRedoState.syncFromNative()` each frame alongside other modules.
-- Buttons call native `undo`/`redo` directly; state refresh occurs on the next tick.
-- For JSON export of the entire sequencer, use the snapshot module (see `docs/features/snapshot.md`).
+Current migrated multi-cell actions in `EditState`:
 
-
-### Usage examples
-
-- Add a sample to bank, then place it in the grid:
-  - Two snapshots are recorded (sample bank change, table cell change)
-  - A single Undo reverts both table and sample bank to the previous consistent state
-
-- Insert/delete steps:
-  - Snapshots recorded post-mutation, `table_apply_state` restores `sections` and `layers` and updates public state; UI observes active section `num_steps` change
-
-
-### Limits and behavior
-
-- History length: 100 entries (oldest dropped)
-- Undo after some undos discards redo tail upon new record
-- Public state uses seqlock; Flutter reads are lock-free and consistent
-- Playback state does not change transport (play/stop) during Undo/Redo
-
-
-### Implementation notes
-
-- Unified recording API: `UndoRedoManager_record()` calls the snapshot module to build a composite snapshot and appends it.
-- Apply guard: recording is suppressed while applying snapshots to prevent polluting history.
-- Deduplication: identical consecutive entries are skipped.
-- Table snapshot optimization: only the active rows (sum of section lengths) are copied; trailing rows are reset to defaults on apply.
+- `deleteCells()` runs in one batch transaction.
+- Multi-cell branch of `pasteCells()` runs in one batch transaction.
 
 
-### Debug tips
+### Undo/Redo apply flow
 
-- Verify module init seeds a baseline snapshot
-- Ensure recording is post-mutation (state reflects what user sees)
-- Confirm `*_apply_state` updates module public state inside seqlock begin/end
-- If UI doesn’t refresh, check the Flutter side’s change detection for that specific property (e.g., active section `num_steps`)
+Native apply order in `app/native/undo_redo.mm`:
+
+1. `table_apply_state(...)`
+2. `playback_apply_state(...)`
+3. `sample_bank_apply_state(...)` (with apply mode enabled)
+4. SunVox reconciliation: sync all current sections with `sunvox_wrapper_sync_section(...)`
+
+This final sync guarantees audible pattern events match restored table/sample state.
+
+
+### Sample bank apply-mode optimization
+
+`sample_bank_set_apply_mode(int enabled)` was added to avoid expensive work during snapshot restore.
+
+When apply mode is enabled:
+
+- sample-bank setters skip table-wide rescan + `sunvox_wrapper_sync_cell(...)` loops.
+- sample-bank setters skip `UndoRedoManager_record()` calls.
+
+Undo/redo toggles apply mode around `sample_bank_apply_state(...)`.
+
+
+### Consistency and guardrails
+
+- Redo tail is dropped when recording after undo (standard linear history model).
+- Duplicate consecutive snapshots are deduplicated.
+- `is_applying` guard prevents undo history pollution during apply.
+- Seqlock protects Flutter reads of undo availability fields.
+
+
+### Non-undo flows
+
+Some bulk/import flows intentionally pass `undoRecord: false` from Dart (e.g. snapshot import and certain recording cleanup operations), so they do not create history entries.
+
+
+### Debug checklist
+
+- Verify one undo step for a multi-cell delete/paste action.
+- Verify undo/redo in playback mode updates both UI and audible output.
+- Verify no extra history entries are created during undo/redo apply.
+- If buttons lag, inspect timer cadence in `TimerState`/`SyncFrequencyPolicy` (UI polling), not snapshot correctness.
 
 

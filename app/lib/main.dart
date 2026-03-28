@@ -65,7 +65,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => SampleBankState()),
       ],
       child: MaterialApp(
-        title: 'App',
+        title: 'HypnoPitch',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),

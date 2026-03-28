@@ -197,6 +197,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
                           !context.watch<AppState>().isLayersUnmuteDone
                       ? context.read<AppState>().layerMuteButtonTutorialKey
                       : null,
+                  tutorialTarget: TutorialInteractionTarget.layerMuteButton,
                 ),
               ),
             ),
@@ -398,10 +399,15 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget> {
     double fontSize,
     VoidCallback? onTap, {
     Key? key,
+    TutorialInteractionTarget? tutorialTarget,
   }) {
+    final appState = context.watch<AppState>();
+    final canTap = tutorialTarget == null
+        ? !appState.isTutorialRunning
+        : appState.canInteractWithTutorialTarget(tutorialTarget);
     return GestureDetector(
       key: key,
-      onTap: onTap,
+      onTap: canTap ? onTap : null,
       child: Container(
         height: height,
         decoration: BoxDecoration(

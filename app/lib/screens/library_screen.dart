@@ -1,6 +1,5 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../utils/app_colors.dart';
@@ -10,6 +9,7 @@ import '../models/library_item.dart';
 import '../state/audio_player_state.dart';
 import '../state/library_state.dart';
 import '../state/library_samples_state.dart';
+import '../state/app_state.dart';
 import '../state/patterns_state.dart';
 import '../state/sequencer/table.dart';
 import '../state/sequencer/sample_bank.dart';
@@ -17,6 +17,7 @@ import '../ffi/table_bindings.dart';
 import '../ffi/playback_bindings.dart';
 import '../ffi/sample_bank_bindings.dart';
 import '../utils/local_audio_path.dart';
+import '../widgets/tutorial_pulse_widget.dart';
 import 'sequencer_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -38,13 +39,24 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onLibraryTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _loadLibrary();
       _loadLibrarySamples();
+      _onLibraryTabChanged();
     });
     _setupAudioPlayerCallback();
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  void _onLibraryTabChanged() {
+    if (!mounted) return;
+    if (_tabController.index != 0) return;
+    final appState = context.read<AppState>();
+    if (appState.showLibraryLatestRecordingPointer) {
+      appState.markLibraryLatestRecordingOpenAction();
+    }
   }
   
   @override
@@ -187,6 +199,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _clearAudioPlayerCallback();
+    _tabController.removeListener(_onLibraryTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -194,6 +207,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final appState = context.watch<AppState>();
     
     return WillPopScope(
       onWillPop: () async {
@@ -213,6 +227,53 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                     child: Column(
                       children: [
                         const LibraryHeaderWidget(),
+                        if (appState.activeTutorialStep ==
+                            TutorialStep.sequencerLibraryLatestRecordingHint)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            color: AppColors.tutorialTextOverlayColor,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    appState.libraryLatestRecordingStepInstruction,
+                                    style: TextStyle(
+                                      color: AppColors.sequencerText,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (!appState.showLibraryLatestRecordingPointer &&
+                                    !appState.showLibraryLatestRecordingSharePointer)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 10),
+                                    child: ElevatedButton(
+                                      onPressed: appState.stopTutorial,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            AppColors.sequencerSurfaceRaised,
+                                        foregroundColor: AppColors.sequencerText,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 7),
+                                        minimumSize: const Size(0, 0),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const Text(
+                                        'Done',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         
                         Container(
                           decoration: BoxDecoration(
@@ -226,9 +287,21 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                           ),
                           child: TabBar(
                             controller: _tabController,
-                            tabs: const [
-                              Tab(text: 'RECORDINGS'),
-                              Tab(text: 'SAMPLES'),
+                            tabs: [
+                              Tab(
+                                key: appState.showLibraryLatestRecordingPointer
+                                    ? appState.libraryLatestRecordingTutorialKey
+                                    : null,
+                                child: TutorialPulseWidget(
+                                  enabled: appState.showLibraryLatestRecordingPointer,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 8),
+                                    child: Text('RECORDINGS'),
+                                  ),
+                                ),
+                              ),
+                              const Tab(text: 'SAMPLES'),
                             ],
                             labelColor: AppColors.sequencerText,
                             unselectedLabelColor: AppColors.sequencerLightText,
@@ -286,8 +359,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   }
 
   Widget _buildLibraryTab() {
-    return Consumer2<LibraryState, AudioPlayerState>(
-      builder: (context, libraryState, audioPlayer, _) {
+    return Consumer3<LibraryState, AudioPlayerState, AppState>(
+      builder: (context, libraryState, audioPlayer, appState, _) {
         if (libraryState.isLoading && !libraryState.hasLoaded) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -324,6 +397,14 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           itemBuilder: (context, index) {
             final item = libraryState.library[index];
             final isPlaying = audioPlayer.currentlyPlayingItemId == item.id && audioPlayer.isPlaying;
+            final isLatestRecordingStep =
+                appState.activeTutorialStep ==
+                TutorialStep.sequencerLibraryLatestRecordingHint;
+            final isLatestItem = index == 0;
+            final showLatestRecordingSharePointer =
+                isLatestRecordingStep &&
+                isLatestItem &&
+                appState.showLibraryLatestRecordingSharePointer;
         
             return Container(
               height: 60,
@@ -334,8 +415,12 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                     : AppColors.sequencerSurfaceRaised,
                 border: Border(
                   bottom: BorderSide(
-                    color: AppColors.sequencerBorder,
-                    width: 0.5,
+                    color: showLatestRecordingSharePointer
+                        ? AppColors.sequencerAccent
+                        : AppColors.sequencerBorder,
+                    width: showLatestRecordingSharePointer
+                        ? 1.2
+                        : 0.5,
                   ),
                 ),
               ),
@@ -385,17 +470,31 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                         
                         const SizedBox(width: 8),
                         Builder(
-                          builder: (buttonContext) => IconButton(
-                            icon: Icon(
-                              Icons.share,
-                              color: AppColors.sequencerLightText,
-                              size: 20,
-                            ),
-                            onPressed: () => _shareLibraryItem(item, buttonContext),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 40,
+                          builder: (buttonContext) => TutorialPulseWidget(
+                            enabled: showLatestRecordingSharePointer,
+                            borderRadius: BorderRadius.circular(10),
+                            child: IconButton(
+                              key: showLatestRecordingSharePointer
+                                  ? appState.libraryLatestRecordingShareTutorialKey
+                                  : null,
+                              icon: Icon(
+                                Icons.share,
+                                color: showLatestRecordingSharePointer
+                                    ? AppColors.sequencerAccent
+                                    : AppColors.sequencerLightText,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                if (showLatestRecordingSharePointer) {
+                                  appState.markLibraryLatestRecordingShareAction();
+                                }
+                                _shareLibraryItem(item, buttonContext);
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
                             ),
                           ),
                         ),

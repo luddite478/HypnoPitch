@@ -29,7 +29,8 @@ class PatternRecordingsOverlay extends StatefulWidget {
   State<PatternRecordingsOverlay> createState() => _PatternRecordingsOverlayState();
 }
 
-class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
+class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay>
+    with SingleTickerProviderStateMixin {
   final Set<String> _addingToLibrary = {};
   final Set<String> _addedToLibrary = {};
   String? _highlightedCheckpointId;
@@ -37,6 +38,8 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   int _refreshKey = 0; // Used to force rebuild of FutureBuilder
   AudioPlayerState? _audioPlayerRef;
   final GlobalKey _dialogContentKey = GlobalKey();
+  late final AnimationController _tutorialPulseController;
+  late final Animation<double> _tutorialPulse;
 
   @override
   void didChangeDependencies() {
@@ -47,6 +50,12 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   @override
   void initState() {
     super.initState();
+    _tutorialPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _tutorialPulse =
+        CurvedAnimation(parent: _tutorialPulseController, curve: Curves.easeInOut);
     
     // Start timer to update timestamps in real-time
     _timestampUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -96,6 +105,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
   @override
   void dispose() {
     _timestampUpdateTimer?.cancel();
+    _tutorialPulseController.dispose();
     _audioPlayerRef?.stop();
     super.dispose();
   }
@@ -106,7 +116,8 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
     final appState = context.watch<AppState>();
     final isTakesTutorialStep =
         appState.activeTutorialStep == TutorialStep.sequencerTakesHint ||
-            appState.activeTutorialStep == TutorialStep.sequencerSecondTakeAddHint;
+            appState.showSecondTakeClosePointer ||
+            appState.showSecondTakeAddPointer;
     final activePattern = patternsState.activePattern;
     
     if (activePattern == null) {
@@ -195,11 +206,17 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                   ),
                 ),
                 IconButton(
-                  key: isTakesTutorialStep && appState.showTakesClosePointer
+                  key: isTakesTutorialStep &&
+                          (appState.showTakesClosePointer ||
+                              appState.showSecondTakeClosePointer)
                       ? appState.takesCloseButtonTutorialKey
                       : null,
                   icon: Icon(Icons.close, color: AppColors.sequencerText),
                   onPressed: () {
+                    if (!appState.canInteractWithTutorialTarget(
+                        TutorialInteractionTarget.takesCloseButton)) {
+                      return;
+                    }
                     if (appState.activeTutorialStep == TutorialStep.sequencerTakesHint &&
                         !appState.canCloseTakesTutorialStep) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -210,9 +227,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                       );
                       return;
                     }
-                    if (appState.activeTutorialStep ==
-                            TutorialStep.sequencerSecondTakeAddHint &&
-                        appState.showSecondTakeAddPointer) {
+                    if (appState.showSecondTakeAddPointer) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(appState.secondTakeStepInstruction),
@@ -220,6 +235,9 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                         ),
                       );
                       return;
+                    }
+                    if (appState.showSecondTakeClosePointer) {
+                      appState.markSecondTakeCloseAction();
                     }
                     if (appState.activeTutorialStep == TutorialStep.sequencerTakesHint) {
                       appState.verifyTakesCloseStep();
@@ -335,7 +353,7 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        final cardWidth = (viewport.width * 0.82).clamp(220.0, 420.0).toDouble();
+        final cardWidth = (viewport.width * 0.72).clamp(220.0, 320.0).toDouble();
         const cardHeightEstimate = 118.0;
         final cardLeft =
             ((viewport.width - cardWidth) / 2).clamp(8.0, viewport.width).toDouble();
@@ -366,19 +384,37 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
               targetRect: addRect,
               edgePadding: 2,
             ),
-          if (appState.showTakesClosePointer && closeRect != null)
+          if ((appState.showTakesClosePointer || appState.showSecondTakeClosePointer) &&
+              closeRect != null)
             _resolveArrowTarget(
               from: cardCenter,
               targetRect: closeRect,
               edgePadding: 2,
             ),
         ];
+        final spotlightRects = <Rect>[
+          if (appState.showTakesPlayPointer && playRect != null) playRect,
+          if ((appState.showTakesAddPointer || appState.showSecondTakeAddPointer) &&
+              addRect != null)
+            addRect,
+          if ((appState.showTakesClosePointer || appState.showSecondTakeClosePointer) &&
+              closeRect != null)
+            closeRect,
+        ];
 
         return IgnorePointer(
           ignoring: false,
           child: Stack(
             children: [
-              IgnorePointer(child: Container(color: Colors.black.withOpacity(0.08))),
+              IgnorePointer(
+                child: CustomPaint(
+                  size: viewport,
+                  painter: _TutorialSpotlightPainter(
+                    targetRects: spotlightRects,
+                    scrimColor: Colors.transparent,
+                  ),
+                ),
+              ),
               if (arrowTargets.isNotEmpty)
                 IgnorePointer(
                   child: CustomPaint(
@@ -386,8 +422,24 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                     painter: _TakesTutorialPointersPainter(
                       start: cardCenter,
                       targets: arrowTargets,
-                      color: AppColors.sequencerAccent,
+                      color: AppColors.tutorialArrowColor,
                     ),
+                  ),
+                ),
+              if (spotlightRects.isNotEmpty)
+                IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _tutorialPulse,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: viewport,
+                        painter: _TakesTutorialTargetPulsePainter(
+                          targetRects: spotlightRects,
+                          color: AppColors.tutorialPulseColor,
+                          intensity: _tutorialPulse.value,
+                        ),
+                      );
+                    },
                   ),
                 ),
               Positioned(
@@ -396,9 +448,9 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                 width: cardWidth,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.sequencerSurfaceBase.withOpacity(0.92),
+                    color: AppColors.tutorialTextOverlayColor,
                     borderRadius: BorderRadius.circular(8),
                     border:
                         Border.all(color: AppColors.sequencerBorder, width: 0.8),
@@ -409,12 +461,16 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            appState.tutorialStepLabel,
-                            style: TextStyle(
-                              color: AppColors.sequencerText,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
+                          Expanded(
+                            child: Text(
+                              appState.tutorialStepLabel,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.sequencerText,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -426,7 +482,24 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                               fontSize: 12,
                             ),
                           ),
-                          const Spacer(),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        appState.showSecondTakeAddPointer ||
+                                appState.showSecondTakeClosePointer
+                            ? appState.secondTakeStepInstruction
+                            : appState.takesStepInstruction,
+                        style: TextStyle(
+                          color: AppColors.sequencerText,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
                           ElevatedButton(
                             onPressed: appState.goBackTutorialManually,
                             style: ElevatedButton.styleFrom(
@@ -446,19 +519,27 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                                   fontWeight: FontWeight.w700, fontSize: 12),
                             ),
                           ),
+                          const SizedBox(width: 6),
+                          ElevatedButton(
+                            onPressed: appState.stopTutorial,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.sequencerSurfaceBase,
+                              foregroundColor: AppColors.sequencerText,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 7),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                            child: const Text(
+                              'Quit tutorial',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ),
                         ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        appState.activeTutorialStep ==
-                                TutorialStep.sequencerSecondTakeAddHint
-                            ? appState.secondTakeStepInstruction
-                            : appState.takesStepInstruction,
-                        style: TextStyle(
-                          color: AppColors.sequencerText,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
                       ),
                     ],
                   ),
@@ -559,6 +640,10 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                       onPressed: showLoading
                           ? null
                           : () {
+                              if (!appState.canInteractWithTutorialTarget(
+                                  TutorialInteractionTarget.takesPlayButton)) {
+                                return;
+                              }
                               if (isPlaying) {
                                 audioPlayerState.pause();
                               } else if (checkpoint.audioFilePath != null) {
@@ -675,7 +760,13 @@ class _PatternRecordingsOverlayState extends State<PatternRecordingsOverlay> {
                   child: InkWell(
                     onTap: isAddedToLibrary || isAddingToLibrary
                         ? null
-                        : () => _handleAddToLibrary(checkpoint),
+                        : () {
+                            if (!appState.canInteractWithTutorialTarget(
+                                TutorialInteractionTarget.takesAddButton)) {
+                              return;
+                            }
+                            _handleAddToLibrary(checkpoint);
+                          },
                     child: Container(
                       width: 44,
                       height: 44,
@@ -1254,5 +1345,83 @@ class _TakesTutorialPointersPainter extends CustomPainter {
     return oldDelegate.start != start ||
         oldDelegate.targets != targets ||
         oldDelegate.color != color;
+  }
+}
+
+class _TutorialSpotlightPainter extends CustomPainter {
+  final List<Rect> targetRects;
+  final Color scrimColor;
+
+  _TutorialSpotlightPainter({
+    required this.targetRects,
+    required this.scrimColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final overlayPath = Path()..addRect(Offset.zero & size);
+    for (final rect in targetRects) {
+      final expanded = rect.inflate(6.0);
+      overlayPath.addRRect(
+        RRect.fromRectAndRadius(expanded, const Radius.circular(8)),
+      );
+    }
+    overlayPath.fillType = PathFillType.evenOdd;
+    canvas.drawPath(
+      overlayPath,
+      Paint()
+        ..color = scrimColor
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _TutorialSpotlightPainter oldDelegate) {
+    return oldDelegate.targetRects != targetRects ||
+        oldDelegate.scrimColor != scrimColor;
+  }
+}
+
+class _TakesTutorialTargetPulsePainter extends CustomPainter {
+  final List<Rect> targetRects;
+  final Color color;
+  final double intensity;
+
+  _TakesTutorialTargetPulsePainter({
+    required this.targetRects,
+    required this.color,
+    required this.intensity,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = intensity.clamp(0.0, 1.0);
+    for (final rect in targetRects) {
+      final expanded = rect.inflate(2.0 + (2.0 * t));
+      final rrect = RRect.fromRectAndRadius(expanded, const Radius.circular(8));
+      final fill = Paint()
+        ..style = PaintingStyle.fill
+        ..color = color.withOpacity(0.08 + (0.14 * t));
+      final stroke = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = color.withOpacity(0.35 + (0.45 * t));
+      final glow = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4.0 + (2.0 * t)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5)
+        ..color = color.withOpacity(0.16 + (0.12 * t));
+
+      canvas.drawRRect(rrect, glow);
+      canvas.drawRRect(rrect, fill);
+      canvas.drawRRect(rrect, stroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TakesTutorialTargetPulsePainter oldDelegate) {
+    return oldDelegate.targetRects != targetRects ||
+        oldDelegate.color != color ||
+        oldDelegate.intensity != intensity;
   }
 }
