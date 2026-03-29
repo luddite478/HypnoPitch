@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
 import '../../../state/sequencer/recording.dart';
+import '../../../utils/local_audio_path.dart';
+import '../../../utils/share_utils.dart';
 import '../../../state/sequencer/multitask_panel.dart';
-import '../../../state/threads_state.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ShareWidget extends StatelessWidget {
   const ShareWidget({super.key});
@@ -19,8 +18,8 @@ class ShareWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<RecordingState, ThreadsState, MultitaskPanelState>(
-      builder: (context, recording, threadsState, panelState, child) {
+    return Consumer2<RecordingState, MultitaskPanelState>(
+      builder: (context, recording, panelState, child) {
         return Container(
           decoration: BoxDecoration(
             color: Colors.black,
@@ -349,14 +348,14 @@ class ShareWidget extends StatelessWidget {
 
   void _shareSpecificRecording(BuildContext context, String filePath) async {
     try {
-      final file = File(filePath);
-      
-      if (await file.exists()) {
-        final appName = dotenv.env['APP_NAME']!;
+      final resolved = await LocalAudioPath.resolve(filePath);
+
+      if (resolved != null) {
         await Share.shareXFiles(
-          [XFile(filePath)],
-          text: 'Check out my track created with $appName!',
-          subject: '$appName track',
+          [XFile(resolved)],
+          text: 'Check out my track!',
+          subject: 'Music Track',
+          sharePositionOrigin: getSharePositionOrigin(context),
         );
       } else {
         _showError(context, 'Recording file not found');
@@ -374,78 +373,9 @@ class ShareWidget extends StatelessWidget {
       ),
     );
   }
-
-  void _publishProject(BuildContext context) async {
-    try {
-      // Close share panel
-      Provider.of<MultitaskPanelState>(context, listen: false).showPlaceholder();
-      
-      // Show loading indicator
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Publishing project...'),
-          backgroundColor: Colors.orangeAccent,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      print('🚀 Starting publish process...');
-      
-      // Get active thread info before publishing
-      final threadsState = Provider.of<ThreadsState>(context, listen: false);
-      final activeThread = threadsState.activeThread;
-      
-      print('📋 Active thread before publish: ${activeThread?.id}');
-      print('📋 Active thread messages count: ${activeThread?.messageIds.length ?? 0}');
-      print('👤 Current user ID: ${threadsState.currentUserId}');
-      print('👤 Current user name: ${threadsState.currentUserName}');
-
-      // Publish to database (title will be auto-generated as 6-char ID)
-      // Migrate to explicit publish flow handled elsewhere; stub here
-      final success = true;
-      
-      print('✅ Publish result: $success');
-      
-      // Check active thread after publishing
-      final activeThreadAfter = threadsState.activeThread;
-      print('📋 Active thread after publish: ${activeThreadAfter?.id}');
-      print('📋 Active thread messages count after: ${activeThreadAfter?.messageIds.length ?? 0}');
-      
-      if (!context.mounted) return;
-      
-      if (success) {
-        // Refresh threads to make sure we have the latest data
-        await threadsState.loadThreads();
-        print('🔄 Threads refreshed after publish');
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Project published successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to publish project'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Publish error: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
+  // Publish functionality removed in offline transformation
+  
+  void _publishProject(BuildContext context) {
+    // Stub for removed publish functionality
   }
 } 

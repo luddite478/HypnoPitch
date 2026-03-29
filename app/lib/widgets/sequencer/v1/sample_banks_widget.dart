@@ -47,16 +47,19 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
             final totalArrowMargins = leftArrowMarginLeft + leftArrowMarginRight + rightArrowMarginLeft + rightArrowMarginRight;
             final availableRowWidth = baseButtonsWidth - (arrowWidth * 2) - totalArrowMargins;
             final preferredTileWithMargins = preferredButtonWidth + 2 * sampleMarginH;
+            // Changed from 16 to 25: Show all user-accessible slots (A-Y)
+            // Slot 25 (Z) is reserved for preview and not shown in UI
             int visibleCount = availableRowWidth > 0
-                ? (availableRowWidth / preferredTileWithMargins).floor().clamp(1, 16)
+                ? (availableRowWidth / preferredTileWithMargins).floor().clamp(1, 25)
                 : 1;
             if (visibleCount < 1) visibleCount = 1;
             final totalInterTileMargins = (visibleCount - 1) * (2 * sampleMarginH);
             final buttonWidth = ((availableRowWidth - totalInterTileMargins) / visibleCount).floorToDouble();
 
-            final maxStart = (16 - visibleCount).clamp(0, 16);
+            // Update max index to 25 (A-Y are user slots, Z is preview slot)
+            final maxStart = (25 - visibleCount).clamp(0, 25);
             final startIndex = _startIndex.clamp(0, maxStart);
-            final endIndex = (startIndex + visibleCount).clamp(0, 16);
+            final endIndex = (startIndex + visibleCount).clamp(0, 25);
             final effectiveCount = (endIndex - startIndex).clamp(0, visibleCount);
 
             void goLeft() {
@@ -301,14 +304,6 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
     return Color.lerp(originalColor, AppColors.sequencerCellFilled, 0.3) ?? AppColors.sequencerCellFilled;
   }
 
-  Color _getBorderColor(bool isSelected, bool isActive) {
-    return AppColors.sequencerBorder;
-  }
-
-  double _getBorderWidth(bool isSelected, bool isActive) {
-    return 0.5;
-  }
-
   List<BoxShadow>? _getBoxShadow(bool isSelected, bool isActive) {
     if (isSelected) {
       return null;
@@ -396,4 +391,4 @@ class _ArrowTile extends StatelessWidget {
       ),
     );
   }
-} 
+}

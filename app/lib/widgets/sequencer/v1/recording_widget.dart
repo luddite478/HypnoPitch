@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../utils/app_colors.dart';
+import '../../../utils/share_utils.dart';
 import '../../../state/sequencer/recording.dart';
 
 class RecordingWidget extends StatelessWidget {
@@ -347,6 +348,7 @@ class RecordingWidget extends StatelessWidget {
         [XFile(mp3)],
         text: 'Check out my track created with $appName!',
         subject: '$appName track',
+        sharePositionOrigin: getSharePositionOrigin(context),
       );
     } catch (e) {
       debugPrint('Failed to share recording: $e');

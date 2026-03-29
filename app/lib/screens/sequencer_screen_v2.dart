@@ -5,10 +5,10 @@ import 'dart:io';
 import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
-import '../widgets/sequencer/v2/edit_buttons_widget.dart' as v2;
-import '../widgets/sequencer/v2/top_multitask_panel_widget.dart' as v2;
-import '../widgets/sequencer/v2/sequencer_body.dart';
-import '../widgets/sequencer/v2/value_control_overlay.dart';
+import '../widgets/sequencer/v1/edit_buttons_widget.dart' as v1;
+import '../widgets/sequencer/v1/top_multitask_panel_widget.dart' as v1;
+import '../widgets/sequencer/v1/sequencer_body.dart';
+import '../widgets/sequencer/v1/value_control_overlay.dart';
 import '../widgets/pattern_recordings_overlay.dart';
 import '../state/patterns_state.dart';
 import '../state/audio_player_state.dart';
@@ -909,7 +909,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               Expanded(
                 flex: _editButtonsFlex,
                 child: RepaintBoundary(
-                  child: const v2.EditButtonsWidget(),
+                  child: const v1.EditButtonsWidget(),
                 ),
               ),
               Expanded(
@@ -918,7 +918,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                   key: tutorialStep == TutorialStep.sequencerCellParamsHint
                       ? appState.multitaskPanelTutorialKey
                       : null,
-                  child: const v2.MultitaskPanelWidget(),
+                  child: const v1.MultitaskPanelWidget(),
                 ),
               ),
               const SizedBox(

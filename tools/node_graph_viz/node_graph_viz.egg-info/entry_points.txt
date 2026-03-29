@@ -1,2 +1,0 @@
-[console_scripts]
-node-graph-viz = node_graph_viz.__main__:main

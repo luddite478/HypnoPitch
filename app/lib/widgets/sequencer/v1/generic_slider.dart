@@ -102,6 +102,8 @@ class GenericSlider extends StatefulWidget {
   final int divisions;
   final SliderType type;
   final Function(double) onChanged;
+  final Function(double)? onChangeStart;
+  final Function(double)? onChangeEnd;
   final double height;
   final SliderOverlayState? sliderOverlay; // optional overlay state
   final String? contextLabel;
@@ -115,6 +117,8 @@ class GenericSlider extends StatefulWidget {
     required this.divisions,
     required this.type,
     required this.onChanged,
+    this.onChangeStart,
+    this.onChangeEnd,
     required this.height,
     required this.sliderOverlay,
     this.contextLabel,
@@ -192,6 +196,9 @@ class _GenericSliderState extends State<GenericSlider> {
         setState(() {
           _transientValue = newValue;
         });
+        if (widget.onChangeStart != null) {
+          widget.onChangeStart!(newValue);
+        }
         if (widget.sliderOverlay != null) {
           // Bind processing source for this interaction
           widget.sliderOverlay!.setProcessingSource(widget.processingSource);
@@ -206,6 +213,9 @@ class _GenericSliderState extends State<GenericSlider> {
         setState(() {
           _transientValue = null; // return control to external value
         });
+        if (widget.onChangeEnd != null) {
+          widget.onChangeEnd!(newValue);
+        }
         if (widget.sliderOverlay != null) {
           widget.sliderOverlay!.stopInteraction();
         }

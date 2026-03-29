@@ -16,7 +16,10 @@ class ValueControlOverlay extends StatelessWidget {
           valueListenable: sliderOverlay.isInteractingNotifier,
           builder: (context, isInteracting, child) {
             if (!isInteracting) {
-              return const SizedBox.shrink();
+              return IgnorePointer(
+                ignoring: true,
+                child: const SizedBox.shrink(),
+              );
             }
 
             return Stack(
