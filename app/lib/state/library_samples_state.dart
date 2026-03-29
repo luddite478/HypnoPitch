@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import '../services/sample_asset_resolver.dart';
 
 class LibrarySampleBrowserItem {
   final String name;
@@ -201,13 +201,9 @@ class LibrarySamplesState extends ChangeNotifier {
 
   Future<void> _loadBuiltInManifest() async {
     try {
-      final manifestString = await rootBundle.loadString('samples_manifest.json');
-      final fullManifest = json.decode(manifestString);
-      if (fullManifest is Map && fullManifest['samples'] is Map<String, dynamic>) {
-        _builtInManifest = Map<String, dynamic>.from(fullManifest['samples'] as Map);
-      } else {
-        _builtInManifest = {};
-      }
+      final sampleResolver = SampleAssetResolver.instance;
+      await sampleResolver.ensureBuiltInSamplesReady();
+      _builtInManifest = await sampleResolver.loadSamplesManifest();
     } catch (_) {
       _builtInManifest = {};
     }

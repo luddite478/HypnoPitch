@@ -24,7 +24,7 @@ def assetlinks_json():
         "relation": ["delegate_permission/common.handle_all_urls"],
         "target": {
             "namespace": "android_app",
-            "package_name": "com.example.rehorsed",
+            "package_name": "com.hypnopitch.app",
             "sha256_cert_fingerprints": [fingerprint]
         }
     }]

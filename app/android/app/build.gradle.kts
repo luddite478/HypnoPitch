@@ -17,6 +17,7 @@ android {
     namespace = "com.hypnopitch.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
+    assetPacks += setOf(":samples_pack")
 
     externalNativeBuild {
         cmake {
@@ -90,6 +91,10 @@ android {
             jniLibs.srcDir("../../native/sunvox_lib/sunvox_lib/android/sample_project/SunVoxLib/src/main/jniLibs")
         }
     }
+}
+
+dependencies {
+    implementation("com.google.android.play:asset-delivery:2.2.2")
 }
 
 flutter {

@@ -1169,6 +1169,18 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     return selected.first;
   }
 
+  /// True if at least one cell in the list has a loaded sample (for batch volume edits).
+  static bool _anyCellHasSampleForVolume(
+      TableState tableState, List<({int step, int col})> cells) {
+    for (final c in cells) {
+      final ptr = tableState.getCellPointer(c.step, c.col);
+      if (ptr.address == 0) continue;
+      final cd = CellData.fromPointer(ptr);
+      if (cd.isNotEmpty && cd.sampleSlot != -1) return true;
+    }
+    return false;
+  }
+
   _HasDataAndIndex _resolveHasDataAndIndex(
       SettingsType type,
       TableState tableState,
@@ -1220,6 +1232,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
         tableState.getLayerStartCol(tableState.uiSelectedLayer) + col;
     final cellNotifier = tableState.getCellNotifier(step, colAbs);
     final cellsList = allSimilarCells?.cells ?? [(step: step, col: colAbs)];
+    final batchVolumeEditable = allSimilarCells != null &&
+        _anyCellHasSampleForVolume(tableState, cellsList);
     return ValueListenableBuilder<CellData>(
       valueListenable: cellNotifier,
       builder: (context, cell, _) {
@@ -1227,6 +1241,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
         final playback = context.read<PlaybackState>();
         final sliderOverlay = context.read<SliderOverlayState>();
         final sampleBank = context.read<SampleBankState>();
+        final canEditVolume = batchVolumeEditable ||
+            (cell.isNotEmpty && cell.sampleSlot != -1);
         double defaultVol = 1.0;
         if (cell.sampleSlot >= 0) {
           final sd = sampleBank.getSampleData(cell.sampleSlot);
@@ -1241,7 +1257,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
           divisions: 100,
           type: SliderType.volume,
           onChanged: (value) {
-            if (cell.isNotEmpty && cell.sampleSlot != -1) {
+            if (canEditVolume) {
               appState.markCellVolumeAdjusted(value);
               appState.markSelectModeVolumeChanged(value);
               _cellVolumeDebounceTimer?.cancel();
@@ -1277,7 +1293,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
           height: height,
           sliderOverlay: sliderOverlay,
           onChangeStart: (v) {
-            if (v <= 0.0 || !cell.isNotEmpty || cell.sampleSlot == -1) {
+            if (v <= 0.0 || !canEditVolume) {
               playback.stopPreview();
               return;
             }
@@ -1291,7 +1307,14 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             playback.previewCell(
                 step: step, colAbs: colAbs, pitchRatio: effPitch, volume01: v);
           },
-          onChangeEnd: (_) {
+          onChangeEnd: (value) {
+            // GenericSlider clears its transient thumb position on end; the table
+            // commit is debounced — flush now so the slider does not snap back.
+            _cellVolumeDebounceTimer?.cancel();
+            _cellVolumeDebounceTimer = null;
+            if (canEditVolume) {
+              tableState.setCellSettingsForCells(cellsList, volume: value);
+            }
             playback.stopPreview();
           },
           contextLabel: allSimilarCells != null

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/app_colors.dart';
+import '../../../services/sample_asset_resolver.dart';
 import '../../../state/sequencer/sample_browser.dart';
 import '../../../state/sequencer/sample_bank.dart';
 import '../../../ffi/playback_bindings.dart';
 import 'package:ffi/ffi.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'dart:io';
 
 // Main sizing control variables for easy adjustment
@@ -220,12 +219,14 @@ class SampleSelectionWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'No samples found',
+                          context.watch<SampleBrowserState>().assetErrorMessage ??
+                              'No samples found',
                           style: TextStyle(
                             color: AppColors.sequencerLightText,
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -318,8 +319,8 @@ class SampleSelectionWidget extends StatelessWidget {
                                             final assetPath = item.path;
                                             if (assetPath.isNotEmpty) {
                                               try {
-                                                final data = await rootBundle.load(assetPath);
-                                                final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+                                                final bytes = await SampleAssetResolver.instance.loadAudioBytes(assetPath);
+                                                if (bytes == null) return;
                                                 final safeName = assetPath.replaceAll('/', '_');
                                                 final tmpFile = File('${Directory.systemTemp.path}/preview_$safeName');
                                                 await tmpFile.writeAsBytes(bytes, flush: true);
@@ -453,8 +454,8 @@ class SampleSelectionWidget extends StatelessWidget {
                                               final assetPath = item.path;
                                               if (assetPath.isNotEmpty) {
                                                 try {
-                                                  final data = await rootBundle.load(assetPath);
-                                                  final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+                                                  final bytes = await SampleAssetResolver.instance.loadAudioBytes(assetPath);
+                                                  if (bytes == null) return;
                                                   final safeName = assetPath.replaceAll('/', '_');
                                                   final tmpFile = File('${Directory.systemTemp.path}/preview_$safeName');
                                                   await tmpFile.writeAsBytes(bytes, flush: true);

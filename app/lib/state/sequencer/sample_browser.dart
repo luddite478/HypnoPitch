@@ -1,9 +1,30 @@
 import '../../utils/log.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'dart:convert';
+import '../../services/sample_asset_resolver.dart';
 import 'sample_bank.dart';
 import 'playback.dart';
+
+/// Top-level sample-bank folder order (then any other folders A–Z, case-insensitive).
+const List<String> _sampleBankFolderOrder = [
+  'synth',
+  'drums',
+  'noise',
+  'acoustic',
+];
+
+int _sampleBankFolderRank(String name) {
+  final i = _sampleBankFolderOrder.indexOf(name.toLowerCase());
+  return i < 0 ? _sampleBankFolderOrder.length : i;
+}
+
+void _sortSampleBankFolders(List<String> folders) {
+  folders.sort((a, b) {
+    final ra = _sampleBankFolderRank(a);
+    final rb = _sampleBankFolderRank(b);
+    if (ra != rb) return ra.compareTo(rb);
+    return a.toLowerCase().compareTo(b.toLowerCase());
+  });
+}
 
 // Temporary sample browser state for the new sequencer implementation
 // This integrates the existing sample browser logic with our new sequencer
@@ -13,6 +34,7 @@ class SampleBrowserState extends ChangeNotifier {
   List<String> _currentPath = [];
   List<SampleItem> _currentItems = [];
   Map<String, dynamic>? _manifestData;
+  String? _assetErrorMessage;
   int? _targetStep;
   int? _targetCol;
   /// Bank slot for load/place (A–Z index). When null, UI should use [SampleBankState.activeSlot].
@@ -26,29 +48,30 @@ class SampleBrowserState extends ChangeNotifier {
   int? get targetStep => _targetStep;
   int? get targetCol => _targetCol;
   int? get targetBankSlot => _targetBankSlot;
+  String? get assetErrorMessage => _assetErrorMessage;
   
   // Initialize the sample browser with manifest data
   Future<void> initialize() async {
     _isLoading = true;
+    _assetErrorMessage = null;
     notifyListeners();
     
     try {
-      // Load samples_manifest.json
-      final manifestString = await rootBundle.loadString('samples_manifest.json');
-      final fullManifest = json.decode(manifestString);
-      
-      // Extract the samples section
-      if (fullManifest is Map && fullManifest.containsKey('samples')) {
-        _manifestData = fullManifest['samples'];
+      final sampleResolver = SampleAssetResolver.instance;
+      final samplesMap = await sampleResolver.loadSamplesManifest();
+      if (samplesMap.isNotEmpty) {
+        _manifestData = samplesMap;
         _refreshCurrentItems();
         Log.d('📁 Sample browser initialized with ${_manifestData?.keys.length ?? 0} samples');
       } else {
         Log.d('❌ Invalid manifest structure: no samples key found');
         _manifestData = {};
+        _assetErrorMessage ??= 'Built-in sample manifest is empty.';
       }
     } catch (e) {
       Log.d('❌ Failed to load samples manifest: $e');
       _manifestData = {}; // Empty fallback
+      _assetErrorMessage = 'Failed to load built-in samples.';
     }
     
     _isLoading = false;
@@ -243,8 +266,9 @@ class SampleBrowserState extends ChangeNotifier {
       }
     }
     
-    // Add folders first (sorted)
-    final sortedFolders = folders.toList()..sort();
+    // Add folders first (built-in order, then others alphabetically)
+    final sortedFolders = folders.toList();
+    _sortSampleBankFolders(sortedFolders);
     for (final folder in sortedFolders) {
       _currentItems.add(SampleItem(
         name: folder,

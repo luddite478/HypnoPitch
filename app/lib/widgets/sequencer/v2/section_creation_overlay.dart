@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/app_colors.dart';
+import '../../../state/app_state.dart';
 import '../../../state/sequencer/table.dart';
 
 class SectionCreationOverlay extends StatelessWidget {
@@ -9,8 +9,8 @@ class SectionCreationOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TableState>(
-      builder: (context, tableState, child) {
+    return Consumer2<TableState, AppState>(
+      builder: (context, tableState, appState, child) {
         return Container(
           decoration: BoxDecoration(
             color: AppColors.sequencerSurfaceBase,
@@ -42,6 +42,7 @@ class SectionCreationOverlay extends StatelessWidget {
               children: [
                 _buildPrimaryButton(
                   context,
+                  tutorialKey: appState.sectionCreatePrimaryButtonTutorialKey,
                   text: 'Create new section',
                   onPressed: () => tableState.appendSection(),
                 ),
@@ -80,10 +81,11 @@ class SectionCreationOverlay extends StatelessWidget {
 
   Widget _buildPrimaryButton(
     BuildContext context, {
+    GlobalKey? tutorialKey,
     required String text,
     required VoidCallback onPressed,
   }) {
-    return GestureDetector(
+    Widget child = GestureDetector(
       onTap: onPressed,
       child: Container(
         width: double.infinity,
@@ -106,6 +108,10 @@ class SectionCreationOverlay extends StatelessWidget {
         ),
       ),
     );
+    if (tutorialKey != null) {
+      child = KeyedSubtree(key: tutorialKey, child: child);
+    }
+    return child;
   }
 
   Widget _buildCopyFromButton(

@@ -342,11 +342,11 @@ class RecordingWidget extends StatelessWidget {
         );
         return;
       }
-      final appName = dotenv.env['APP_NAME']!.toUpperCase();
+      final appName = dotenv.env['APP_NAME']!;
       await Share.shareXFiles(
         [XFile(mp3)],
         text: 'Check out my track created with $appName!',
-        subject: '$appName Track',
+        subject: '$appName track',
       );
     } catch (e) {
       debugPrint('Failed to share recording: $e');

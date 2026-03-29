@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../state/sequencer/playback.dart';
 import '../../../state/sequencer/table.dart';
@@ -8,9 +7,6 @@ import '../../../utils/app_colors.dart';
 
 class SectionManagementWidget extends StatelessWidget {
   const SectionManagementWidget({super.key});
-
-  static const Color _filmBase = Color(0xFF1E1E1C);
-  static const Color _filmFrameAperture = Color(0xFF2A2A27);
 
   // Responsive sizing percentages
   static const double _paddingPercent = 0.025;
@@ -43,9 +39,10 @@ class SectionManagementWidget extends StatelessWidget {
             return Container(
               padding: EdgeInsets.all(padding),
               decoration: BoxDecoration(
-                color: AppColors.sequencerSurfaceBase,
+                color: AppColors.sequencerSurfaceRaised,
                 borderRadius: BorderRadius.circular(2),
-                border: Border.all(color: AppColors.sequencerBorder, width: 1),
+                border:
+                    Border.all(color: AppColors.sequencerBorder, width: 0.5),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.sequencerShadow,
@@ -53,7 +50,7 @@ class SectionManagementWidget extends StatelessWidget {
                     offset: const Offset(0, 2),
                   ),
                   BoxShadow(
-                    color: AppColors.sequencerSurfaceRaised,
+                    color: AppColors.sequencerSurfaceBase,
                     blurRadius: 1,
                     offset: const Offset(0, -1),
                   ),
@@ -91,9 +88,9 @@ class SectionManagementWidget extends StatelessWidget {
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: AppColors.sequencerSurfaceRaised,
+        color: AppColors.sequencerSurfaceBase,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.sequencerBorder, width: 1),
+        border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
       ),
       child: LayoutBuilder(
         builder: (context, tapeConstraints) {
@@ -196,8 +193,8 @@ class SectionManagementWidget extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final apertureColor = isUiSelected
-        ? AppColors.sequencerLightText.withOpacity(0.92)
-        : _filmFrameAperture;
+        ? AppColors.sequencerSurfaceRaised
+        : AppColors.sequencerCellEmpty;
     final numberColor = isPlaying
         ? AppColors.sequencerAccent
         : (isUiSelected ? AppColors.sequencerText : AppColors.sequencerLightText);
@@ -209,15 +206,15 @@ class SectionManagementWidget extends StatelessWidget {
         height: height,
         margin: const EdgeInsets.symmetric(horizontal: 1),
         decoration: BoxDecoration(
-          color: _filmBase,
+          color: AppColors.sequencerSurfaceBase,
           borderRadius: BorderRadius.circular(5),
           border: Border.all(
-            color: AppColors.sequencerBorder.withOpacity(0.55),
+            color: AppColors.sequencerBorder.withOpacity(0.7),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: AppColors.sequencerShadow.withOpacity(0.65),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -240,7 +237,7 @@ class SectionManagementWidget extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.35),
+                color: AppColors.sequencerShadow.withOpacity(0.45),
                 blurRadius: 0,
                 offset: const Offset(0, 1),
               ),
@@ -280,10 +277,10 @@ class SectionManagementWidget extends StatelessWidget {
         height: height,
         margin: const EdgeInsets.symmetric(horizontal: 1),
         decoration: BoxDecoration(
-          color: _filmBase,
+          color: AppColors.sequencerSurfaceBase,
           borderRadius: BorderRadius.circular(5),
           border: Border.all(
-            color: AppColors.sequencerBorder.withOpacity(0.45),
+            color: AppColors.sequencerBorder.withOpacity(0.65),
             width: 1,
           ),
         ),

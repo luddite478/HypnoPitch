@@ -390,10 +390,10 @@ unawaited(_uploadRecordingInBackground(messageId, mp3Path));
 All cache services are ready to use - just import and call:
 
 ```dart
-import 'package:rehorsed/services/cache/threads_cache_service.dart';
-import 'package:rehorsed/services/cache/messages_cache_service.dart';
-import 'package:rehorsed/services/cache/snapshots_cache_service.dart';
-import 'package:rehorsed/services/cache/offline_sync_service.dart';
+import 'package:hypnopitch/services/cache/threads_cache_service.dart';
+import 'package:hypnopitch/services/cache/messages_cache_service.dart';
+import 'package:hypnopitch/services/cache/snapshots_cache_service.dart';
+import 'package:hypnopitch/services/cache/offline_sync_service.dart';
 ```
 
 ### Example: Thread View

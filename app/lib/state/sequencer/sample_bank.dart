@@ -1,15 +1,13 @@
 import '../../utils/log.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:math' as math;
-import 'package:path_provider/path_provider.dart';
 import '../../ffi/sample_bank_bindings.dart';
+import '../../services/sample_asset_resolver.dart';
 import '../../utils/app_colors.dart';
 import 'ui_selection.dart';
 import 'sync_profiling_helpers.dart';
@@ -38,6 +36,7 @@ class SampleBankState extends ChangeNotifier {
       24; // Keep Z(25) for preview/recording paths
 
   final SampleBankBindings _sample_bank_ffi;
+  final SampleAssetResolver _sampleAssets = SampleAssetResolver.instance;
 
   // Auto-save callback (set by ThreadsState)
   void Function()? _onStateChanged;
@@ -227,24 +226,13 @@ class SampleBankState extends ChangeNotifier {
   /// Load sample by manifest id using samples_manifest.json (internal)
   Future<bool> _loadSampleByManifestId(int slot, String sampleId) async {
     try {
-      final manifestString =
-          await rootBundle.loadString('samples_manifest.json');
-      final fullManifest = json.decode(manifestString);
-      if (fullManifest is Map && fullManifest.containsKey('samples')) {
-        final samplesMap = fullManifest['samples'] as Map<String, dynamic>;
-        final entry = samplesMap[sampleId];
-        if (entry is Map && entry['path'] is String) {
-          final assetPath = entry['path'] as String;
-          return await _loadSampleWithId(slot, assetPath, sampleId);
-        } else {
-          Log.d(
-              '❌ [SAMPLE_BANK_STATE] Manifest id not found or invalid: $sampleId');
-          return false;
-        }
-      } else {
-        Log.d('❌ [SAMPLE_BANK_STATE] Invalid manifest structure');
+      final assetPath = await _sampleAssets.resolveAssetPathFromSampleId(sampleId);
+      if (assetPath == null || assetPath.isEmpty) {
+        Log.d('❌ [SAMPLE_BANK_STATE] Manifest id not found: $sampleId');
         return false;
       }
+
+      return await _loadSampleWithId(slot, assetPath, sampleId);
     } catch (e) {
       Log.d('❌ [SAMPLE_BANK_STATE] Failed to load manifest: $e');
       return false;
@@ -254,21 +242,10 @@ class SampleBankState extends ChangeNotifier {
   /// Copy Flutter asset to temporary file for native access
   Future<String?> _copyAssetToTempFile(String assetPath) async {
     try {
-      // Load asset as bytes
-      final ByteData data = await rootBundle.load(assetPath);
-      final Uint8List bytes = data.buffer.asUint8List();
-
-      // Get temporary directory
-      final Directory tempDir = await getTemporaryDirectory();
-
-      // Create unique filename
-      final String fileName = assetPath.split('/').last;
-      final String tempPath = '${tempDir.path}/sample_$fileName';
-
-      // Write bytes to temp file
-      final File tempFile = File(tempPath);
-      await tempFile.writeAsBytes(bytes);
-
+      final String? tempPath = await _sampleAssets.copyAssetToTempFile(assetPath);
+      if (tempPath == null) {
+        return null;
+      }
       Log.d('📁 [SAMPLE_BANK_STATE] Copied asset to temp file: $tempPath');
       return tempPath;
     } catch (e) {
@@ -354,6 +331,15 @@ class SampleBankState extends ChangeNotifier {
     }
 
     return null;
+  }
+
+  /// True if at least one dedicated user slot (A–Y, indices `0.._lastDedicatedUserSlot`)
+  /// is free for [loadSampleForCell].
+  bool get hasFreeDedicatedSlot {
+    for (int slot = 0; slot <= _lastDedicatedUserSlot; slot++) {
+      if (!isSlotLoaded(slot)) return true;
+    }
+    return false;
   }
 
   SampleData getSampleData(int slot) {

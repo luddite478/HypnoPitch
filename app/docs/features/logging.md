@@ -263,7 +263,7 @@ LOG_LEVEL=info
 Use the `Log` utility class from `lib/utils/log.dart`:
 
 ```dart
-import 'package:rehorsed/utils/log.dart';
+import 'package:hypnopitch/utils/log.dart';
 
 // Debug logs (only shown at debug level)
 Log.d('Detailed debug information', 'TAG');

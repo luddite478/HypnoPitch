@@ -1,7 +1,7 @@
-description: A new Flutter project.
+description: HypnoPitch — pattern sequencer and audio app.
 environment:
   sdk: '>=3.4.4 <4.0.0'
-version: 1.0.0+2
+version: 1.0.1+6
 flutter:
   assets:
     - samples/acoustic/
@@ -45,7 +45,7 @@ dependencies:
   wheel_chooser: ^1.1.2
   uuid: ^4.5.1
   permission_handler: ^11.3.1
-name: tonecascade
+name: hypnopitch
 publish_to: none
 dev_dependencies:
   flutter_test:
@@ -56,5 +56,5 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "icons/white_mane1.jpg"
+  image_path: "icons/white_mane1_cut_2.png"
   remove_alpha_ios: true

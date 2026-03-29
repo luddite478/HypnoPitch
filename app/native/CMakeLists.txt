@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(rehorsed_native LANGUAGES C CXX)
+project(hypnopitch_native LANGUAGES C CXX)
 
 # Ensure modern C++ for header-only libraries like nlohmann/json
 set(CMAKE_CXX_STANDARD 11)

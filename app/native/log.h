@@ -1,5 +1,5 @@
-#ifndef REHORSED_LOG_H
-#define REHORSED_LOG_H
+#ifndef HYPNOPITCH_LOG_H
+#define HYPNOPITCH_LOG_H
 
 #ifdef prnt
 #undef prnt

@@ -255,7 +255,7 @@ class TutorialService extends ChangeNotifier {
   final GlobalKey jumpValueTwoDisplayTutorialKey = GlobalKey();
   /// Cell to copy from: prefers 0:0 if it has a sample, else first occupied cell.
   final GlobalKey jumpPasteSourceCellTutorialKey = GlobalKey();
-  /// Paste destination for first paste after copy (row 3, col 0).
+  /// Paste destination for first paste after copy (row 2, col 0; third line, first column).
   final GlobalKey jumpPasteTargetCellTutorialKey = GlobalKey();
   final GlobalKey playButtonTutorialKey = GlobalKey();
   final GlobalKey recordButtonTutorialKey = GlobalKey();
@@ -267,6 +267,8 @@ class TutorialService extends ChangeNotifier {
   final GlobalKey layersRowTutorialKey = GlobalKey();
   final GlobalKey selectModeButtonTutorialKey = GlobalKey();
   final GlobalKey sampleGridTutorialKey = GlobalKey();
+  /// "Create new section" primary action on [SectionCreationOverlay] (sections swipe step).
+  final GlobalKey sectionCreatePrimaryButtonTutorialKey = GlobalKey();
   final GlobalKey sectionMenuButtonTutorialKey = GlobalKey();
   final GlobalKey songModeButtonTutorialKey = GlobalKey();
   final GlobalKey sectionSettingsButtonTutorialKey = GlobalKey();
@@ -306,7 +308,7 @@ class TutorialService extends ChangeNotifier {
       _jumpValueSetToTwo &&
       _jumpValueCopyDone &&
       _jumpValuePasteCount < 3;
-  /// First paste after copy: highlight cell 3:0 and Paste.
+  /// First paste after copy: highlight cell row 2 col 0 and Paste.
   bool get showJumpPasteTargetCellPointer =>
       _activeTutorialStep == TutorialStep.sequencerJumpPasteHint &&
       _jumpValueSetToTwo &&
@@ -972,7 +974,7 @@ class TutorialService extends ChangeNotifier {
     _setActiveStep(TutorialStep.sequencerSectionLoopsHint);
   }
 
-  void verifyAnySectionLoopSetToFiveStep() {
+  void verifyAnySectionLoopSetToTwoStep() {
     if (!isEnabled) return;
     if (_activeTutorialStep != TutorialStep.sequencerSectionLoopsHint) return;
     _setActiveStep(TutorialStep.sequencerSongRecordingHint);

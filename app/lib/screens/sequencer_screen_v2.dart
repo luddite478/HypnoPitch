@@ -198,8 +198,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         break;
       case TutorialStep.sequencerSectionLoopsHint:
         final loops = _playbackState.getSectionsLoopsNum();
-        if (loops.any((value) => value == 5)) {
-          appState.verifyAnySectionLoopSetToFiveStep();
+        if (loops.any((value) => value == 2)) {
+          appState.verifyAnySectionLoopSetToTwoStep();
         }
         break;
       default:
@@ -651,7 +651,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                     ? 'These are section layers.\n\nAll of them play simultaneously. Arrange samples across them however you want.\n\nNow select layer A tab.'
                     : (!appState.isLayersMuteDone
                         ? 'Now press Mute layer button.'
-                        : 'Now unmute the layer by pressing Mute again.'),
+                        : 'Unmute the layer by pressing Mute again.'),
                 centerInRectKey: appState.sampleGridTutorialKey,
                 drawLayerPointers: !appState.isLayersTabDone,
                 layerPointersCount: _tableState.totalLayers,
@@ -721,7 +721,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                 anchorKey: appState.sectionSettingsButtonTutorialKey,
                 label: appState.tutorialStepLabel,
                 text:
-                    'Press sections settings button. You can control number of loops here for song mode.\nSet loops count to 5 for any section.',
+                    'Press sections settings button. You can control number of loops here for song mode.\nSet loops count to 2 for any section.',
               ),
             if (tutorialStep == TutorialStep.sequencerSongRecordingHint)
               _SequencerTutorialAnchorOverlay(
@@ -1659,6 +1659,9 @@ class _SequencerTutorialAnchorOverlayState
     with SingleTickerProviderStateMixin {
   int _layoutTick = 0;
   static const int _maxLayoutWaits = 48;
+  /// Largest [sampleGridTutorialKey] rect seen while "Sections swipe" is shown;
+  /// keeps the text card fixed when the grid is temporarily smaller (e.g. creation sheet).
+  Rect? _lockedSwipeTutorialTextRect;
   late final AnimationController _pulseController;
   late final Animation<double> _pulse;
 
@@ -1689,6 +1692,9 @@ class _SequencerTutorialAnchorOverlayState
         oldWidget.secondaryAnchorKey != widget.secondaryAnchorKey) {
       _layoutTick = 0;
     }
+    if (oldWidget.drawCurvedSwipeHint && !widget.drawCurvedSwipeHint) {
+      _lockedSwipeTutorialTextRect = null;
+    }
   }
 
   @override
@@ -1701,6 +1707,9 @@ class _SequencerTutorialAnchorOverlayState
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final sectionsCount = context.select((TableState t) => t.sectionsCount);
+    final sectionCreationOpen =
+        context.select((SectionSettingsState s) => s.isSectionCreationOpen);
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1710,15 +1719,27 @@ class _SequencerTutorialAnchorOverlayState
           final secondaryAnchorRect = widget.secondaryAnchorKey == null
               ? null
               : _tutorialResolveAnchorRect(widget.secondaryAnchorKey!, viewport);
-          final centerRect = _tutorialResolveAnchorRect(
-                widget.centerInRectKey ?? appState.sampleGridTutorialKey,
-                viewport,
-              ) ??
+          final rawCenterRect = _tutorialResolveAnchorRect(
+            widget.centerInRectKey ?? appState.sampleGridTutorialKey,
+            viewport,
+          );
+          final centerRect = rawCenterRect ??
               Rect.fromCenter(
                 center: Offset(viewport.width / 2, viewport.height / 2),
                 width: viewport.width,
                 height: viewport.height,
               );
+          if (widget.drawCurvedSwipeHint && rawCenterRect != null) {
+            final area = rawCenterRect.width * rawCenterRect.height;
+            final prev = _lockedSwipeTutorialTextRect;
+            if (prev == null || area > prev.width * prev.height) {
+              _lockedSwipeTutorialTextRect = rawCenterRect;
+            }
+          }
+          final textLayoutRect = widget.drawCurvedSwipeHint &&
+                  _lockedSwipeTutorialTextRect != null
+              ? _lockedSwipeTutorialTextRect!
+              : centerRect;
           final anchorsReady = anchorRect != null &&
               (widget.secondaryAnchorKey == null || secondaryAnchorRect != null);
           if (!anchorsReady) {
@@ -1763,7 +1784,7 @@ class _SequencerTutorialAnchorOverlayState
           double desiredTop;
           switch (position) {
             case _TutorialTextPosition.top:
-              desiredLeft = centerRect.center.dx - textWidth / 2;
+              desiredLeft = textLayoutRect.center.dx - textWidth / 2;
               desiredTop = absoluteMinTop + 6;
               break;
             case _TutorialTextPosition.right:
@@ -1771,17 +1792,18 @@ class _SequencerTutorialAnchorOverlayState
               desiredTop = resolvedAnchorRect.center.dy - (cardHeightEstimate / 2);
               break;
             case _TutorialTextPosition.center:
-              desiredLeft = centerRect.center.dx - textWidth / 2;
-              desiredTop = centerRect.center.dy - (cardHeightEstimate / 2);
+              desiredLeft = textLayoutRect.center.dx - textWidth / 2;
+              desiredTop =
+                  textLayoutRect.center.dy - (cardHeightEstimate / 2);
               break;
           }
 
           final textLeft = (() {
             if (position == _TutorialTextPosition.center) {
-              final minAllowedLeft = max(minL, centerRect.left + 8);
+              final minAllowedLeft = max(minL, textLayoutRect.left + 8);
               final maxAllowedLeft = max(
                 minAllowedLeft,
-                min(maxL, centerRect.right - textWidth - 8),
+                min(maxL, textLayoutRect.right - textWidth - 8),
               );
               return desiredLeft.clamp(minAllowedLeft, maxAllowedLeft).toDouble();
             }
@@ -1790,10 +1812,10 @@ class _SequencerTutorialAnchorOverlayState
 
           final textTop = (() {
             if (position == _TutorialTextPosition.center) {
-              final minTop = max(absoluteMinTop, centerRect.top + 8);
+              final minTop = max(absoluteMinTop, textLayoutRect.top + 8);
               final maxTop = min(
                 absoluteMaxTop,
-                centerRect.bottom - cardHeightEstimate - 8,
+                textLayoutRect.bottom - cardHeightEstimate - 8,
               );
               return desiredTop.clamp(minTop, max(minTop, maxTop)).toDouble();
             }
@@ -1829,6 +1851,18 @@ class _SequencerTutorialAnchorOverlayState
             if (resolvedSecondaryAnchorRect != null &&
                 _shouldPulseTargetRect(resolvedSecondaryAnchorRect, viewport))
               resolvedSecondaryAnchorRect,
+          ];
+          final sectionCreateBtnRect = _tutorialResolveAnchorRect(
+            appState.sectionCreatePrimaryButtonTutorialKey,
+            viewport,
+          );
+          final swipeSectionCreatePulseRects = <Rect>[
+            if (widget.drawCurvedSwipeHint &&
+                sectionCreationOpen &&
+                sectionCreateBtnRect != null &&
+                _shouldPulseSectionCreateTutorialButton(
+                    sectionCreateBtnRect, viewport))
+              sectionCreateBtnRect,
           ];
 
           return Stack(
@@ -1884,15 +1918,35 @@ class _SequencerTutorialAnchorOverlayState
                     },
                   ),
                 ),
-              if (widget.drawCurvedSwipeHint && anchorsReady)
+              if (widget.drawCurvedSwipeHint)
                 IgnorePointer(
                   child: CustomPaint(
                     size: viewport,
                     painter: _CurvedSwipeHintPainter(
                       targetRect: swipeHintRect,
-                      color: AppColors.tutorialArrowColor,
+                      color: anchorsReady && sectionsCount < 2
+                          ? AppColors.tutorialArrowColor
+                          : Colors.transparent,
                       leftToRight: true,
                     ),
+                  ),
+                ),
+              if (widget.drawCurvedSwipeHint &&
+                  anchorsReady &&
+                  swipeSectionCreatePulseRects.isNotEmpty)
+                IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: viewport,
+                        painter: _TutorialTargetPulsePainter(
+                          targetRects: swipeSectionCreatePulseRects,
+                          color: AppColors.tutorialPulseColor,
+                          intensity: _pulse.value,
+                        ),
+                      );
+                    },
                   ),
                 ),
               if (widget.drawLayerPointers && anchorsReady)
@@ -2039,6 +2093,12 @@ class _SequencerTutorialAnchorOverlayState
     final maxH = viewport.height * 0.28;
     return rect.width <= maxW && rect.height <= maxH;
   }
+}
+
+/// Full-width primary CTA on section creation page; allow pulse despite wide rect.
+bool _shouldPulseSectionCreateTutorialButton(Rect rect, Size viewport) {
+  if (rect.width < 8 || rect.height < 8) return false;
+  return rect.height <= viewport.height * 0.35;
 }
 
 enum _TutorialTextPosition {

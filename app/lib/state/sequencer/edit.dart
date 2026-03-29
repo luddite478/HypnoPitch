@@ -151,6 +151,28 @@ class EditState extends ChangeNotifier {
     debugPrint('✂️ [EDIT] Selected single cell: $cellIndex');
   }
 
+  /// In SELECT mode: tap adds the cell; tap again on a selected cell removes it.
+  void toggleCellInSelectionMode(int cellIndex) {
+    if (!_isInSelectionMode) return;
+
+    if (!_selectedCells.contains(cellIndex)) {
+      final next = Set<int>.from(_selectedCells)..add(cellIndex);
+      _applySelection(next, anchor: cellIndex);
+      debugPrint(
+          '✂️ [EDIT] Added cell $cellIndex → ${_selectedCells.length} cells');
+      return;
+    }
+
+    final next = Set<int>.from(_selectedCells)..remove(cellIndex);
+    if (next.isEmpty) {
+      _clearSelectionInternal();
+    } else {
+      _applySelection(next, anchor: next.first);
+    }
+    debugPrint(
+        '✂️ [EDIT] Removed cell $cellIndex → ${_selectedCells.length} cells');
+  }
+
   // Begin a new drag-based rectangular selection starting at this cell
   void beginDragSelectionAt(int cellIndex) {
     _applySelection({cellIndex}, anchor: cellIndex);

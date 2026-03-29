@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../utils/log.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/app_colors.dart';
 import '../../../state/sequencer/sample_browser.dart';
 import '../../../state/sequencer/sample_bank.dart';
@@ -27,13 +26,20 @@ Future<void> _selectSampleForCurrentTarget(
   }
 
   int? resolvedSlot;
+  var showSampleLimitDialog = false;
 
   // Cell-targeted selection should not overwrite an existing bank slot.
   // Resolve by sample id into a dedicated slot (or reuse same-id slot).
   if (targetStep != null) {
     resolvedSlot = await sampleBankState.loadSampleForCell(sampleId);
     if (resolvedSlot == null) {
-      Log.d('❌ No dedicated sample slots available for sample id=$sampleId');
+      if (!sampleBankState.hasFreeDedicatedSlot) {
+        showSampleLimitDialog = true;
+        Log.d(
+            '❌ Dedicated sample bank full (A–Y), cannot load sample id=$sampleId');
+      } else {
+        Log.d('❌ Failed to load sample id=$sampleId (load error?)');
+      }
     } else {
       Log.d(
         'Loading sample id=$sampleId into dedicated bank slot $resolvedSlot (grid col $targetCol)',
@@ -63,6 +69,38 @@ Future<void> _selectSampleForCurrentTarget(
 
   browserState.hide();
   if (context.mounted) Navigator.of(context).pop();
+
+  if (showSampleLimitDialog && context.mounted) {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1f2937),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text(
+            'Sample limit reached',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'You can load at most 25 different samples (A–Y) in this project. '
+            'Remove a sample from the grid or unload one from the bank to add a new sound.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Colors.cyanAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class SampleSelectionWidget extends StatelessWidget {
@@ -179,6 +217,8 @@ class SampleSelectionWidget extends StatelessWidget {
     }
 
     if (browserState.currentItems.isEmpty) {
+      final message =
+          browserState.assetErrorMessage ?? 'No samples found';
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -186,12 +226,13 @@ class SampleSelectionWidget extends StatelessWidget {
             Icon(Icons.folder_open, color: AppColors.sequencerLightText, size: 24),
             const SizedBox(height: 8),
             Text(
-              'No samples found',
+              message,
               style: TextStyle(
                 color: AppColors.sequencerLightText,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

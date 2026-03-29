@@ -84,6 +84,8 @@ class AppState extends ChangeNotifier {
   GlobalKey get selectModeButtonTutorialKey =>
       _tutorialService.selectModeButtonTutorialKey;
   GlobalKey get sampleGridTutorialKey => _tutorialService.sampleGridTutorialKey;
+  GlobalKey get sectionCreatePrimaryButtonTutorialKey =>
+      _tutorialService.sectionCreatePrimaryButtonTutorialKey;
   GlobalKey get sectionMenuButtonTutorialKey =>
       _tutorialService.sectionMenuButtonTutorialKey;
   GlobalKey get songModeButtonTutorialKey =>
@@ -189,8 +191,8 @@ class AppState extends ChangeNotifier {
       _tutorialService.completeSectionMenuTutorialStep();
   void verifySongModeEnabledStep() =>
       _tutorialService.verifySongModeEnabledStep();
-  void verifyAnySectionLoopSetToFiveStep() =>
-      _tutorialService.verifyAnySectionLoopSetToFiveStep();
+  void verifyAnySectionLoopSetToTwoStep() =>
+      _tutorialService.verifyAnySectionLoopSetToTwoStep();
   void markSongRecordingAction() => _tutorialService.markSongRecordingAction();
   void markSongRecordingPlayAction() =>
       _tutorialService.markSongRecordingPlayAction();

@@ -545,7 +545,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
         jumpPasteSourceFlatIndex != null &&
         index == jumpPasteSourceFlatIndex;
     final bool isJumpPasteTargetCell = widget.sectionIndexOverride == null &&
-        row == 3 &&
+        row == 2 &&
         col == 0 &&
         tutorialStep == TutorialStep.sequencerJumpPasteHint &&
         appState.showJumpPasteTargetCellPointer;
@@ -644,9 +644,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                 context.read<UiSelectionState>().selectCells();
                 final edit = Provider.of<EditState>(context, listen: false);
                 if (edit.isInSelectionMode) {
-                  // Keep SELECT mode active; user exits it via SELECT button.
-                  // A tap narrows current selection to the tapped cell.
-                  edit.selectSingleCell(index);
+                  edit.toggleCellInSelectionMode(index);
                 } else {
                   edit.selectSingleCell(index);
                 }

@@ -18,8 +18,8 @@ This folder contains the complete offline-first caching system:
 ## 🚀 Quick Start
 
 ```dart
-import 'package:rehorsed/services/cache/threads_cache_service.dart';
-import 'package:rehorsed/services/cache/messages_cache_service.dart';
+import 'package:hypnopitch/services/cache/threads_cache_service.dart';
+import 'package:hypnopitch/services/cache/messages_cache_service.dart';
 
 // Load threads (instant from cache, syncs in background)
 final threads = await ThreadsCacheService.loadThreads(userId: userId);

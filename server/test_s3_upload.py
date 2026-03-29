@@ -49,7 +49,7 @@ def test_s3_upload():
         print()
         
         # Create test file content
-        test_content = b"This is a test audio file upload from Rehorsed app"
+        test_content = b"This is a test audio file upload from HypnoPitch app"
         file_key = f"{env}/renders/test_upload_123.mp3"
         
         print(f"📤 Uploading test file: {file_key}")
