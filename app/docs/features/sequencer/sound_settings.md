@@ -41,9 +41,7 @@ UI sliders for cells display these effective values for convenience. Changing a 
 - Native exposes processing status via `is_processing` fields:
   - `Sample.is_processing` in `sample_bank.h` (actively used by UI)
   - `Cell.is_processing` in `table.h` (present for parity; preprocessing is currently keyed by sample)
-- The pitch module toggles `Sample.is_processing`:
-  - Set to `1` when async SoundTouch preprocessing starts
-  - Set to `0` when preprocessing finishes or when a cache hit is detected (no job started)
+- The pitch module toggles `Sample.is_processing` when asynchronous pitch preparation runs (e.g. cache warming); clear when processing finishes or on cache hit.
 - Flutter binds the overlay spinner directly to the native processing notifier (no mirroring in Overlay state):
   - Spinner shows while `is_processing == true`
   - The overlay itself is visible only while the finger is pressed on a slider; spinner can appear/disappear under it
@@ -52,16 +50,14 @@ UI sliders for cells display these effective values for convenience. Changing a 
 
 ### Preprocessing / caching (pitch)
 
-- Default pitch method is SoundTouch preprocessing (high quality, cached in RAM).
-- **Sample-level pitch change** triggers asynchronous preprocessing for that sample and pitch, warming the cache so subsequent triggers use the preprocessed audio immediately.
-- **Cell-level pitch change** triggers preprocessing only when:
-  - method is preprocessing, and
-  - the cell pitch is explicit (not sentinel) and meaningfully different from `1.0`.
-- Playback resolves sentinels to sample defaults; if no cache exists yet, playback starts unpitched and uses the cache on subsequent triggers.
+- Pitch is handled in real time via the SunVox pipeline; any “preprocessing” or cache flags refer to native helpers that warm or reuse prepared buffers as implemented in the current sample bank / wrapper, not a separate offline DSP library.
+- **Sample-level pitch change** may trigger asynchronous work to warm caches where the native layer supports it.
+- **Cell-level pitch change** may trigger similar work when the cell pitch is explicit (not sentinel) and meaningfully different from `1.0`.
+- Playback resolves sentinels to sample defaults.
 
 Implementation notes:
-- Processing flags are centralized in the pitch module; async worker calls `sample_bank_set_processing(slot, 1/0)`.
-- On cache hit, the pitch module ensures `is_processing` is cleared immediately.
+- Processing flags are centralized where the native pitch/sample path sets them; async completion clears `is_processing`.
+- On cache hit, `is_processing` should be cleared immediately.
 
 ### Lifecycle
 

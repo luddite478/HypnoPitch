@@ -111,18 +111,7 @@ class EditState extends ChangeNotifier {
   void toggleSelectionMode() {
     _isInSelectionMode = !_isInSelectionMode;
     if (!_isInSelectionMode && _selectedCells.isNotEmpty) {
-      final tableCols = _selectionTableCols > 0
-          ? _selectionTableCols
-          : _tableState.getVisibleCols().length;
-      var minRow = _selectedCells.first ~/ tableCols;
-      var minCol = _selectedCells.first % tableCols;
-      for (final i in _selectedCells) {
-        final r = i ~/ tableCols;
-        final c = i % tableCols;
-        if (r < minRow) minRow = r;
-        if (c < minCol) minCol = c;
-      }
-      selectSingleCell(minRow * tableCols + minCol);
+      clearSelection();
     }
 
     isInSelectionModeNotifier.value = _isInSelectionMode;

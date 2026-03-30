@@ -75,6 +75,7 @@ Current migrated multi-cell actions in `EditState`:
 
 - `deleteCells()` runs in one batch transaction.
 - Multi-cell branch of `pasteCells()` runs in one batch transaction.
+- Assigning a sample to multiple selected cells (cell sound settings / sample browser in SELECT mode) uses `TableState.runCellBatchEdit()` in `sample_selection_widget.dart` so one undo restores all cells.
 
 
 ### Undo/Redo apply flow

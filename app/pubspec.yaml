@@ -6,18 +6,21 @@ flutter:
   assets:
     - samples/acoustic/
     - samples/drums/
+    - samples/drums/electronic/
+    - samples/drums/electronic/hat/
+    - samples/drums/electronic/kick/
     - samples/drums/natural/
-    - samples/drums/natural/Kick/
-    - samples/drums/natural/Plates/
-    - samples/drums/natural/Plates/China/
-    - samples/drums/natural/Plates/Crash/
-    - samples/drums/natural/Plates/Hi Hat/
-    - samples/drums/natural/Plates/Ride Cymbal/
-    - samples/drums/natural/Plates/Splash/
-    - samples/drums/natural/Snare/
-    - samples/drums/natural/Toms/
+    - samples/drums/natural/kick/
+    - samples/drums/natural/plates/
+    - samples/drums/natural/plates/China/
+    - samples/drums/natural/plates/Crash/
+    - samples/drums/natural/plates/Hi Hat/
+    - samples/drums/natural/plates/Ride Cymbal/
+    - samples/drums/natural/plates/Splash/
+    - samples/drums/natural/snare/
+    - samples/drums/natural/toms/
     - samples/noise/
-    - samples/noise/click/
+    - samples/noise/clicks/
     - samples/noise/other/
     - samples/synth/
     - samples/synth/Bass/

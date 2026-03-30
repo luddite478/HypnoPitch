@@ -215,12 +215,11 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     if (isEmpty) {
       return Container(); // Empty cell
     } else {
-      final slotLetter = sampleBank.getSlotLetter(sampleSlot);
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            slotLetter,
+            '${sampleSlot + 1}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,

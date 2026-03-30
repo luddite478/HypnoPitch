@@ -58,7 +58,7 @@ class AppColors {
   static const Color menuCheckpointBackground = Color(0xFFF5F5F5); // Checkpoint cards
   static const Color menuCurrentUserCheckpoint = Color(0xFFEEEEEE); // Current user checkpoints
   
-  // Sample Bank Colors - Vibrant Diverse Palette (26 unique colors for slots A-Z)
+  // Sample Bank Colors - Vibrant Diverse Palette (26 unique colors for bank slots 0–25)
   // High color diversity with vibrant saturation across full spectrum
   static const List<Color> sampleBankPalette = [
     Color(0xFF8B3A28), // A - Burnt Sienna

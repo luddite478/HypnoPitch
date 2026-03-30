@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
 import '../../../state/sequencer/sample_bank.dart';
@@ -32,7 +31,8 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
             final baseButtonsWidth = panelWidth; // container has zero padding
             final preferredButtonWidth = baseButtonsWidth / 7.5; // baseline
             final buttonHeight = panelHeight * 0.8;
-            final letterSize = (buttonHeight * 0.35).clamp(10.0, double.infinity);
+            final slotLabelFontSize =
+                (buttonHeight * 0.35).clamp(10.0, double.infinity);
             const borderRadius = 2.0;
 
             final arrowWidth = preferredButtonWidth * 0.8;
@@ -47,8 +47,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
             final totalArrowMargins = leftArrowMarginLeft + leftArrowMarginRight + rightArrowMarginLeft + rightArrowMarginRight;
             final availableRowWidth = baseButtonsWidth - (arrowWidth * 2) - totalArrowMargins;
             final preferredTileWithMargins = preferredButtonWidth + 2 * sampleMarginH;
-            // Changed from 16 to 25: Show all user-accessible slots (A-Y)
-            // Slot 25 (Z) is reserved for preview and not shown in UI
+            // Show up to 25 user-accessible slots (indices 0–24; slot 25 is preview)
             int visibleCount = availableRowWidth > 0
                 ? (availableRowWidth / preferredTileWithMargins).floor().clamp(1, 25)
                 : 1;
@@ -56,7 +55,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
             final totalInterTileMargins = (visibleCount - 1) * (2 * sampleMarginH);
             final buttonWidth = ((availableRowWidth - totalInterTileMargins) / visibleCount).floorToDouble();
 
-            // Update max index to 25 (A-Y are user slots, Z is preview slot)
+            // Indices 0–24 are user slots; index 25 is preview-only
             final maxStart = (25 - visibleCount).clamp(0, 25);
             final startIndex = _startIndex.clamp(0, maxStart);
             final endIndex = (startIndex + visibleCount).clamp(0, 25);
@@ -129,7 +128,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
                               leftMargin: i == 0 ? 0.0 : sampleMarginH,
                               rightMargin: i == effectiveCount - 1 ? 0.0 : sampleMarginH,
                               borderRadius: borderRadius,
-                              letterSize: letterSize,
+                              slotLabelFontSize: slotLabelFontSize,
                             ),
                         ],
                       ),
@@ -166,7 +165,7 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
     required double leftMargin,
     required double rightMargin,
     required double borderRadius,
-    required double letterSize,
+    required double slotLabelFontSize,
   }) {
     final isActive = sampleBankState.activeSlot == bank;
     final isSelected = context.read<UiSelectionState>().isSampleBank && sampleBankState.activeSlot == bank;
@@ -193,11 +192,11 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              String.fromCharCode(65 + bank),
+              '${bank + 1}',
               style: TextStyle(
                 color: _getTextColor(isSelected, isActive, hasFile),
                 fontWeight: FontWeight.w600,
-                fontSize: letterSize,
+                fontSize: slotLabelFontSize,
                 letterSpacing: 0.5,
               ),
             ),
@@ -223,11 +222,11 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      String.fromCharCode(65 + bank),
+                      '${bank + 1}',
                       style: TextStyle(
                         color: AppColors.sequencerText,
                         fontWeight: FontWeight.w600,
-                        fontSize: letterSize,
+                        fontSize: slotLabelFontSize,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -253,11 +252,11 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      String.fromCharCode(65 + bank),
+                      '${bank + 1}',
                       style: TextStyle(
                         color: AppColors.sequencerLightText,
                         fontWeight: FontWeight.w600,
-                        fontSize: letterSize,
+                        fontSize: slotLabelFontSize,
                         letterSpacing: 0.5,
                       ),
                     ),

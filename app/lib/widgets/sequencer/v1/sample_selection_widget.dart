@@ -6,7 +6,9 @@ import '../../../state/sequencer/sample_browser.dart';
 import '../../../state/sequencer/sample_bank.dart';
 import '../../../state/sequencer/playback.dart';
 import '../../../state/sequencer/table.dart';
+import '../../../state/sequencer/edit.dart';
 import '../../../state/app_state.dart';
+import '../../pattern_recordings_overlay.dart';
 
 Future<void> _selectSampleForCurrentTarget(
   BuildContext context, {
@@ -41,11 +43,22 @@ Future<void> _selectSampleForCurrentTarget(
         Log.d('❌ Failed to load sample id=$sampleId (load error?)');
       }
     } else {
+      final slot = resolvedSlot;
       Log.d(
-        'Loading sample id=$sampleId into dedicated bank slot $resolvedSlot (grid col $targetCol)',
+        'Loading sample id=$sampleId into dedicated bank slot $slot (grid col $targetCol)',
       );
       final tableState = context.read<TableState>();
-      tableState.setCell(targetStep, targetCol, resolvedSlot, -1.0, -1.0);
+      final editState = context.read<EditState>();
+      final abs = editState.getSelectedAbsoluteCells();
+      if (editState.isInSelectionMode && abs.length > 1) {
+        tableState.runCellBatchEdit(() {
+          for (final c in abs) {
+            tableState.setCell(c.step, c.col, slot, -1.0, -1.0);
+          }
+        });
+      } else {
+        tableState.setCell(targetStep, targetCol, slot, -1.0, -1.0);
+      }
     }
   } else {
     // Explicit slot editing (sample bank context): keep existing behavior.
@@ -74,29 +87,83 @@ Future<void> _selectSampleForCurrentTarget(
     await showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1f2937),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: const Text(
-            'Sample limit reached',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'You can load at most 25 different samples (A–Y) in this project. '
-            'Remove a sample from the grid or unload one from the bank to add a new sound.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
-                'OK',
-                style: TextStyle(color: Colors.cyanAccent),
+        final screenSize = MediaQuery.sizeOf(dialogContext);
+        final dialogWidth =
+            screenSize.width * PatternRecordingsOverlay.kDialogWidthFactor;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Center(
+            child: Container(
+              width: dialogWidth,
+              decoration: BoxDecoration(
+                color: AppColors.sequencerSurfaceRaised,
+                borderRadius: BorderRadius.circular(1.0),
+                border: Border.all(
+                  color: AppColors.sequencerBorder,
+                  width: 0.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.sequencerBorder,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Sample limit reached',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.sequencerText,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close,
+                              color: AppColors.sequencerText),
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(),
+                          iconSize: 18,
+                          padding: const EdgeInsets.all(6),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                    child: Text(
+                      'You can load at most 25 different samples (A–Y) in '
+                      'this project. Remove a sample from the grid or unload '
+                      'one from the bank to add a new sound.',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.sequencerLightText,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         );
       },
     );

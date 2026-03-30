@@ -240,6 +240,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                             tableState,
                             sampleBankState,
                             editState,
+                            playbackState,
                             currentIndex,
                             allSimilarCells);
                       },
@@ -320,13 +321,49 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
         return 'Cell';
       case SettingsType.sample:
         if (currentIndex != null) {
-          final letter = sampleBankState.getSlotLetter(currentIndex);
-          return 'Sample $letter';
+          return 'Sample slot ${currentIndex + 1}';
         }
         return 'Sample';
       case SettingsType.master:
         return 'Master';
     }
+  }
+
+  /// Same effective pitch/volume semantics as the VOL slider live preview.
+  void _triggerCellLabelPreview({
+    required CellData cell,
+    required SampleBankState sampleBank,
+    required int step,
+    required int colAbs,
+    required PlaybackState playback,
+  }) {
+    if (!cell.isNotEmpty || cell.sampleSlot < 0) return;
+
+    double defaultVol = 1.0;
+    if (cell.sampleSlot >= 0) {
+      final sd = sampleBank.getSampleData(cell.sampleSlot);
+      defaultVol = (sd.volume >= 0.0 && sd.volume <= 1.0) ? sd.volume : 1.0;
+    }
+    final double vol = (cell.volume < 0.0) ? defaultVol : cell.volume;
+    if (vol <= 0.0) {
+      playback.stopPreview();
+      return;
+    }
+
+    double defaultPitch = 1.0;
+    if (cell.sampleSlot >= 0) {
+      final sd = sampleBank.getSampleData(cell.sampleSlot);
+      defaultPitch = (sd.pitch > 0.0) ? sd.pitch : 1.0;
+    }
+    final effPitch = (cell.pitch < 0.0) ? defaultPitch : cell.pitch;
+
+    playback.stopPreview();
+    playback.previewCell(
+      step: step,
+      colAbs: colAbs,
+      pitchRatio: effPitch,
+      volume01: vol,
+    );
   }
 
   Widget _buildContextLabelTile(
@@ -336,14 +373,18 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
       TableState tableState,
       SampleBankState sampleBankState,
       EditState editState,
+      PlaybackState playbackState,
       int? currentIndex,
       _AllSimilarCells? allSimilarCells) {
-    final tileWidth = availableWidth * 0.25;
+    // Cap width with floor (buffer vs float error); min keeps tiny layouts usable.
+    final contextLabelMaxWidth = math.max(
+      36.0,
+      (availableWidth * 0.179).floorToDouble(),
+    );
     final tileHeight = headerHeight * 0.7;
 
     if (widget.type == SettingsType.cell && currentIndex != null) {
       Color? sampleColor;
-      String labelText;
       final visibleCols = tableState.getVisibleCols().length;
       final row = currentIndex ~/ visibleCols;
       final col = currentIndex % visibleCols;
@@ -362,66 +403,94 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
           sampleColor = sampleBankState.uiBankColors[slot];
         }
       }
-      final sampleLetter = (cellData.isNotEmpty && cellData.sampleSlot >= 0)
-          ? String.fromCharCode(65 + cellData.sampleSlot)
-          : null;
-      labelText = sampleLetter != null
-          ? '${row + 1}-${col + 1} $sampleLetter'
-          : '${row + 1}-${col + 1}';
+      final String labelText = '${row + 1}-${col + 1}';
 
-      final squareSize = (tileHeight * 0.45).clamp(6.0, 14.0);
+      final squareSize = (tileHeight * 0.4).clamp(5.0, 12.0);
 
-      return Container(
-        width: tileWidth,
+      final Widget labelTile = ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: contextLabelMaxWidth),
+        child: Container(
+          height: tileHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 3.0),
+          decoration: BoxDecoration(
+            color: AppColors.sequencerSurfaceBase,
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: AppColors.sequencerBorder, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (sampleColor != null) ...[
+                Container(
+                  width: squareSize,
+                  height: squareSize,
+                  decoration: BoxDecoration(
+                    color: sampleColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 3),
+              ],
+              Expanded(
+                child: Text(
+                  labelText,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: AppColors.sequencerLightText,
+                    fontSize: labelFontSize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final bool canPreview =
+          cellData.isNotEmpty && cellData.sampleSlot >= 0;
+      if (canPreview) {
+        return Semantics(
+          button: true,
+          label: 'Play cell sound',
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _triggerCellLabelPreview(
+                  cell: cellData,
+                  sampleBank: sampleBankState,
+                  step: step,
+                  colAbs: colAbs,
+                  playback: playbackState,
+                ),
+            child: labelTile,
+          ),
+        );
+      }
+
+      return labelTile;
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: contextLabelMaxWidth),
+      child: Container(
         height: tileHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
         decoration: BoxDecoration(
           color: AppColors.sequencerSurfaceBase,
           borderRadius: BorderRadius.circular(2),
           border: Border.all(color: AppColors.sequencerBorder, width: 1),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (sampleColor != null) ...[
-              Container(
-                width: squareSize,
-                height: squareSize,
-                decoration: BoxDecoration(
-                  color: sampleColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              labelText,
-              style: TextStyle(
-                color: AppColors.sequencerLightText,
-                fontSize: labelFontSize,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      width: tileWidth,
-      height: tileHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-      decoration: BoxDecoration(
-        color: AppColors.sequencerSurfaceBase,
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: AppColors.sequencerBorder, width: 1),
-      ),
-      child: Center(
+        alignment: Alignment.center,
         child: Text(
           _getContextLabel(
               tableState, sampleBankState, editState, currentIndex),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
           style: TextStyle(
             color: AppColors.sequencerLightText,
             fontSize: labelFontSize,
@@ -439,6 +508,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
       TableState tableState,
       SampleBankState sampleBankState,
       EditState editState,
+      PlaybackState playbackState,
       int? currentIndex,
       _AllSimilarCells? allSimilarCells) {
     final appState = context.watch<AppState>();
@@ -462,6 +532,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                   tableState,
                   sampleBankState,
                   editState,
+                  playbackState,
                   currentIndex,
                   allSimilarCells),
             ),
@@ -833,8 +904,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                     final playback = context.read<PlaybackState>();
                     playback.stopPreview();
                   },
-                  contextLabel:
-                      'Sample ${sampleBankState.getSlotLetter(index)}',
+                  contextLabel: 'Sample slot ${index + 1}',
                 ),
               )
             : _buildCellVolumeSlider(
@@ -1057,7 +1127,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
       final slotName = sampleBankState.getSlotName(slot);
       label = (slotName != null && slotName.trim().isNotEmpty)
           ? _formatCellSampleLabel(slotName)
-          : 'SAMPLE ${sampleBankState.getSlotLetter(slot)}';
+          : 'SAMPLE ${slot + 1}';
     }
 
     return GestureDetector(
@@ -1077,8 +1147,20 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
           sampleBrowser.navigateToSamplePath(slotPath);
         }
 
-        if (allSimilarCells?.sampleSlot != null) {
-          sampleBrowser.showForSlot(allSimilarCells!.sampleSlot!);
+        if (allSimilarCells != null) {
+          final int bankSlot;
+          if (allSimilarCells.sampleSlot != null) {
+            bankSlot = allSimilarCells.sampleSlot!;
+          } else if (cellInfo != null && cellInfo.cellData.sampleSlot >= 0) {
+            bankSlot = cellInfo.cellData.sampleSlot;
+          } else {
+            bankSlot = sampleBank.activeSlot;
+          }
+          sampleBrowser.showForCell(
+            allSimilarCells.selectedStep,
+            allSimilarCells.selectedCol,
+            bankSlot: bankSlot,
+          );
         } else if (cellInfo != null) {
           final bankSlot = cellInfo.cellData.sampleSlot >= 0
               ? cellInfo.cellData.sampleSlot
@@ -1088,6 +1170,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
         } else {
           return;
         }
+        final editState = context.read<EditState>();
         showDialog(
           context: context,
           barrierDismissible: true,
@@ -1098,6 +1181,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
               ChangeNotifierProvider.value(value: sampleBank),
               ChangeNotifierProvider.value(value: playback),
               ChangeNotifierProvider.value(value: table),
+              ChangeNotifierProvider.value(value: editState),
             ],
             child: const _CellSampleBrowserDialog(),
           ),

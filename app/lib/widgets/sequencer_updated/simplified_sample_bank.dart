@@ -6,7 +6,7 @@ import '../../utils/app_colors.dart';
 
 /// Simplified sample bank widget for testing
 /// 
-/// Shows A-Z sample slots with basic load/unload functionality
+/// Shows numbered sample slots with basic load/unload functionality
 class SimplifiedSampleBank extends StatelessWidget {
   const SimplifiedSampleBank({super.key});
 
@@ -62,8 +62,7 @@ class SimplifiedSampleBank extends StatelessWidget {
   Widget _buildSampleSlot(BuildContext context, SampleBankState sampleBank, int slot) {
     final isLoaded = sampleBank.isSlotLoaded(slot);
     final isActive = sampleBank.activeSlot == slot;
-    final slotLetter = sampleBank.getSlotLetter(slot);
-    
+
     return GestureDetector(
       onTap: () {
         // Set active slot
@@ -100,7 +99,7 @@ class SimplifiedSampleBank extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                slotLetter,
+                '${slot + 1}',
                 style: TextStyle(
                   color: _getSlotTextColor(isLoaded, isActive),
                   fontWeight: FontWeight.bold,
@@ -161,7 +160,7 @@ class SimplifiedSampleBank extends StatelessWidget {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Loaded sample ${sampleBank.getSlotLetter(slot)}: ${result.files.single.name}'),
+              content: Text('Loaded sample ${slot + 1}: ${result.files.single.name}'),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -189,8 +188,8 @@ class SimplifiedSampleBank extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Unload Sample ${sampleBank.getSlotLetter(slot)}'),
-        content: Text('Remove "${sampleBank.getSlotName(slot)}" from slot ${sampleBank.getSlotLetter(slot)}?'),
+        title: Text('Unload Sample ${slot + 1}'),
+        content: Text('Remove "${sampleBank.getSlotName(slot)}" from slot ${slot + 1}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -202,7 +201,7 @@ class SimplifiedSampleBank extends StatelessWidget {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Unloaded sample ${sampleBank.getSlotLetter(slot)}'),
+                  content: Text('Unloaded sample ${slot + 1}'),
                   duration: const Duration(seconds: 2),
                 ),
               );

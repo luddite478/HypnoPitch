@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-This document outlines the real-time pitch shifting implementation using the SunVox library. This new system replaces the previous, file-based pre-processing approach that used the SoundTouch library.
+This document outlines the real-time pitch shifting implementation using the SunVox library. It replaces an older file-based offline preprocessing approach.
 
 The primary goal was to leverage SunVox's real-time capabilities to simplify the codebase, improve performance, and provide instant pitch changes for a better user experience.
 

@@ -4,31 +4,19 @@ This document describes the audio preview system used to play standalone samples
 
 ### Goals
 
-- Trigger quick, low-latency previews mixed into the global audio graph
-- Reuse the same pitch pipeline (resampler/SoundTouch preprocessing) as playback
-- Keep the audio callback lock-free and avoid allocations during mixing
+- Trigger quick, low-latency previews without disturbing sequencer playback state
+- Use the same SunVox-based preview path as the rest of the engine (pitch via `sunvox_preview_*`)
+- Keep the audio callback predictable; preview work is routed through the SunVox wrapper
 
 ### Architecture Overview
 
 - Native module: `app/native/preview.h` and `app/native/preview.mm`
-  - Maintains two lightweight preview contexts:
-    - Sample preview (by file path)
-    - Cell/sample-slot preview (by slot/step/col with resolved settings)
-  - Each context owns its own `ma_decoder` → `ma_pitch_data_source` → `ma_data_source_node`
-  - Nodes are attached directly to the global `ma_node_graph` endpoint
-  - No volume smoothing for preview; the node volume is set immediately
-
-- Node graph accessor:
-  - `playback_get_node_graph()` exported from `playback.mm`
-  - Preview module queries the currently active node graph and attaches preview nodes
-
-- Pitch integration:
-  - Uses `pitch_ds_create(...)` from `pitch.h`, so the preview benefits from the same preprocessing/cache logic and runtime method (miniaudio resampler / SoundTouch realtime / preprocessed)
+  - Preview is implemented on top of the SunVox engine (`sunvox_wrapper.h`): slot/cell previews call into `sunvox_preview_slot` / `sunvox_preview_cell` with pitch and volume.
+  - File-path preview (`preview_sample_path`) is a minimal stub for API compatibility (volume `0` stops preview; otherwise no separate file-path graph).
 
 - Lifecycle:
-  - `preview_init()` is called inside `playback_init()`
-  - `preview_cleanup()` is called inside `playback_cleanup()`
-  - Preview nodes are created/destroyed outside the audio callback
+  - `preview_init()` / `preview_cleanup()` are no-ops; sequencing hooks call them from playback init/teardown for API symmetry.
+  - Stopping preview delegates to `sunvox_preview_stop()`.
 
 ### Native API (C)
 

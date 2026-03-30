@@ -114,10 +114,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   }
 
   // CONFIGURABLE CONTENT SIZING - Control text and element sizes
-  static const double sampleLetterFontSize =
-      14.0; // Font size for sample letters (A, B, C, etc.)
   static const double effectsFontSize =
-      8.0; // Font size for effects text (V45, K-4, etc.)
+      12.0; // Font size for effects text (V45, K-4, etc.) — single-row layout
   static const double cellPaddingPercent =
       0.0; // Internal padding as % of cell size
 
@@ -128,7 +126,6 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   // static const double cellHeightPercent = 30.0;
   // static const double cellSpacingPercent = 15.0;
   // static const double rowSpacingPercent = 10.0;
-  // static const double sampleLetterFontSize = 12.0;
   // static const double effectsFontSize = 7.0;
   //
   // LARGE GRID (bigger cells, less spacing):
@@ -136,7 +133,6 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   // static const double cellHeightPercent = 60.0;
   // static const double cellSpacingPercent = 2.0;
   // static const double rowSpacingPercent = 2.0;
-  // static const double sampleLetterFontSize = 16.0;
   // static const double effectsFontSize = 9.0;
   //
   // RECTANGULAR CELLS (wider than tall):
@@ -1020,75 +1016,54 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
             // Only show table if there are non-default values
             final showEffectsTable = hasVolumeOverride || hasPitchOverride;
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Sample letter (always shown on the left)
-                Text(
-                  String.fromCharCode(65 + sampleSlot),
-                  style: TextStyle(
-                    color: (isActivePad || isDragHovering)
-                        ? AppColors.sequencerPageBackground
-                        : isCurrentStep
-                            ? Colors.white // Bright white text for current step
-                            : AppColors.sequencerText,
-                    fontWeight:
-                        isCurrentStep ? FontWeight.bold : FontWeight.w600,
-                    fontSize: sampleLetterFontSize,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+            if (!showEffectsTable) {
+              return const SizedBox.shrink();
+            }
 
-                // Effects table (only shown if there are non-default values, positioned on the right)
-                if (showEffectsTable) ...[
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: AppColors.sequencerPageBackground.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (hasVolumeOverride) ...[
-                          Text(
-                            'V${(effectiveVolume * 100).round()}',
-                            style: TextStyle(
-                              color: (isActivePad || isDragHovering)
-                                  ? AppColors.sequencerPageBackground
-                                  : isCurrentStep
-                                      ? Colors.white.withOpacity(0.9)
-                                      : AppColors.sequencerLightText,
-                              fontSize: effectsFontSize,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                        if (hasPitchOverride) ...[
-                          Text(
-                            _formatPitchDisplay(effectivePitch),
-                            style: TextStyle(
-                              color: (isActivePad || isDragHovering)
-                                  ? AppColors.sequencerPageBackground
-                                  : isCurrentStep
-                                      ? Colors.white.withOpacity(0.9)
-                                      : AppColors.sequencerLightText,
-                              fontSize: effectsFontSize,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ],
+            final Color effectsColor = (isActivePad || isDragHovering)
+                ? AppColors.sequencerPageBackground
+                : isCurrentStep
+                    ? Colors.white.withOpacity(0.9)
+                    : AppColors.sequencerLightText;
+            final TextStyle effectsStyle = TextStyle(
+              color: effectsColor,
+              fontSize: effectsFontSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.15,
+              height: 1.0,
+            );
+
+            Widget chip(String text, {required bool alignStart}) {
+              return Container(
+                padding: alignStart
+                    ? const EdgeInsets.only(left: 0, right: 4, top: 2, bottom: 2)
+                    : const EdgeInsets.only(left: 4, right: 0, top: 2, bottom: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.sequencerPageBackground.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+                child: Text(text, style: effectsStyle),
+              );
+            }
+
+            // Pitch (K…) on the left, volume (V…) on the right; vertically centered in cell.
+            return SizedBox.expand(
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (hasPitchOverride)
+                      chip(_formatPitchDisplay(effectivePitch), alignStart: true),
+                    if (hasPitchOverride && hasVolumeOverride) const Spacer(),
+                    if (hasVolumeOverride) ...[
+                      if (!hasPitchOverride) const Spacer(),
+                      chip('V${(effectiveVolume * 100).round()}',
+                          alignStart: false),
+                    ],
+                  ],
+                ),
+              ),
             );
           },
         );

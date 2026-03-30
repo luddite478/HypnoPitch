@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../state/sequencer/edit.dart';
 import '../../../state/sequencer/multitask_panel.dart';
@@ -127,10 +126,8 @@ class _SelectSettingsWidgetState extends State<SelectSettingsWidget> {
                                             sampleBankState.uiBankColors.length)
                                     ? sampleBankState.uiBankColors[slot]
                                     : AppColors.sequencerAccent;
-                                final letter =
-                                    sampleBankState.getSlotLetter(slot);
                                 return _buildSampleButton(
-                                  label: letter,
+                                  label: '${slot + 1}',
                                   color: color,
                                   isActive:
                                       _activeMode == _SelectActionMode.sample &&

@@ -611,7 +611,7 @@ class SequencerLibrary {
   
   /// Set performance test mode for diagnostics
   /// 0 = Normal mode (all operations enabled)
-  /// 1 = Skip SoundTouch processing
+  /// 1 = Reserved (legacy diagnostic; no-op if native symbol missing)
   /// 2 = Skip cell monitoring
   /// 3 = Skip volume smoothing
   /// 4 = Silence all nodes (test mixing overhead)
