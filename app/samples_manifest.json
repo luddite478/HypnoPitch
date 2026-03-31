@@ -1,6 +1,6 @@
 {
-  "scan_timestamp": 1774817155,
-  "total_files": 206,
+  "scan_timestamp": 1774933651,
+  "total_files": 285,
   "samples": {
     "ef31f054d10e": {
       "path": "samples/acoustic/Chord GuitarStrum 2.wav",
@@ -470,8 +470,312 @@
       "path": "samples/drums/electronic/kick/17_Kick_13_SP.wav",
       "built_in": true
     },
+    "a34b87e900c5": {
+      "path": "samples/drums/electronic/snare/17_Snare_31_SP.wav",
+      "built_in": true
+    },
+    "d430217ee953": {
+      "path": "samples/drums/electronic/snare/17_Snare_40_SP.wav",
+      "built_in": true
+    },
+    "2c46fa0d2bda": {
+      "path": "samples/drums/electronic/snare/17_Snare_23_SP.wav",
+      "built_in": true
+    },
+    "ae919e24bbda": {
+      "path": "samples/drums/electronic/snare/17_Snare_15_SP.wav",
+      "built_in": true
+    },
+    "344f5e3eddbe": {
+      "path": "samples/drums/electronic/snare/17_Snare_19_SP.wav",
+      "built_in": true
+    },
+    "95e40accad14": {
+      "path": "samples/drums/electronic/snare/17_Snare_07_SP.wav",
+      "built_in": true
+    },
+    "e1f88714f085": {
+      "path": "samples/drums/electronic/snare/17_Snare_21_SP.wav",
+      "built_in": true
+    },
+    "773469ad6e56": {
+      "path": "samples/drums/electronic/snare/17_Snare_33_SP.wav",
+      "built_in": true
+    },
+    "d54d9b4232bb": {
+      "path": "samples/drums/electronic/snare/17_Snare_05_SP.wav",
+      "built_in": true
+    },
+    "41615002dc65": {
+      "path": "samples/drums/electronic/snare/17_Snare_17_SP.wav",
+      "built_in": true
+    },
+    "977919d22410": {
+      "path": "samples/drums/electronic/snare/17_Snare_09_SP.wav",
+      "built_in": true
+    },
+    "066fcd9ff6ec": {
+      "path": "samples/drums/electronic/snare/17_Snare_13_SP.wav",
+      "built_in": true
+    },
+    "73a38c5d9bf7": {
+      "path": "samples/drums/electronic/snare/17_Snare_01_SP.wav",
+      "built_in": true
+    },
+    "d4ad3c921204": {
+      "path": "samples/drums/electronic/snare/17_Snare_37_SP.wav",
+      "built_in": true
+    },
+    "9970ce25bed1": {
+      "path": "samples/drums/electronic/snare/17_Snare_29_SP.wav",
+      "built_in": true
+    },
+    "99582e57d868": {
+      "path": "samples/drums/electronic/snare/17_Snare_25_SP.wav",
+      "built_in": true
+    },
+    "54a28eaf2af9": {
+      "path": "samples/drums/electronic/snare/17_Snare_03_SP.wav",
+      "built_in": true
+    },
+    "05cabfea0533": {
+      "path": "samples/drums/electronic/snare/17_Snare_11_SP.wav",
+      "built_in": true
+    },
+    "c2a4a06db72c": {
+      "path": "samples/drums/electronic/snare/17_Snare_39_SP.wav",
+      "built_in": true
+    },
+    "588c66d95673": {
+      "path": "samples/drums/electronic/snare/17_Snare_27_SP.wav",
+      "built_in": true
+    },
+    "3a7f49736509": {
+      "path": "samples/drums/electronic/snare/17_Snare_35_SP.wav",
+      "built_in": true
+    },
+    "545b6fb8e9e5": {
+      "path": "samples/drums/electronic/snare/17_Snare_14_SP.wav",
+      "built_in": true
+    },
+    "2d16cc96276d": {
+      "path": "samples/drums/electronic/snare/17_Snare_06_SP.wav",
+      "built_in": true
+    },
+    "5552ff3d495d": {
+      "path": "samples/drums/electronic/snare/17_Snare_18_SP.wav",
+      "built_in": true
+    },
+    "4c50aeed8491": {
+      "path": "samples/drums/electronic/snare/17_Snare_30_SP.wav",
+      "built_in": true
+    },
+    "20d8c09756e5": {
+      "path": "samples/drums/electronic/snare/17_Snare_22_SP.wav",
+      "built_in": true
+    },
+    "22f0c42b295f": {
+      "path": "samples/drums/electronic/snare/17_Snare_04_SP.wav",
+      "built_in": true
+    },
+    "dcef92ca3e3a": {
+      "path": "samples/drums/electronic/snare/17_Snare_08_SP.wav",
+      "built_in": true
+    },
+    "c31ec0923fdf": {
+      "path": "samples/drums/electronic/snare/17_Snare_16_SP.wav",
+      "built_in": true
+    },
+    "211d6c3e0fb7": {
+      "path": "samples/drums/electronic/snare/17_Snare_20_SP.wav",
+      "built_in": true
+    },
+    "ac8956eb2b89": {
+      "path": "samples/drums/electronic/snare/17_Snare_32_SP.wav",
+      "built_in": true
+    },
+    "bb48928f8cda": {
+      "path": "samples/drums/electronic/snare/17_Snare_28_SP.wav",
+      "built_in": true
+    },
+    "b5d0f29943bd": {
+      "path": "samples/drums/electronic/snare/17_Snare_36_SP.wav",
+      "built_in": true
+    },
+    "1d7fec7ccef8": {
+      "path": "samples/drums/electronic/snare/17_Snare_24_SP.wav",
+      "built_in": true
+    },
+    "b0428f42691c": {
+      "path": "samples/drums/electronic/snare/17_Snare_12_SP.wav",
+      "built_in": true
+    },
+    "026970e5acde": {
+      "path": "samples/drums/electronic/snare/17_Snare_26_SP.wav",
+      "built_in": true
+    },
+    "8d3299f11de8": {
+      "path": "samples/drums/electronic/snare/17_Snare_38_SP.wav",
+      "built_in": true
+    },
+    "de806d6aaf54": {
+      "path": "samples/drums/electronic/snare/17_Snare_34_SP.wav",
+      "built_in": true
+    },
+    "be25e6555bd0": {
+      "path": "samples/drums/electronic/snare/17_Snare_02_SP.wav",
+      "built_in": true
+    },
+    "99a31e3a553b": {
+      "path": "samples/drums/electronic/snare/17_Snare_10_SP.wav",
+      "built_in": true
+    },
+    "adf812bb8537": {
+      "path": "samples/drums/electronic/hat/17_Hat_15_SP.wav",
+      "built_in": true
+    },
+    "4a29390079e0": {
+      "path": "samples/drums/electronic/hat/17_Hat_19_SP.wav",
+      "built_in": true
+    },
+    "14ba91631a4d": {
+      "path": "samples/drums/electronic/hat/17_Hat_07_SP.wav",
+      "built_in": true
+    },
+    "3e8c81adb4e2": {
+      "path": "samples/drums/electronic/hat/17_Hat_31_SP.wav",
+      "built_in": true
+    },
+    "159ac3cdcf7a": {
+      "path": "samples/drums/electronic/hat/17_Hat_23_SP.wav",
+      "built_in": true
+    },
+    "1501010a197c": {
+      "path": "samples/drums/electronic/hat/17_Hat_05_SP.wav",
+      "built_in": true
+    },
+    "2f934b88cdb0": {
+      "path": "samples/drums/electronic/hat/17_Hat_17_SP.wav",
+      "built_in": true
+    },
+    "c3504141224b": {
+      "path": "samples/drums/electronic/hat/17_Hat_09_SP.wav",
+      "built_in": true
+    },
+    "bbbbcaf2f68b": {
+      "path": "samples/drums/electronic/hat/17_Hat_21_SP.wav",
+      "built_in": true
+    },
+    "9043c4413ad2": {
+      "path": "samples/drums/electronic/hat/17_Hat_33_SP.wav",
+      "built_in": true
+    },
     "dac8aa2189ff": {
       "path": "samples/drums/electronic/hat/17_Hat_37_SP.wav",
+      "built_in": true
+    },
+    "24a03c1be173": {
+      "path": "samples/drums/electronic/hat/17_Hat_29_SP.wav",
+      "built_in": true
+    },
+    "d2facff8ca75": {
+      "path": "samples/drums/electronic/hat/17_Hat_25_SP.wav",
+      "built_in": true
+    },
+    "3de6fa30cefe": {
+      "path": "samples/drums/electronic/hat/17_Hat_13_SP.wav",
+      "built_in": true
+    },
+    "1fa02761698f": {
+      "path": "samples/drums/electronic/hat/17_Hat_01_SP.wav",
+      "built_in": true
+    },
+    "18fc14d94b96": {
+      "path": "samples/drums/electronic/hat/17_Hat_27_SP.wav",
+      "built_in": true
+    },
+    "1081b7d4a010": {
+      "path": "samples/drums/electronic/hat/17_Hat_35_SP.wav",
+      "built_in": true
+    },
+    "be6feb79d8e4": {
+      "path": "samples/drums/electronic/hat/17_Hat_03_SP.wav",
+      "built_in": true
+    },
+    "3d83ddbc4aae": {
+      "path": "samples/drums/electronic/hat/17_Hat_11_SP.wav",
+      "built_in": true
+    },
+    "303267f0444e": {
+      "path": "samples/drums/electronic/hat/17_Hat_30_SP.wav",
+      "built_in": true
+    },
+    "14291a1ae0bf": {
+      "path": "samples/drums/electronic/hat/17_Hat_22_SP.wav",
+      "built_in": true
+    },
+    "944280a0fa00": {
+      "path": "samples/drums/electronic/hat/17_Hat_14_SP.wav",
+      "built_in": true
+    },
+    "4a577f33ac07": {
+      "path": "samples/drums/electronic/hat/17_Hat_06_SP.wav",
+      "built_in": true
+    },
+    "d4acc2d3cc05": {
+      "path": "samples/drums/electronic/hat/17_Hat_18_SP.wav",
+      "built_in": true
+    },
+    "dd548ace2639": {
+      "path": "samples/drums/electronic/hat/17_Hat_20_SP.wav",
+      "built_in": true
+    },
+    "3e62e0fbcfc9": {
+      "path": "samples/drums/electronic/hat/17_Hat_32_SP.wav",
+      "built_in": true
+    },
+    "66b211be11f9": {
+      "path": "samples/drums/electronic/hat/17_Hat_04_SP.wav",
+      "built_in": true
+    },
+    "bbf7426c3291": {
+      "path": "samples/drums/electronic/hat/17_Hat_08_SP.wav",
+      "built_in": true
+    },
+    "510744e88181": {
+      "path": "samples/drums/electronic/hat/17_Hat_16_SP.wav",
+      "built_in": true
+    },
+    "03c7abaaee9c": {
+      "path": "samples/drums/electronic/hat/17_Hat_12_SP.wav",
+      "built_in": true
+    },
+    "532b04de4995": {
+      "path": "samples/drums/electronic/hat/17_Hat_28_SP.wav",
+      "built_in": true
+    },
+    "4977752163fe": {
+      "path": "samples/drums/electronic/hat/17_Hat_36_SP.wav",
+      "built_in": true
+    },
+    "976a73cbcb70": {
+      "path": "samples/drums/electronic/hat/17_Hat_24_SP.wav",
+      "built_in": true
+    },
+    "1a91c53666f9": {
+      "path": "samples/drums/electronic/hat/17_Hat_02_SP.wav",
+      "built_in": true
+    },
+    "5b1cab5412c9": {
+      "path": "samples/drums/electronic/hat/17_Hat_10_SP.wav",
+      "built_in": true
+    },
+    "5af54690fcd9": {
+      "path": "samples/drums/electronic/hat/17_Hat_26_SP.wav",
+      "built_in": true
+    },
+    "d5ce17124e7a": {
+      "path": "samples/drums/electronic/hat/17_Hat_34_SP.wav",
       "built_in": true
     },
     "4755b4da0454": {
@@ -646,8 +950,16 @@
       "path": "samples/synth/Lead/Chord Troni BbMaj.wav",
       "built_in": true
     },
+    "6cc2b121fea8": {
+      "path": "samples/synth/Lead/The Mystic a3.wav",
+      "built_in": true
+    },
     "200ae037d19a": {
       "path": "samples/synth/Lead/Chord MelaBeauty.wav",
+      "built_in": true
+    },
+    "f998a3f66884": {
+      "path": "samples/synth/Lead/Castles Burning d#4.wav",
       "built_in": true
     },
     "cd3723a46748": {
@@ -680,6 +992,10 @@
     },
     "41b52d79dc71": {
       "path": "samples/synth/Lead/Seventh SeaWha.wav",
+      "built_in": true
+    },
+    "9e0bd265d45b": {
+      "path": "samples/synth/Lead/Cypress c4.wav",
       "built_in": true
     },
     "411f27670f59": {

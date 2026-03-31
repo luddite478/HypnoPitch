@@ -286,6 +286,16 @@ int sunvox_wrapper_load_sample(int sample_slot, const char* file_path) {
         prnt_err("❌ [SUNVOX] Failed to load sample into sampler %d: %d", sample_slot, result);
         return -1;
     }
+
+    // WAV smpl / instrument loops are imported as sustain loops. Preview uses note-on without
+    // note-off; patterns use NO_NOTES_OFF at section wrap — both hold the note, so a looped
+    // sample sounds infinite. Sequencer pads should play as one-shots unless we add explicit
+    // loop UX later; clear loop type for every sample slot in this module (no-op if empty).
+    const int kSamplerParLoopType = 2; // sv_sampler_par: 0=loop begin, 1=len, 2=loop type (0=none)
+    const int kMaxSamplesPerSamplerModule = 128; // matches SunVox Sampler MAX_SAMPLES
+    for (int s = 0; s < kMaxSamplesPerSamplerModule; s++) {
+        sv_sampler_par(SUNVOX_SLOT, mod_id, s, kSamplerParLoopType, 0, 1);
+    }
     
     // Verify the module flags
     uint32_t flags = sv_get_module_flags(SUNVOX_SLOT, mod_id);

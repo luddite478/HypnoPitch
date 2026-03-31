@@ -1,7 +1,7 @@
 description: HypnoPitch — pattern sequencer and audio app.
 environment:
   sdk: '>=3.4.4 <4.0.0'
-version: 1.0.1+7
+version: 1.0.5+15
 flutter:
   assets:
     - samples/acoustic/

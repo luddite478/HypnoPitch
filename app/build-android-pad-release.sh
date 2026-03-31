@@ -53,6 +53,10 @@ PY
 echo "Running flutter pub get for temporary pubspec..."
 flutter pub get
 
+# Strip flutter_build cache so kernel depfiles match this pubspec (no bundled samples/).
+# Reusing incremental artifacts after swapping assets causes empty/invalid kernel_snapshot_program.d warnings.
+rm -rf .dart_tool/flutter_build
+
 echo "Building Android AAB with PAD (flavor=prod, release)..."
 flutter build appbundle --flavor prod --release
 
