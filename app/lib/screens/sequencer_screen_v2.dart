@@ -767,6 +767,29 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               ),
             ),
 
+            // Value slider dim over playback bar (must be above bar in z-order;
+            // top dim lives inside [_buildSequencerView]). [Positioned] must be a
+            // direct [Stack] child; [ValueListenableBuilder] sits inside it.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _sliderOverlayState.isInteractingNotifier,
+                builder: (context, isInteracting, _) {
+                  if (!isInteracting) return const SizedBox.shrink();
+                  final padding = MediaQuery.paddingOf(context);
+                  return SizedBox(
+                    height: padding.bottom + _floatingPlaybackBarHeight,
+                    width: double.infinity,
+                    child: ColoredBox(
+                      color: Colors.black.withOpacity(0.6),
+                    ),
+                  );
+                },
+              ),
+            ),
+
             if (_isInitialLoading)
               Positioned.fill(
                 child: Container(
@@ -1194,16 +1217,22 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
             ],
           ),
         ),
-        // Value overlay
+        // Value overlay (inset matches SafeArea Column: three Expanded share
+        // h - top - bottom - spacer; see body Stack for bottom dim over playback bar).
         Positioned.fill(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final h = constraints.maxHeight;
+              final padding = MediaQuery.paddingOf(context);
               const double playbackControl = _floatingPlaybackBarHeight;
-              final double flexRegion = h - playbackControl;
-              final double bottomInset =
-                  (flexRegion * (_multitaskPanelFlex / _contentFlexTotal)) +
-                      playbackControl;
+              final double flexRegion = max(
+                0.0,
+                h - padding.top - padding.bottom - playbackControl,
+              );
+              final double bottomInset = padding.bottom +
+                  playbackControl +
+                  flexRegion *
+                      (_multitaskPanelFlex / _contentFlexTotal);
               return Padding(
                 padding: EdgeInsets.only(top: 0, bottom: bottomInset),
                 child: const ValueControlOverlay(),
