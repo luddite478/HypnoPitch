@@ -284,6 +284,34 @@ class LibrarySamplesState extends ChangeNotifier {
     return true;
   }
 
+  /// Deletes a custom folder and all audio files inside (disk + index).
+  Future<bool> removeCustomFolder(String folderName) async {
+    final trimmed = folderName.trim();
+    if (trimmed.isEmpty || !_customFolderFiles.containsKey(trimmed)) {
+      return false;
+    }
+
+    _customFolderFiles.remove(trimmed);
+
+    if (_currentCustomFolder == trimmed) {
+      openRoot();
+    }
+
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      final folderDir = Directory(
+        path.join(docs.path, 'library_samples', 'custom', trimmed),
+      );
+      if (await folderDir.exists()) {
+        await folderDir.delete(recursive: true);
+      }
+    } catch (_) {}
+
+    await _persistCustomIndex();
+    notifyListeners();
+    return true;
+  }
+
   static Future<String?> resolveCustomSampleIdPath(String sampleId) async {
     final folderName = customFolderFromSampleId(sampleId);
     final fileName = customFileNameFromSampleId(sampleId);

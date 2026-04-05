@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../services/sample_asset_resolver.dart';
 import '../utils/app_colors.dart';
+import '../utils/audio_duration_probe.dart';
 import '../widgets/library_header_widget.dart';
 import '../widgets/bottom_audio_player.dart';
 import '../models/library_item.dart';
@@ -31,6 +35,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   late TabController _tabController;
   bool _isCallbackActive = false;
   bool _isOpeningPattern = false;
+  final Map<String, String> _builtInSampleTempPaths = {};
   
   @override
   bool get wantKeepAlive => true;
@@ -687,7 +692,60 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     }
   }
 
-  Future<void> _playCustomSample(String filePath) async {
+  Future<String?> _ensureBuiltInTempFile(String sampleId) async {
+    final existing = _builtInSampleTempPaths[sampleId];
+    if (existing != null) {
+      try {
+        if (await File(existing).exists()) return existing;
+      } catch (_) {}
+      _builtInSampleTempPaths.remove(sampleId);
+    }
+    final resolver = SampleAssetResolver.instance;
+    final assetPath = await resolver.resolveAssetPathFromSampleId(sampleId);
+    if (assetPath == null || assetPath.isEmpty) {
+      return null;
+    }
+    final temp = await resolver.copyAssetToTempFile(assetPath);
+    if (temp != null) {
+      _builtInSampleTempPaths[sampleId] = temp;
+    }
+    return temp;
+  }
+
+  Future<void> _playBuiltInSample(String sampleId) async {
+    try {
+      final path = await _ensureBuiltInTempFile(sampleId);
+      if (path == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Sample file not available'),
+            backgroundColor: Colors.red.shade900,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      await context.read<AudioPlayerState>().playFromPath(
+            itemId: 'builtin:$sampleId',
+            localPath: path,
+          );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to play sample: $e'),
+          backgroundColor: Colors.red.shade900,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _playCustomSample({
+    required String folderName,
+    required String filePath,
+  }) async {
     try {
       final resolved = await LocalAudioPath.resolve(filePath);
       if (resolved == null) {
@@ -701,8 +759,12 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         );
         return;
       }
+      final itemId = LibrarySamplesState.customSampleIdFor(
+        folderName: folderName,
+        filePath: filePath,
+      );
       await context.read<AudioPlayerState>().playFromPath(
-            itemId: 'custom:$resolved',
+            itemId: itemId,
             localPath: resolved,
           );
     } catch (e) {
@@ -791,6 +853,75 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       SnackBar(
         content: Text(
           success ? 'Custom sample deleted' : 'Failed to delete sample',
+        ),
+        backgroundColor: success ? AppColors.sequencerAccent : Colors.red.shade900,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showRemoveCustomFolderDialog(String folderName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.sequencerSurfaceRaised,
+          title: Text(
+            'Delete folder',
+            style: TextStyle(
+              color: AppColors.sequencerText,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            'Delete "$folderName" and all samples inside? This cannot be undone.',
+            style: TextStyle(
+              color: AppColors.sequencerLightText,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: AppColors.sequencerLightText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _removeCustomFolder(folderName);
+              },
+              child: Text(
+                'Delete',
+                style: TextStyle(
+                  color: AppColors.sequencerAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _removeCustomFolder(String folderName) async {
+    final samples = context.read<LibrarySamplesState>();
+    final success = await samples.removeCustomFolder(folderName);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Folder deleted' : 'Failed to delete folder',
         ),
         backgroundColor: success ? AppColors.sequencerAccent : Colors.red.shade900,
         duration: const Duration(seconds: 2),
@@ -1028,6 +1159,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               title: folder,
               icon: Icons.folder,
               onTap: () => state.openCustomFolder(folder),
+              onLongPress: () => _showRemoveCustomFolderDialog(folder),
             );
           },
         );
@@ -1039,10 +1171,12 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     required String title,
     required IconData icon,
     required VoidCallback onTap,
+    VoidCallback? onLongPress,
   }) {
     final hasTitle = title.trim().isNotEmpty;
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.sequencerSurfaceRaised,
@@ -1092,17 +1226,33 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       }
 
       return ListView.builder(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.only(top: 2),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
-          return _buildSampleListItem(
-            title: item.name,
-            subtitle: item.isFolder ? 'Folder' : 'Built-in sample',
-            icon: item.isFolder ? Icons.folder : Icons.audio_file,
-            onTap: item.isFolder
-                ? () => state.openDefaultFolder(item.name)
-                : null,
+          if (item.isFolder) {
+            return _buildDefaultFolderListRow(
+              title: item.name,
+              onTap: () => state.openDefaultFolder(item.name),
+            );
+          }
+          final sampleId = item.sampleId;
+          if (sampleId == null) {
+            return const SizedBox.shrink();
+          }
+          return Consumer<AudioPlayerState>(
+            builder: (context, audioPlayer, _) {
+              final itemId = 'builtin:$sampleId';
+              final isPlaying = audioPlayer.currentlyPlayingItemId == itemId &&
+                  audioPlayer.isPlaying;
+              return _LibraryBuiltInSampleRow(
+                key: ValueKey(itemId),
+                title: item.name,
+                isPlaying: isPlaying,
+                onEnsureTempPath: () => _ensureBuiltInTempFile(sampleId),
+                onTap: () => _playBuiltInSample(sampleId),
+              );
+            },
           );
         },
       );
@@ -1113,20 +1263,15 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       return _buildEmptySamplesMessage('This custom folder has no imported files.');
     }
     final folderName = state.currentCustomFolder;
+    if (folderName == null) {
+      return _buildEmptySamplesMessage('This custom folder has no imported files.');
+    }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.only(top: 2),
       itemCount: files.length,
       itemBuilder: (context, index) {
         final filePath = files[index];
-        if (folderName == null) {
-          return _buildSampleListItem(
-            title: filePath.split('/').last,
-            subtitle: 'Custom sample',
-            icon: Icons.audio_file,
-            onTap: null,
-          );
-        }
         return _buildCustomSampleListItem(
           filePath: filePath,
           folderName: folderName,
@@ -1135,58 +1280,66 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildSampleListItem({
+  Widget _buildDefaultFolderListRow({
     required String title,
-    required String subtitle,
-    required IconData icon,
-    VoidCallback? onTap,
+    required VoidCallback onTap,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+      height: 60,
+      margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
         color: AppColors.sequencerSurfaceRaised,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.sequencerBorder, width: 1),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.sequencerBorder,
+            width: 0.5,
+          ),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                Icon(icon, color: AppColors.sequencerAccent, size: 20),
+                Icon(
+                  Icons.folder,
+                  color: AppColors.sequencerText,
+                  size: 22,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         title,
                         style: TextStyle(
                           color: AppColors.sequencerText,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
-                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        subtitle,
+                        'Folder',
                         style: TextStyle(
                           color: AppColors.sequencerLightText,
                           fontSize: 11,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                if (onTap != null)
-                  Icon(Icons.chevron_right, color: AppColors.sequencerLightText, size: 18),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.sequencerLightText,
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -1200,104 +1353,30 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     required String folderName,
   }) {
     final fileName = filePath.split('/').last;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        color: AppColors.sequencerSurfaceRaised,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.sequencerBorder, width: 1),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _playCustomSample(filePath),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Icon(Icons.audio_file, color: AppColors.sequencerAccent, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        fileName,
-                        style: TextStyle(
-                          color: AppColors.sequencerText,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Custom sample',
-                        style: TextStyle(
-                          color: AppColors.sequencerLightText,
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Builder(
-                  builder: (buttonContext) => IconButton(
-                    icon: Icon(
-                      Icons.share,
-                      color: AppColors.sequencerLightText,
-                      size: 20,
-                    ),
-                    onPressed: () => _shareAudioFile(
-                      localPath: filePath,
-                      title: fileName,
-                      buttonContext: buttonContext,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: AppColors.sequencerLightText,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                  color: AppColors.sequencerSurfaceRaised,
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      _showRemoveCustomSampleDialog(
-                        folderName: folderName,
-                        filePath: filePath,
-                      );
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(
-                        'Delete',
-                        style: TextStyle(
-                          color: AppColors.sequencerAccent,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    final itemId = LibrarySamplesState.customSampleIdFor(
+      folderName: folderName,
+      filePath: filePath,
+    );
+
+    return Consumer<AudioPlayerState>(
+      builder: (context, audioPlayer, _) {
+        final isPlaying =
+            audioPlayer.currentlyPlayingItemId == itemId && audioPlayer.isPlaying;
+        return _LibraryCustomSampleRow(
+          key: ValueKey(itemId),
+          filePath: filePath,
+          fileName: fileName,
+          isPlaying: isPlaying,
+          onTap: () => _playCustomSample(
+                folderName: folderName,
+                filePath: filePath,
+              ),
+          onDelete: () => _showRemoveCustomSampleDialog(
+                folderName: folderName,
+                filePath: filePath,
+              ),
+        );
+      },
     );
   }
 
@@ -1392,5 +1471,244 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       },
     );
     return result;
+  }
+}
+
+String _formatSampleDurationLine(double durationSeconds) {
+  final minutes = (durationSeconds / 60).floor();
+  final seconds = (durationSeconds % 60).floor();
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
+}
+
+class _LibraryCustomSampleRow extends StatefulWidget {
+  const _LibraryCustomSampleRow({
+    super.key,
+    required this.filePath,
+    required this.fileName,
+    required this.isPlaying,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final String filePath;
+  final String fileName;
+  final bool isPlaying;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  State<_LibraryCustomSampleRow> createState() =>
+      _LibraryCustomSampleRowState();
+}
+
+class _LibraryCustomSampleRowState extends State<_LibraryCustomSampleRow> {
+  double? _durationSec;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDuration();
+  }
+
+  Future<void> _loadDuration() async {
+    final resolved = await LocalAudioPath.resolve(widget.filePath);
+    if (!mounted || resolved == null) return;
+    final sec = await AudioDurationProbe.secondsForFilePath(resolved);
+    if (mounted) setState(() => _durationSec = sec);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        color: widget.isPlaying
+            ? AppColors.sequencerAccent.withOpacity(0.1)
+            : AppColors.sequencerSurfaceRaised,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.sequencerBorder,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          onLongPress: widget.onDelete,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.music_note,
+                  color: AppColors.sequencerText,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.fileName,
+                        style: TextStyle(
+                          color: AppColors.sequencerText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (_durationSec != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatSampleDurationLine(_durationSec!),
+                          style: TextStyle(
+                            color: AppColors.sequencerLightText,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: AppColors.sequencerLightText,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  color: AppColors.sequencerSurfaceRaised,
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      widget.onDelete();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: AppColors.sequencerAccent,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryBuiltInSampleRow extends StatefulWidget {
+  const _LibraryBuiltInSampleRow({
+    super.key,
+    required this.title,
+    required this.isPlaying,
+    required this.onEnsureTempPath,
+    required this.onTap,
+  });
+
+  final String title;
+  final bool isPlaying;
+  final Future<String?> Function() onEnsureTempPath;
+  final VoidCallback onTap;
+
+  @override
+  State<_LibraryBuiltInSampleRow> createState() =>
+      _LibraryBuiltInSampleRowState();
+}
+
+class _LibraryBuiltInSampleRowState extends State<_LibraryBuiltInSampleRow> {
+  double? _durationSec;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDuration();
+  }
+
+  Future<void> _loadDuration() async {
+    final path = await widget.onEnsureTempPath();
+    if (!mounted || path == null) return;
+    final sec = await AudioDurationProbe.secondsForFilePath(path);
+    if (mounted) setState(() => _durationSec = sec);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        color: widget.isPlaying
+            ? AppColors.sequencerAccent.withOpacity(0.1)
+            : AppColors.sequencerSurfaceRaised,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.sequencerBorder,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.music_note,
+                  color: AppColors.sequencerText,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          color: AppColors.sequencerText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (_durationSec != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatSampleDurationLine(_durationSec!),
+                          style: TextStyle(
+                            color: AppColors.sequencerLightText,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
