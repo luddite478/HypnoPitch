@@ -140,15 +140,22 @@ class EditState extends ChangeNotifier {
     debugPrint('✂️ [EDIT] Selected single cell: $cellIndex');
   }
 
-  /// In SELECT mode: tap adds the cell; tap again on a selected cell removes it.
+  /// In SELECT mode: tap moves selection to that cell (single-cell selection).
+  /// Tap again on the only selected cell clears selection. Multi-cell (e.g.
+  /// rectangle drag) collapses to one cell on any tap.
   void toggleCellInSelectionMode(int cellIndex) {
     if (!_isInSelectionMode) return;
 
-    if (!_selectedCells.contains(cellIndex)) {
-      final next = Set<int>.from(_selectedCells)..add(cellIndex);
-      _applySelection(next, anchor: cellIndex);
+    if (_selectedCells.length > 1) {
+      _applySelection({cellIndex}, anchor: cellIndex);
       debugPrint(
-          '✂️ [EDIT] Added cell $cellIndex → ${_selectedCells.length} cells');
+          '✂️ [EDIT] Collapsed multi-selection to single cell $cellIndex');
+      return;
+    }
+
+    if (!_selectedCells.contains(cellIndex)) {
+      _applySelection({cellIndex}, anchor: cellIndex);
+      debugPrint('✂️ [EDIT] Selected cell $cellIndex (replaced selection)');
       return;
     }
 

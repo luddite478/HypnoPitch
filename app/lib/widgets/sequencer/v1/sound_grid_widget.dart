@@ -20,6 +20,7 @@ import '../../../state/app_state.dart';
 import '../../../config/debug_flags.dart';
 import 'line_mic_waveform_widget.dart';
 import '../../tutorial_pulse_widget.dart';
+import 'sequencer_layer_label.dart';
 
 // Custom ScrollPhysics to retain position when content changes
 class PositionRetainedScrollPhysics extends ScrollPhysics {
@@ -67,11 +68,30 @@ class SampleGridWidget extends StatefulWidget {
   State<SampleGridWidget> createState() => _SampleGridWidgetState();
 }
 
+/// Payload for moving a placed sample from one grid cell to another (long-press drag).
+class GridCellDragData {
+  final int sourceAbsoluteStep;
+  final int sourceAbsoluteCol;
+  final int sampleSlot;
+  final double volume;
+  final double pitch;
+
+  const GridCellDragData({
+    required this.sourceAbsoluteStep,
+    required this.sourceAbsoluteCol,
+    required this.sampleSlot,
+    required this.volume,
+    required this.pitch,
+  });
+}
+
 enum GestureMode { undetermined, scrolling, selecting }
 
 class _SampleGridWidgetState extends State<SampleGridWidget> {
   final ScrollController _scrollController = ScrollController();
   Timer? _autoScrollTimer;
+  final Set<String> _pendingMovedSourceCells = <String>{};
+  final Map<String, Timer> _pendingMovedSourceTimers = <String, Timer>{};
   static const double _autoScrollSpeed = 8.0;
   static const Duration _autoScrollInterval = Duration(milliseconds: 12);
   static const double _edgeThreshold = 50.0;
@@ -100,18 +120,6 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   static const Color cellBorderColor =
       Color.fromARGB(255, 77, 77, 77); // Border color for cells
   static const double cellBorderWidth = 1.0; // Border width for cells
-
-  String _layerLabelForIndex(int index) {
-    if (index < 0) return '?';
-    int value = index + 1;
-    final List<int> codeUnits = <int>[];
-    while (value > 0) {
-      final int remainder = (value - 1) % 26;
-      codeUnits.add(65 + remainder); // A..Z
-      value = (value - 1) ~/ 26;
-    }
-    return String.fromCharCodes(codeUnits.reversed);
-  }
 
   // CONFIGURABLE CONTENT SIZING - Control text and element sizes
   static const double effectsFontSize =
@@ -142,9 +150,53 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   @override
   void dispose() {
     _autoScrollTimer?.cancel();
+    for (final timer in _pendingMovedSourceTimers.values) {
+      timer.cancel();
+    }
+    _pendingMovedSourceTimers.clear();
     _scrollController.dispose();
     _stopAllActions(); // Clean up button press timer
     super.dispose();
+  }
+
+  String _cellKey(int absoluteStep, int absoluteCol) {
+    return '$absoluteStep:$absoluteCol';
+  }
+
+  void _hideMovedSourceCellTemporarily(int absoluteStep, int absoluteCol) {
+    final key = _cellKey(absoluteStep, absoluteCol);
+    _pendingMovedSourceTimers.remove(key)?.cancel();
+    if (!_pendingMovedSourceCells.contains(key) && mounted) {
+      setState(() => _pendingMovedSourceCells.add(key));
+    } else {
+      _pendingMovedSourceCells.add(key);
+    }
+
+    _pendingMovedSourceTimers[key] = Timer(
+      const Duration(milliseconds: 180),
+      () {
+        if (!mounted) return;
+        if (_pendingMovedSourceCells.remove(key)) {
+          setState(() {});
+        }
+        _pendingMovedSourceTimers.remove(key);
+      },
+    );
+  }
+
+  void _resolvePendingSourceCellIfCleared(
+      int absoluteStep, int absoluteCol, bool hasPlacedSample) {
+    if (hasPlacedSample) return;
+    final key = _cellKey(absoluteStep, absoluteCol);
+    if (!_pendingMovedSourceCells.contains(key)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final removed = _pendingMovedSourceCells.remove(key);
+      _pendingMovedSourceTimers.remove(key)?.cancel();
+      if (removed) {
+        setState(() {});
+      }
+    });
   }
 
   void _startAutoScroll(double direction, Offset initialPosition) {
@@ -569,6 +621,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     return ValueListenableBuilder<CellData>(
       valueListenable: tableState.getCellNotifier(absoluteStep, absoluteCol),
       builder: (context, cellData, child) {
+        final isInSelectionMode =
+            context.select((EditState e) => e.isInSelectionMode);
         final isActivePad =
             false; // UI-only highlight not yet wired in TableState
         final isCurrentStep = widget.sectionIndexOverride == null &&
@@ -577,6 +631,13 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
         final placedSample =
             cellData.sampleSlot >= 0 ? cellData.sampleSlot : null;
         final hasPlacedSample = placedSample != null;
+        final sourceCellKey = _cellKey(absoluteStep, absoluteCol);
+        final isPendingMovedSource =
+            _pendingMovedSourceCells.contains(sourceCellKey);
+        final hasPlacedSampleForDisplay =
+            hasPlacedSample && !isPendingMovedSource;
+        _resolvePendingSourceCellIfCleared(
+            absoluteStep, absoluteCol, hasPlacedSample);
 
         // 🎯 PERFORMANCE: Light bulb-bluish-white highlight for current step
         Color cellColor;
@@ -585,11 +646,11 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
           cellColor = AppColors.sequencerAccent.withOpacity(0.6);
         } else if (isCurrentStep) {
           // Light bulb-bluish-white highlight for current step
-          cellColor = hasPlacedSample
+          cellColor = hasPlacedSampleForDisplay
               ? _getSampleColorForGrid(placedSample, context).withOpacity(0.9)
               : const Color(0xFF87CEEB)
                   .withOpacity(0.4); // Light blue highlight
-        } else if (hasPlacedSample) {
+        } else if (hasPlacedSampleForDisplay) {
           cellColor = _getSampleColorForGrid(placedSample, context);
         } else {
           // Alternate cell color for every 4th row (1, 5, 9, etc. in 1-indexed terms)
@@ -599,39 +660,156 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               : AppColors.sequencerCellEmpty;
         }
 
-        return DragTarget<int>(
-          onAccept: (int sampleSlot) {
+        return DragTarget<Object>(
+          onWillAcceptWithDetails: (DragTargetDetails<Object?> details) {
+            final data = details.data;
+            return data is int || data is GridCellDragData;
+          },
+          onAcceptWithDetails: (DragTargetDetails<Object?> details) {
+            final data = details.data;
+            if (data == null) return;
             if (!appState.canInteractWithTutorialTarget(
                 TutorialInteractionTarget.sampleGrid)) {
               return;
             }
-            // Use TableState instead of legacy SequencerState for drag operations
-            final tableState = Provider.of<TableState>(context, listen: false);
-            final gridCols = tableState.getVisibleCols().length;
+            final ts = Provider.of<TableState>(context, listen: false);
+            final gridCols = ts.getVisibleCols().length;
             final row = index ~/ gridCols;
             final col = index % gridCols;
-
-            // Calculate absolute step and column based on current (or overridden) section and layer
             final sectionIndex =
-                widget.sectionIndexOverride ?? tableState.uiSelectedSection;
-            final absoluteStep =
-                tableState.getSectionStartStep(sectionIndex) + row;
-            final layerStartCol = tableState.getLayerStartCol();
-            final absoluteCol = layerStartCol + col;
+                widget.sectionIndexOverride ?? ts.uiSelectedSection;
+            final targetStep = ts.getSectionStartStep(sectionIndex) + row;
+            final layerStartCol = ts.getLayerStartCol();
+            final targetCol = layerStartCol + col;
 
-            // Use the new table system with inheritance sentinels
-            tableState.setCell(
-                absoluteStep, absoluteCol, sampleSlot, -1.0, -1.0);
-            Log.d(
-                ' [DRAG] Set cell [$absoluteStep, $absoluteCol] = sample $sampleSlot');
+            if (data is int) {
+              ts.setCell(targetStep, targetCol, data, -1.0, -1.0);
+              Log.d(
+                  ' [DRAG] Set cell [$targetStep, $targetCol] = sample $data');
+            } else if (data is GridCellDragData) {
+              if (data.sourceAbsoluteStep == targetStep &&
+                  data.sourceAbsoluteCol == targetCol) {
+                return;
+              }
+              _hideMovedSourceCellTemporarily(
+                  data.sourceAbsoluteStep, data.sourceAbsoluteCol);
+              ts.setCell(targetStep, targetCol, data.sampleSlot, data.volume,
+                  data.pitch);
+              ts.clearCell(data.sourceAbsoluteStep, data.sourceAbsoluteCol);
+              Log.d(
+                  ' [DRAG] Move cell [${data.sourceAbsoluteStep},${data.sourceAbsoluteCol}] → [$targetStep,$targetCol]');
+            }
           },
           builder: (context, candidateData, rejectedData) {
             final bool isDragHovering = candidateData.isNotEmpty;
             final bool isSelected = selectedSet.contains(index);
 
-            return GestureDetector(
+            final Widget surface = Container(
+              key: cellTutorialKey,
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: isDragHovering
+                    ? AppColors.sequencerAccent.withOpacity(0.8)
+                    : cellColor,
+                borderRadius: BorderRadius.zero,
+                border: isSelected
+                    ? Border.all(
+                        color: AppColors.sequencerSelectionBorder,
+                        width: 2,
+                      )
+                    : isCurrentStep
+                        ? Border.all(
+                            color: const Color(0xFF87CEEB),
+                            width: 1.5,
+                          )
+                        : isDragHovering
+                            ? Border.all(
+                                color: AppColors.sequencerAccent,
+                                width: 0.75,
+                              )
+                            : Border.all(
+                                color: cellBorderColor,
+                                width: cellBorderWidth,
+                              ),
+                boxShadow: isSelected
+                    ? null
+                    : isCurrentStep
+                        ? [
+                            BoxShadow(
+                              color:
+                                  const Color(0xFF87CEEB).withOpacity(0.3),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                            BoxShadow(
+                              color: AppColors.sequencerShadow,
+                              blurRadius: 1,
+                              offset: const Offset(0, 0.5),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: AppColors.sequencerShadow,
+                              blurRadius: 1,
+                              offset: const Offset(0, 0.5),
+                            ),
+                          ],
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final basePadding =
+                      math.min(constraints.maxWidth, constraints.maxHeight) *
+                          (cellPaddingPercent / 100.0);
+                  final actualPadding = basePadding + 1.0;
+                  return Stack(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(actualPadding),
+                        child: hasPlacedSampleForDisplay
+                            ? _buildSampleCellContent(
+                                context,
+                                tableState,
+                                index,
+                                placedSample,
+                                isActivePad,
+                                isCurrentStep,
+                                isDragHovering,
+                              )
+                            : _buildEmptyCellContent(),
+                      ),
+                      if (mutedVisual)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Container(
+                              color: Colors.black.withOpacity(0.26),
+                            ),
+                          ),
+                        ),
+                      if (!mutedVisual && soloVisual)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Container(
+                              color: const Color(0xFFF4D35E)
+                                  .withOpacity(0.18),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            );
+
+            final Widget tutorialWrapped = shouldBlinkTutorialCell
+                ? _TutorialBlinkCell(child: surface)
+                : surface;
+
+            Widget gestureChild = GestureDetector(
               onTap: () {
-                final canTapAnyGridCell = appState.canInteractWithTutorialTarget(
+                final canTapAnyGridCell =
+                    appState.canInteractWithTutorialTarget(
                   TutorialInteractionTarget.sampleGrid,
                 );
                 final canTapFirstTutorialCell = isTutorialCell &&
@@ -659,211 +837,80 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               child: TutorialPulseWidget(
                 enabled: pulseJumpPasteCell,
                 borderRadius: BorderRadius.zero,
-                child: shouldBlinkTutorialCell
-                    ? _TutorialBlinkCell(
-                        child: Container(
-                        key: cellTutorialKey,
-                        width: double.infinity, // Fill available width
-                        height: double.infinity, // Fill available height
-                        decoration: BoxDecoration(
-                          color: isDragHovering
-                              ? AppColors.sequencerAccent.withOpacity(0.8)
-                              : cellColor,
-                          borderRadius: BorderRadius.zero, // Sharp corners
-                          border: isSelected
-                              ? Border.all(
-                                  color: AppColors.sequencerSelectionBorder,
-                                  width: 2,
-                                )
-                              : isCurrentStep
-                                  ? Border.all(
-                                      color: const Color(0xFF87CEEB),
-                                      width: 1.5,
-                                    ) // Light blue border for current step
-                                  : isDragHovering
-                                      ? Border.all(
-                                          color: AppColors.sequencerAccent,
-                                          width: 0.75,
-                                        )
-                                      : Border.all(
-                                          color: cellBorderColor,
-                                          width: cellBorderWidth,
-                                        ),
-                          boxShadow: isSelected
-                              ? null
-                              : isCurrentStep
-                                  ? [
-                                      // Extra glow for current step - light bulb effect
-                                      BoxShadow(
-                                        color: const Color(0xFF87CEEB).withOpacity(0.3),
-                                        blurRadius: 4,
-                                        spreadRadius: 1,
-                                        offset: const Offset(0, 0),
-                                      ),
-                                      BoxShadow(
-                                        color: AppColors.sequencerShadow,
-                                        blurRadius: 1,
-                                        offset: const Offset(0, 0.5),
-                                      ),
-                                    ]
-                                  : [
-                                      BoxShadow(
-                                        color: AppColors.sequencerShadow,
-                                        blurRadius: 1,
-                                        offset: const Offset(0, 0.5),
-                                      ),
-                                    ],
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Increase inner padding slightly to create space for thin selection border
-                            final basePadding =
-                                math.min(constraints.maxWidth, constraints.maxHeight) *
-                                    (cellPaddingPercent / 100.0);
-                            final actualPadding = basePadding + 1.0;
-                            return Stack(
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.all(
-                                    actualPadding,
-                                  ), // Use percentage-based padding relative to cell size
-                                  child: hasPlacedSample
-                                      ? _buildSampleCellContent(
-                                          context,
-                                          tableState,
-                                          index,
-                                          placedSample,
-                                          isActivePad,
-                                          isCurrentStep,
-                                          isDragHovering,
-                                        )
-                                      : _buildEmptyCellContent(),
-                                ),
-                                if (mutedVisual)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: Container(
-                                        color: Colors.black.withOpacity(0.26),
-                                      ),
-                                    ),
-                                  ),
-                                if (!mutedVisual && soloVisual)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: Container(
-                                        color:
-                                            const Color(0xFFF4D35E).withOpacity(0.18),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    )
-                    : Container(
-                        key: cellTutorialKey,
-                        width: double.infinity, // Fill available width
-                        height: double.infinity, // Fill available height
-                        decoration: BoxDecoration(
-                          color: isDragHovering
-                              ? AppColors.sequencerAccent.withOpacity(0.8)
-                              : cellColor,
-                          borderRadius: BorderRadius.zero, // Sharp corners
-                          border: isSelected
-                              ? Border.all(
-                                  color: AppColors.sequencerSelectionBorder,
-                                  width: 2,
-                                )
-                              : isCurrentStep
-                                  ? Border.all(
-                                      color: const Color(0xFF87CEEB),
-                                      width: 1.5,
-                                    ) // Light blue border for current step
-                                  : isDragHovering
-                                      ? Border.all(
-                                          color: AppColors.sequencerAccent,
-                                          width: 0.75,
-                                        )
-                                      : Border.all(
-                                          color: cellBorderColor,
-                                          width: cellBorderWidth,
-                                        ),
-                          boxShadow: isSelected
-                              ? null
-                              : isCurrentStep
-                                  ? [
-                                      // Extra glow for current step - light bulb effect
-                                      BoxShadow(
-                                        color: const Color(0xFF87CEEB).withOpacity(0.3),
-                                        blurRadius: 4,
-                                        spreadRadius: 1,
-                                        offset: const Offset(0, 0),
-                                      ),
-                                      BoxShadow(
-                                        color: AppColors.sequencerShadow,
-                                        blurRadius: 1,
-                                        offset: const Offset(0, 0.5),
-                                      ),
-                                    ]
-                                  : [
-                                      BoxShadow(
-                                        color: AppColors.sequencerShadow,
-                                        blurRadius: 1,
-                                        offset: const Offset(0, 0.5),
-                                      ),
-                                    ],
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Increase inner padding slightly to create space for thin selection border
-                            final basePadding =
-                                math.min(constraints.maxWidth, constraints.maxHeight) *
-                                    (cellPaddingPercent / 100.0);
-                            final actualPadding = basePadding + 1.0;
-                            return Stack(
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.all(
-                                    actualPadding,
-                                  ), // Use percentage-based padding relative to cell size
-                                  child: hasPlacedSample
-                                      ? _buildSampleCellContent(
-                                          context,
-                                          tableState,
-                                          index,
-                                          placedSample,
-                                          isActivePad,
-                                          isCurrentStep,
-                                          isDragHovering,
-                                        )
-                                      : _buildEmptyCellContent(),
-                                ),
-                                if (mutedVisual)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: Container(
-                                        color: Colors.black.withOpacity(0.26),
-                                      ),
-                                    ),
-                                  ),
-                                if (!mutedVisual && soloVisual)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: Container(
-                                        color:
-                                            const Color(0xFFF4D35E).withOpacity(0.18),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
+                child: tutorialWrapped,
               ),
             );
+
+            final bool canDrag = hasPlacedSample &&
+                !isPendingMovedSource &&
+                !cellData.isProcessing &&
+                !isInSelectionMode &&
+                appState.canInteractWithTutorialTarget(
+                    TutorialInteractionTarget.sampleGrid);
+
+            if (canDrag) {
+              final slot = placedSample;
+              final dragData = GridCellDragData(
+                sourceAbsoluteStep: absoluteStep,
+                sourceAbsoluteCol: absoluteCol,
+                sampleSlot: slot,
+                volume: cellData.volume,
+                pitch: cellData.pitch,
+              );
+              final Color feedbackColor =
+                  _getSampleColorForGrid(slot, context);
+              gestureChild = LongPressDraggable<GridCellDragData>(
+                data: dragData,
+                feedback: _DragPulseShell(
+                  child: Material(
+                    color: feedbackColor,
+                    elevation: 4,
+                    shadowColor: Colors.black45,
+                    borderRadius: BorderRadius.circular(2),
+                    child: Container(
+                      width: 76,
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(
+                          color: AppColors.sequencerBorder,
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: _buildCellDragFeedbackContent(
+                            context,
+                            slot,
+                            cellData.volume,
+                            cellData.pitch,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                childWhenDragging: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: row % 4 == 0
+                        ? AppColors.sequencerCellEmptyAlternate
+                        : AppColors.sequencerCellEmpty,
+                    border: Border.all(
+                      color: cellBorderColor,
+                      width: cellBorderWidth,
+                    ),
+                  ),
+                ),
+                child: gestureChild,
+              );
+            }
+
+            return gestureChild;
           },
         );
       },
@@ -892,7 +939,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                   return Row(
                     children: List.generate(numSoundGrids, (i) {
                       final isActive = selectedLayer == i;
-                      final layerLabel = _layerLabelForIndex(i);
+                      final layerLabel = sequencerLayerLabelForIndex(i);
                       // Check THIS layer's mode, not the global mode
                       final layerMode = tableState.getLayerMode(i);
                       return Expanded(
@@ -1078,6 +1125,62 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   Widget _buildEmptyCellContent() {
     // Return a simple container to maintain consistent cell size
     return const SizedBox.shrink();
+  }
+
+  /// Compact K + V line for drag feedback (opaque; uses effective pitch/volume).
+  Widget _buildCellDragFeedbackContent(
+    BuildContext context,
+    int sampleSlot,
+    double cellVolume,
+    double cellPitch,
+  ) {
+    final sampleBankState = context.read<SampleBankState>();
+    final volNotifier = sampleBankState.getSampleVolumeNotifier(sampleSlot);
+    final pitchNotifier = sampleBankState.getSamplePitchNotifier(sampleSlot);
+    return ValueListenableBuilder<double>(
+      valueListenable: volNotifier,
+      builder: (context, sampleVolume, _) {
+        return ValueListenableBuilder<double>(
+          valueListenable: pitchNotifier,
+          builder: (context, samplePitch, __) {
+            final usesDefaultVolume = cellVolume < 0.0;
+            final usesDefaultPitch = cellPitch < 0.0;
+            final effectiveVolume =
+                usesDefaultVolume ? sampleVolume : cellVolume;
+            final effectivePitch =
+                usesDefaultPitch ? samplePitch : cellPitch;
+
+            // Match _buildSampleCellContent: only show non-default overrides.
+            final hasVolumeOverride =
+                !usesDefaultVolume && (cellVolume - sampleVolume).abs() > 0.001;
+            final hasPitchOverride =
+                !usesDefaultPitch && (cellPitch - samplePitch).abs() > 0.001;
+            if (!hasVolumeOverride && !hasPitchOverride) {
+              return const SizedBox.shrink();
+            }
+
+            final style = TextStyle(
+              color: AppColors.sequencerLightText,
+              fontSize: effectsFontSize * 0.82,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.12,
+              height: 1.0,
+            );
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasPitchOverride)
+                  Text(_formatPitchDisplay(effectivePitch), style: style),
+                if (hasPitchOverride && hasVolumeOverride) Text('  ', style: style),
+                if (hasVolumeOverride)
+                  Text('V${(effectiveVolume * 100).round()}', style: style),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   String _formatPitchDisplay(double pitchRatio) {
@@ -1282,7 +1385,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               ),
               child: Center(
                 child: Text(
-                  _layerLabelForIndex(gridIndex),
+                  sequencerLayerLabelForIndex(gridIndex),
                   style: TextStyle(
                     color: isActive
                         ? AppColors.sequencerText // Light text for active tab
@@ -1331,7 +1434,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
       ),
       child: Center(
         child: Text(
-          _layerLabelForIndex(gridIndex),
+          sequencerLayerLabelForIndex(gridIndex),
           style: TextStyle(
             color: cardColor,
             fontSize: 14,
@@ -2196,6 +2299,73 @@ class _TabLevelBarPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _TabLevelBarPainter oldDelegate) =>
       oldDelegate.level != level;
+}
+
+/// Pulsing scale + accent border for grid cell drag feedback and placeholder.
+class _DragPulseShell extends StatefulWidget {
+  final Widget child;
+
+  const _DragPulseShell({required this.child});
+
+  @override
+  State<_DragPulseShell> createState() => _DragPulseShellState();
+}
+
+class _DragPulseShellState extends State<_DragPulseShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) {
+        final t = _pulse.value;
+        final scale = 1.0 + 0.08 * t;
+        return Transform.scale(
+          scale: scale,
+          alignment: Alignment.center,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.sequencerAccent
+                    .withOpacity(0.45 + 0.45 * t),
+                width: 1.5 + t,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.sequencerAccent.withOpacity(0.12 + 0.2 * t),
+                  blurRadius: 6 + 8 * t,
+                  spreadRadius: 0.5 * t,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
 }
 
 class _TutorialBlinkCell extends StatefulWidget {

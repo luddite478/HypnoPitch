@@ -30,6 +30,7 @@ import '../state/sequencer/undo_redo.dart';
 import '../state/sequencer/ui_selection.dart';
 import '../state/sequencer/recording_waveform.dart';
 import '../state/library_samples_state.dart';
+import 'library_screen.dart';
 import 'sequencer_settings_screen.dart';
 import '../services/snapshot/snapshot_service.dart';
 import '../services/snapshot/snapshot_table_validator.dart';
@@ -66,6 +67,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
   static const int _multitaskPanelFlex = 135; // 15 * 0.9 * 10
   static const int _contentFlexTotal =
       _sequencerBodyFlex + _editButtonsFlex + _multitaskPanelFlex;
+  static const double _navDrawerCornerRadius = 6;
+  static const double _navDrawerSideActionIconSize = 24;
 
   // Sequencer state instances
   late final TableState _tableState;
@@ -747,6 +750,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         key: _scaffoldKey,
         backgroundColor: AppColors.sequencerPageBackground,
         endDrawer: _buildSequencerNavDrawer(),
+        endDrawerEnableOpenDragGesture: false,
         body: Stack(
           children: [
             // Sequencer view only (thread view removed)
@@ -1163,11 +1167,24 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
     if (mounted) Navigator.of(context).pop();
   }
 
+  void _openLibraryFromSequencerDrawer(BuildContext drawerContext) {
+    Navigator.of(drawerContext).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AppState>().markProjectsLibraryFolderOpenAction();
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => const LibraryScreen(),
+        ),
+      );
+    });
+  }
+
   Widget _buildSequencerNavDrawer() {
     return Builder(
       builder: (drawerContext) {
         final width = MediaQuery.sizeOf(drawerContext).width * 0.75;
-        final textStyle = TextStyle(
+        final takesTitleStyle = TextStyle(
           color: AppColors.sequencerText,
           fontSize: 17,
           fontWeight: FontWeight.w600,
@@ -1175,49 +1192,165 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         return Drawer(
           width: width,
           backgroundColor: AppColors.sequencerSurfaceRaised,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(_navDrawerCornerRadius),
+              bottomLeft: Radius.circular(_navDrawerCornerRadius),
+            ),
+          ),
           child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                  child: Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: AppColors.sequencerLightText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                          child: Text(
+                            'Menu',
+                            style: TextStyle(
+                              color: AppColors.sequencerLightText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.graphic_eq,
+                            color: AppColors.sequencerAccent,
+                          ),
+                          title: Text(
+                            'Takes',
+                            style: takesTitleStyle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () {
+                            Navigator.of(drawerContext).pop();
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                _showRecordingsOverlay(context);
+                              }
+                            });
+                          },
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: const Color(0xFF9A9A96),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 12, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.of(drawerContext).pop();
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      if (mounted) {
+                                        unawaited(_navigateBackToPatterns());
+                                      }
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.grid_view_rounded,
+                                          size: _navDrawerSideActionIconSize,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Text(
+                                            'Patterns',
+                                            style: TextStyle(
+                                              color: AppColors.sequencerText,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _openLibraryFromSequencerDrawer(
+                                    drawerContext,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.folder_outlined,
+                                          size: _navDrawerSideActionIconSize,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Text(
+                                            'Library',
+                                            style: TextStyle(
+                                              color: AppColors.sequencerText,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.grid_view_rounded,
-                    color: AppColors.sequencerAccent,
-                  ),
-                  title: Text('Patterns', style: textStyle),
-                  onTap: () {
-                    Navigator.of(drawerContext).pop();
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) unawaited(_navigateBackToPatterns());
-                    });
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.graphic_eq,
-                    color: AppColors.sequencerAccent,
-                  ),
-                  title: Text('Takes', style: textStyle),
-                  onTap: () {
-                    Navigator.of(drawerContext).pop();
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) _showRecordingsOverlay(context);
-                    });
-                  },
-                ),
-              ],
+                );
+              },
             ),
           ),
         );

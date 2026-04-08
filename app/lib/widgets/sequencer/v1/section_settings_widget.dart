@@ -46,7 +46,6 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
 
             // Use the simple variables for layout calculations
             final headerHeight = innerHeightAdj * _headerButtonsHeight;
-            final contentHeight = innerHeightAdj * _sliderTileHeightPercent;
 
             final labelFontSize = (headerHeight * 0.25).clamp(8.0, 11.0);
             
@@ -83,7 +82,12 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                     flex: (_headerButtonsHeight * 100).round(),
                     child: LayoutBuilder(
                       builder: (context, headerConstraints) {
-                        return _buildScrollableHeader(headerHeight, labelFontSize, headerConstraints.maxWidth, currentSection);
+                        return _buildScrollableHeader(
+                          headerHeight,
+                          labelFontSize,
+                          headerConstraints.maxWidth,
+                          currentSection,
+                        );
                       },
                     ),
                   ),
@@ -94,8 +98,12 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                   // Control tile area - controllable via _sliderTileHeightPercent
                   Expanded(
                     flex: (_sliderTileHeightPercent * 100).round(),
-                    child: _buildLoopsControl(playbackState, currentSection,
-                        contentHeight, padding, labelFontSize, appState),
+                    child: _buildLoopsControl(
+                      playbackState,
+                      currentSection,
+                      padding,
+                      appState,
+                    ),
                   ),
                   
                   // Bottom spacer - controllable via _spacingHeight
@@ -117,6 +125,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
   }
 
   Widget _buildScrollableHeader(double headerHeight, double labelFontSize, double availableWidth, int currentSection) {
+    final chipHeight = headerHeight * 0.7;
     return Align(
       alignment: Alignment.centerLeft,
       child: SingleChildScrollView(
@@ -131,7 +140,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
               padding: EdgeInsets.only(right: availableWidth * 0.02),
               child: Container(
                 width: availableWidth * 0.25, // 25% of available width
-                height: headerHeight * 0.7,
+                height: chipHeight,
                 padding: EdgeInsets.symmetric(
                   horizontal: availableWidth * 0.03,
                   vertical: headerHeight * 0.02,
@@ -152,6 +161,12 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                   ),
                 ),
               ),
+            ),
+
+            // Same row as master VOL/BPM: mode chip to the right of context label
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: _buildLoopsModeLabelChip(chipHeight, labelFontSize),
             ),
 
             // Optional spacing before action buttons
@@ -197,12 +212,51 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
     );
   }
 
+  /// Same visual language as [SoundSettingsWidget._buildSettingsButton] when selected (VOL/BPM).
+  Widget _buildLoopsModeLabelChip(double height, double fontSize) {
+    return SizedBox(
+      width: 80,
+      height: height,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.sequencerAccent,
+          borderRadius: BorderRadius.circular(2),
+          border: Border.all(
+            color: AppColors.sequencerBorder,
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.sequencerShadow,
+              blurRadius: 1.5,
+              offset: const Offset(0, 1),
+            ),
+            BoxShadow(
+              color: AppColors.sequencerSurfaceRaised,
+              blurRadius: 0.5,
+              offset: const Offset(0, -0.5),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'LOOPS',
+            style: TextStyle(
+              color: AppColors.sequencerPageBackground,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoopsControl(
     PlaybackState playbackState,
     int currentSection,
-    double height,
     double padding,
-    double fontSize,
     AppState appState,
   ) {
     return Container(
@@ -238,79 +292,84 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                 valueListenable: playbackState.currentSectionLoopsNumNotifier,
                 builder: (context, __, ___) {
                   final loopCount = playbackState.getSectionLoopsNum(currentSection);
-                  // Calculate responsive sizes for controls using percentages of available space
-                  // Available height after vertical padding
-                  final availableHeight = height - (padding * 0.3); // Subtract vertical padding
-                  final buttonSize = availableHeight * 0.75; // 60% of available height
-                  final counterWidth = availableHeight * 0.80; // 70% of available height for width
-                  final counterHeight = availableHeight * 0.75; // 60% of available height
-                  final spacing = availableHeight * 0.3; // 8% spacing between elements
-                  
-                  return Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Left arrow button
-                        _buildArrowButton(
-                          context,
-                          icon: Icons.chevron_left,
-                          onTap: () {
-                            if (!appState.canInteractWithTutorialTarget(
-                                TutorialInteractionTarget.sectionLoopsControl)) {
-                              return;
-                            }
-                            if (loopCount > PlaybackState.minLoopsPerSection) {
-                              playbackState.setSectionLoopsNum(currentSection, loopCount - 1);
-                              HapticFeedback.selectionClick();
-                            }
-                          },
-                          enabled: loopCount > PlaybackState.minLoopsPerSection,
-                          size: buttonSize,
-                        ),
-                        
-                        SizedBox(width: spacing),
-                        
-                        // Current loop count
-                        Container(
-                          width: counterWidth,
-                          height: counterHeight,
-                          decoration: BoxDecoration(
-                            color: AppColors.sequencerSurfacePressed,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$loopCount',
-                              style: TextStyle(
-                                color: AppColors.sequencerAccent,
-                                fontSize: counterHeight * 0.75, // 65% of counter height for bigger digit
-                                fontWeight: FontWeight.w700,
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final maxH = constraints.maxHeight;
+                      final availableHeight = maxH - (padding * 0.3);
+                      final buttonSize = availableHeight * 0.75;
+                      final counterWidth = availableHeight * 0.80;
+                      final counterHeight = availableHeight * 0.75;
+                      final spacing = availableHeight * 0.3;
+
+                      return Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildArrowButton(
+                              context,
+                              icon: Icons.chevron_left,
+                              onTap: () {
+                                if (!appState.canInteractWithTutorialTarget(
+                                    TutorialInteractionTarget
+                                        .sectionLoopsControl)) {
+                                  return;
+                                }
+                                if (loopCount >
+                                    PlaybackState.minLoopsPerSection) {
+                                  playbackState.setSectionLoopsNum(
+                                      currentSection, loopCount - 1);
+                                  HapticFeedback.selectionClick();
+                                }
+                              },
+                              enabled: loopCount >
+                                  PlaybackState.minLoopsPerSection,
+                              size: buttonSize,
+                            ),
+                            SizedBox(width: spacing),
+                            Container(
+                              width: counterWidth,
+                              height: counterHeight,
+                              decoration: BoxDecoration(
+                                color: AppColors.sequencerSurfacePressed,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '$loopCount',
+                                  style: TextStyle(
+                                    color: AppColors.sequencerAccent,
+                                    fontSize: counterHeight * 0.75,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            SizedBox(width: spacing),
+                            _buildArrowButton(
+                              context,
+                              icon: Icons.chevron_right,
+                              onTap: () {
+                                if (!appState.canInteractWithTutorialTarget(
+                                    TutorialInteractionTarget
+                                        .sectionLoopsControl)) {
+                                  return;
+                                }
+                                if (loopCount <
+                                    PlaybackState.maxLoopsPerSection) {
+                                  playbackState.setSectionLoopsNum(
+                                      currentSection, loopCount + 1);
+                                  HapticFeedback.selectionClick();
+                                }
+                              },
+                              enabled: loopCount <
+                                  PlaybackState.maxLoopsPerSection,
+                              size: buttonSize,
+                            ),
+                          ],
                         ),
-                        
-                        SizedBox(width: spacing),
-                        
-                        // Right arrow button
-                        _buildArrowButton(
-                          context,
-                          icon: Icons.chevron_right,
-                          onTap: () {
-                            if (!appState.canInteractWithTutorialTarget(
-                                TutorialInteractionTarget.sectionLoopsControl)) {
-                              return;
-                            }
-                            if (loopCount < PlaybackState.maxLoopsPerSection) {
-                              playbackState.setSectionLoopsNum(currentSection, loopCount + 1);
-                              HapticFeedback.selectionClick();
-                            }
-                          },
-                          enabled: loopCount < PlaybackState.maxLoopsPerSection,
-                          size: buttonSize,
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               );

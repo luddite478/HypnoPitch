@@ -366,6 +366,28 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     );
   }
 
+  /// Groups selected cells by empty vs sample slot; empty first, then ascending slot.
+  static List<({int? sampleSlot, int count})> _aggregateSelectedCellsBySample(
+      TableState tableState, List<({int step, int col})> cells) {
+    final counts = <int?, int>{};
+    for (final c in cells) {
+      final ptr = tableState.getCellPointer(c.step, c.col);
+      if (ptr.address == 0) continue;
+      final cd = CellData.fromPointer(ptr);
+      final int? slot =
+          (cd.isNotEmpty && cd.sampleSlot >= 0) ? cd.sampleSlot : null;
+      counts[slot] = (counts[slot] ?? 0) + 1;
+    }
+    final keys = counts.keys.toList()
+      ..sort((a, b) {
+        if (a == null && b != null) return -1;
+        if (a != null && b == null) return 1;
+        if (a == null && b == null) return 0;
+        return a!.compareTo(b!);
+      });
+    return [for (final k in keys) (sampleSlot: k, count: counts[k]!)];
+  }
+
   Widget _buildContextLabelTile(
       double headerHeight,
       double labelFontSize,
@@ -384,6 +406,60 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     final tileHeight = headerHeight * 0.7;
 
     if (widget.type == SettingsType.cell && currentIndex != null) {
+      if (allSimilarCells != null && allSimilarCells.sampleSlot == null) {
+        final groups = _aggregateSelectedCellsBySample(
+            tableState, allSimilarCells.cells);
+        final squareSize = (tileHeight * 0.4).clamp(5.0, 12.0);
+        final chipStyle = TextStyle(
+          color: AppColors.sequencerLightText,
+          fontSize: labelFontSize,
+          fontWeight: FontWeight.w600,
+        );
+        // Intrinsic width grows with more sample groups; the parent
+        // [_buildScrollableHeader] horizontal [SingleChildScrollView] scrolls
+        // the full header row so this never overflows (see flutter_overflow guide).
+        return Container(
+          height: tileHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 3.0),
+          decoration: BoxDecoration(
+            color: AppColors.sequencerSurfaceBase,
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: AppColors.sequencerBorder, width: 1),
+          ),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (final e in groups.asMap().entries) ...[
+                if (e.key > 0) const SizedBox(width: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: squareSize,
+                      height: squareSize,
+                      decoration: BoxDecoration(
+                        color: e.value.sampleSlot == null
+                            ? AppColors.sequencerCellEmpty
+                            : (e.value.sampleSlot! <
+                                    sampleBankState.uiBankColors.length
+                                ? sampleBankState
+                                    .uiBankColors[e.value.sampleSlot!]
+                                : AppColors.sequencerAccent),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Text('${e.value.count}', style: chipStyle),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      }
+
       Color? sampleColor;
       final visibleCols = tableState.getVisibleCols().length;
       final row = currentIndex ~/ visibleCols;
@@ -1119,8 +1195,11 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     _AllSimilarCells? allSimilarCells,
   }) {
     final appState = context.watch<AppState>();
-    final slot =
-        allSimilarCells?.sampleSlot ?? cellInfo?.cellData.sampleSlot ?? -1;
+    final bool mixedBatchNoCommonSample = allSimilarCells != null &&
+        allSimilarCells.sampleSlot == null;
+    final int slot = mixedBatchNoCommonSample
+        ? -1
+        : (allSimilarCells?.sampleSlot ?? cellInfo?.cellData.sampleSlot ?? -1);
     final bool hasSample = slot >= 0;
     String label = 'SELECT SAMPLE';
     if (hasSample) {
