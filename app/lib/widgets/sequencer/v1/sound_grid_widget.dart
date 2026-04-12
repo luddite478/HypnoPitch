@@ -548,6 +548,50 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     );
   }
 
+  /// Multi-select outline: strong left & bottom edges, softer top & right (light from upper-right).
+  /// When two selected cells touch, shared edges use a thin seam so the block does not look doubled.
+  Border _selectionBorderForCell({
+    required int index,
+    required int gridCols,
+    required int row,
+    required int col,
+    required Set<int> selectedSet,
+  }) {
+    final hasLeft = col > 0 && selectedSet.contains(index - 1);
+    final hasRight = col < gridCols - 1 && selectedSet.contains(index + 1);
+    final hasTop = row > 0 && selectedSet.contains(index - gridCols);
+    final hasBottom = selectedSet.contains(index + gridCols);
+
+    const double heavyW = 2.75;
+    const double lightW = 1.15;
+    const double seamW = 1.0;
+    final Color strongEdgeC =
+        AppColors.sequencerSelectionBorder.withValues(alpha: 0.72);
+    final Color litC =
+        AppColors.sequencerSelectionBorder.withValues(alpha: 0.52);
+    final Color seamC =
+        AppColors.sequencerSelectionBorder.withValues(alpha: 0.30);
+
+    return Border(
+      left: BorderSide(
+        width: hasLeft ? seamW : heavyW,
+        color: hasLeft ? seamC : strongEdgeC,
+      ),
+      right: BorderSide(
+        width: hasRight ? seamW : lightW,
+        color: hasRight ? seamC : litC,
+      ),
+      top: BorderSide(
+        width: hasTop ? seamW : lightW,
+        color: hasTop ? seamC : litC,
+      ),
+      bottom: BorderSide(
+        width: hasBottom ? seamW : heavyW,
+        color: hasBottom ? seamC : strongEdgeC,
+      ),
+    );
+  }
+
   // 🎯 PERFORMANCE: Cell that only rebuilds when current step changes or cell data changes
   Widget _buildEnhancedGridCell(
     BuildContext context,
@@ -714,9 +758,12 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                     : cellColor,
                 borderRadius: BorderRadius.zero,
                 border: isSelected
-                    ? Border.all(
-                        color: AppColors.sequencerSelectionBorder,
-                        width: 2,
+                    ? _selectionBorderForCell(
+                        index: index,
+                        gridCols: gridCols,
+                        row: row,
+                        col: col,
+                        selectedSet: selectedSet,
                       )
                     : isCurrentStep
                         ? Border.all(
@@ -733,7 +780,13 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                                 width: cellBorderWidth,
                               ),
                 boxShadow: isSelected
-                    ? null
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.24),
+                          offset: const Offset(1.2, 2.0),
+                          blurRadius: 3,
+                        ),
+                      ]
                     : isCurrentStep
                         ? [
                             BoxShadow(
