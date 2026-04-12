@@ -1,5 +1,6 @@
 import '../../utils/log.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 import '../../services/sample_asset_resolver.dart';
 import '../library_samples_state.dart';
 import 'sample_bank.dart';
@@ -39,6 +40,7 @@ class SampleBrowserState extends ChangeNotifier {
   String? _assetErrorMessage;
   int? _targetStep;
   int? _targetCol;
+
   /// Bank slot for load/place (A–Z index). When null, UI should use [SampleBankState.activeSlot].
   /// [targetCol] is only the grid column; conflating the two made every cell in a column share one color.
   int? _targetBankSlot;
@@ -49,7 +51,7 @@ class SampleBrowserState extends ChangeNotifier {
   }) : _librarySamplesState = librarySamplesState {
     _librarySamplesState?.addListener(_onLibrarySamplesChanged);
   }
-  
+
   bool get isVisible => _isVisible;
   bool get isLoading => _isLoading;
   List<String> get currentPath => _currentPath;
@@ -68,13 +70,13 @@ class SampleBrowserState extends ChangeNotifier {
   void _onLibrarySamplesChanged() {
     _refreshCurrentItems();
   }
-  
+
   // Initialize the sample browser with manifest data
   Future<void> initialize() async {
     _isLoading = true;
     _assetErrorMessage = null;
     notifyListeners();
-    
+
     try {
       await _librarySamplesState?.initialize();
       final sampleResolver = SampleAssetResolver.instance;
@@ -82,7 +84,8 @@ class SampleBrowserState extends ChangeNotifier {
       if (samplesMap.isNotEmpty) {
         _manifestData = samplesMap;
         _refreshCurrentItems();
-        Log.d('📁 Sample browser initialized with ${_manifestData?.keys.length ?? 0} samples');
+        Log.d(
+            '📁 Sample browser initialized with ${_manifestData?.keys.length ?? 0} samples');
       } else {
         Log.d('❌ Invalid manifest structure: no samples key found');
         _manifestData = {};
@@ -93,23 +96,26 @@ class SampleBrowserState extends ChangeNotifier {
       _manifestData = {}; // Empty fallback
       _assetErrorMessage = 'Failed to load built-in samples.';
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
-  
+
   // Show the sample browser for a specific cell
   void showForCell(int step, int col, {int? bankSlot}) {
+    _ensureBuiltInManifestReady();
     _targetStep = step;
     _targetCol = col;
     _targetBankSlot = bankSlot;
     _isVisible = true;
     notifyListeners();
-    Log.d('📁 Showing sample browser for cell [$step, $col] bankSlot=$bankSlot');
+    Log.d(
+        '📁 Showing sample browser for cell [$step, $col] bankSlot=$bankSlot');
   }
-  
+
   // Show for a sample bank slot (V2 compatibility)
   void showForSlot(int slot) {
+    _ensureBuiltInManifestReady();
     _targetStep = null;
     _targetCol = slot; // Reuse targetCol for slot
     _targetBankSlot = slot;
@@ -161,7 +167,7 @@ class SampleBrowserState extends ChangeNotifier {
     _refreshCurrentItems();
     Log.d('📁 Navigated to sample folder: ${_currentPath.join('/')}');
   }
-  
+
   // Hide the sample browser
   void hide() {
     _isVisible = false;
@@ -171,15 +177,15 @@ class SampleBrowserState extends ChangeNotifier {
     notifyListeners();
     Log.d('📁 Sample browser hidden');
   }
-  
+
   // Navigate into a folder
-  void navigateToFolder(String folderName) {
-    _currentPath.add(folderName);
+  void navigateToFolder(String folderName, {String? folderKey}) {
+    _currentPath.add(folderKey ?? folderName);
     _refreshCurrentItems();
     notifyListeners();
     Log.d('📁 Navigated to: ${_currentPath.join('/')}');
   }
-  
+
   // Navigate back one level
   void navigateBack() {
     if (_currentPath.isNotEmpty) {
@@ -189,66 +195,104 @@ class SampleBrowserState extends ChangeNotifier {
       Log.d('📁 Navigated back to: ${_currentPath.join('/')}');
     }
   }
-  
+
   // Select a sample file - returns the full path
   String? selectSample(SampleItem item) {
     if (item.isFolder) return null;
-    
+
     Log.d('📁 Selected sample: ${item.path}');
     return item.path; // Path is already complete from manifest
   }
-  
+
+  void _ensureBuiltInManifestReady() {
+    if (_isLoading) return;
+    if (_manifestData != null && _manifestData!.isNotEmpty) return;
+    // Lazy recovery path: if browser opens without built-ins loaded, retry load.
+    initialize();
+  }
+
   // Preview slot constant - use slot 25 (Z) as dedicated preview slot
   static const int _previewSlot = 25;
-  
+
   // Current preview sample ID (if any)
   String? _previewSampleId;
-  
+
+  /// Bumps when a preview **starts** (including replay) so UI can reset progress.
+  int _previewGeneration = 0;
+
+  String? get previewingSampleId => _previewSampleId;
+
+  int get previewGeneration => _previewGeneration;
+
   /// Preview a sample by loading it temporarily into preview slot and playing it
   /// Similar to how sound settings preview works
-  Future<void> previewSample(SampleItem item, SampleBankState sampleBankState, PlaybackState playbackState) async {
+  Future<void> previewSample(SampleItem item, SampleBankState sampleBankState,
+      PlaybackState playbackState) async {
     if (item.isFolder || item.sampleId == null) return;
-    
+
     try {
-      // Stop any existing preview first
-      playbackState.stopPreview();
-      
-      // If same sample is already loaded in preview slot, just play it
-      if (_previewSampleId == item.sampleId && sampleBankState.isSlotLoaded(_previewSlot)) {
-        Log.d('▶️ [SAMPLE_BROWSER] Reusing preview slot for sample: ${item.sampleId}');
-        playbackState.previewSampleSlot(_previewSlot, pitchRatio: 1.0, volume01: 1.0);
+      // Same sample already in preview slot — replay only (must run before clearing id)
+      if (_previewSampleId == item.sampleId &&
+          sampleBankState.isSlotLoaded(_previewSlot)) {
+        playbackState.stopPreview();
+        Log.d(
+            '▶️ [SAMPLE_BROWSER] Reusing preview slot for sample: ${item.sampleId}');
+        playbackState.previewSampleSlot(_previewSlot,
+            pitchRatio: 1.0, volume01: 1.0);
+        _previewGeneration++;
+        notifyListeners();
         return;
       }
-      
-      // Load sample into preview slot
-      Log.d('📥 [SAMPLE_BROWSER] Loading sample into preview slot: ${item.sampleId}');
-      final success = await sampleBankState.loadSample(_previewSlot, item.sampleId!);
-      
+
+      playbackState.stopPreview();
+      _previewSampleId = null;
+      notifyListeners();
+
+      Log.d(
+          '📥 [SAMPLE_BROWSER] Loading sample into preview slot: ${item.sampleId}');
+      final success =
+          await sampleBankState.loadSample(_previewSlot, item.sampleId!);
+
       if (success) {
         _previewSampleId = item.sampleId;
         // Wait a tiny bit for sample to be ready, then preview
         await Future.delayed(const Duration(milliseconds: 50));
-        playbackState.previewSampleSlot(_previewSlot, pitchRatio: 1.0, volume01: 1.0);
-        Log.d('▶️ [SAMPLE_BROWSER] Preview started for sample: ${item.sampleId}');
+        playbackState.previewSampleSlot(_previewSlot,
+            pitchRatio: 1.0, volume01: 1.0);
+        Log.d(
+            '▶️ [SAMPLE_BROWSER] Preview started for sample: ${item.sampleId}');
+        _previewGeneration++;
+        notifyListeners();
       } else {
-        Log.d('❌ [SAMPLE_BROWSER] Failed to load sample for preview: ${item.sampleId}');
+        Log.d(
+            '❌ [SAMPLE_BROWSER] Failed to load sample for preview: ${item.sampleId}');
       }
     } catch (e) {
       Log.d('❌ [SAMPLE_BROWSER] Error previewing sample: $e');
     }
   }
-  
+
+  /// Stop audible preview and clear [previewingSampleId] so UI shows play again.
+  /// Does not unload the preview bank slot (sample may still be loaded in Z).
+  void stopActiveSamplePreview(PlaybackState playbackState) {
+    playbackState.stopPreview();
+    _previewSampleId = null;
+    notifyListeners();
+    Log.d('🛑 [SAMPLE_BROWSER] Active sample preview stopped');
+  }
+
   /// Stop preview and optionally clean up preview slot
   void stopPreview(PlaybackState playbackState, {bool unload = false}) {
     playbackState.stopPreview();
     if (unload) {
       _previewSampleId = null;
+      notifyListeners();
       Log.d('🛑 [SAMPLE_BROWSER] Preview stopped and slot cleared');
     } else {
       Log.d('🛑 [SAMPLE_BROWSER] Preview stopped (slot kept for reuse)');
     }
   }
-  
+
   // Refresh current items based on current path
   void _refreshCurrentItems() {
     _currentItems.clear();
@@ -283,15 +327,17 @@ class SampleBrowserState extends ChangeNotifier {
   }
 
   void _refreshCustomItems() {
-    final customFolders = _librarySamplesState?.customFolders ?? const <String>[];
+    final customFolders =
+        _librarySamplesState?.customFolders ?? const <String>[];
     if (_currentPath.length == 1) {
       for (final folder in customFolders) {
         _currentItems.add(
           SampleItem(
-            name: folder,
+            name: LibrarySamplesState.formatSampleLabel(folder),
             isFolder: true,
             path: 'samples/$_customRootSegment/$folder',
             isCustom: true,
+            folderKey: folder,
           ),
         );
       }
@@ -299,18 +345,15 @@ class SampleBrowserState extends ChangeNotifier {
     }
 
     final folderName = _currentPath[1];
-    final files = _librarySamplesState?.customFilesForFolder(folderName) ??
-        const <String>[];
-    for (final filePath in files) {
+    final entries = _librarySamplesState?.customEntriesForFolder(folderName) ??
+        const <CustomSampleEntry>[];
+    for (final entry in entries) {
       _currentItems.add(
         SampleItem(
-          name: filePath.split('/').last,
+          name: LibrarySamplesState.formatSampleLabel(entry.fileName),
           isFolder: false,
-          path: filePath,
-          sampleId: LibrarySamplesState.customSampleIdFor(
-            folderName: folderName,
-            filePath: filePath,
-          ),
+          path: entry.filePath,
+          sampleId: entry.id,
           isCustom: true,
         ),
       );
@@ -349,8 +392,12 @@ class SampleBrowserState extends ChangeNotifier {
 
           if (pathParts.length == 1) {
             // This is a file in current directory
+            final displayRaw = sampleData['display_name'];
+            final displayName = displayRaw is String && displayRaw.isNotEmpty
+                ? displayRaw
+                : p.basenameWithoutExtension(pathParts[0]);
             files.add(SampleItem(
-              name: pathParts[0],
+              name: LibrarySamplesState.formatSampleLabel(displayName),
               isFolder: false,
               path: fullPath,
               sampleId: sampleId,
@@ -368,9 +415,10 @@ class SampleBrowserState extends ChangeNotifier {
     _sortSampleBankFolders(sortedFolders);
     for (final folder in sortedFolders) {
       _currentItems.add(SampleItem(
-        name: folder,
+        name: LibrarySamplesState.formatSampleLabel(folder),
         isFolder: true,
         path: '$searchPrefix$folder',
+        folderKey: folder,
       ));
     }
 
@@ -395,18 +443,20 @@ class SampleItem {
   final String name;
   final bool isFolder;
   final String path;
+  final String? folderKey;
   final String? sampleId; // ID from manifest for files
   final bool isCustom;
-  
+
   SampleItem({
     required this.name,
     required this.isFolder,
     required this.path,
+    this.folderKey,
     this.sampleId,
     this.isCustom = false,
   });
-  
+
   @override
   String toString() =>
-      'SampleItem(name: $name, isFolder: $isFolder, path: $path, sampleId: $sampleId, isCustom: $isCustom)';
+      'SampleItem(name: $name, folderKey: $folderKey, isFolder: $isFolder, path: $path, sampleId: $sampleId, isCustom: $isCustom)';
 }

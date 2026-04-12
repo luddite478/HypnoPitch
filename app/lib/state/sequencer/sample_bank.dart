@@ -1,5 +1,4 @@
 import '../../utils/log.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -8,8 +7,8 @@ import 'dart:io';
 import 'dart:math' as math;
 import '../../ffi/sample_bank_bindings.dart';
 import '../../services/sample_asset_resolver.dart';
+import '../../services/sample_reference_resolver.dart';
 import '../../utils/app_colors.dart';
-import '../library_samples_state.dart';
 import 'ui_selection.dart';
 import 'sync_profiling_helpers.dart';
 
@@ -38,6 +37,8 @@ class SampleBankState extends ChangeNotifier {
 
   final SampleBankBindings _sample_bank_ffi;
   final SampleAssetResolver _sampleAssets = SampleAssetResolver.instance;
+  final SampleReferenceResolver _sampleReferenceResolver =
+      SampleReferenceResolver.instance;
 
   // Auto-save callback (set by ThreadsState)
   void Function()? _onStateChanged;
@@ -92,10 +93,69 @@ class SampleBankState extends ChangeNotifier {
 
   /// Load sample into a slot by manifest ID (required).
   Future<bool> loadSample(int slot, String sampleId) async {
-    if (LibrarySamplesState.isCustomSampleId(sampleId)) {
-      return _loadCustomSampleById(slot, sampleId);
+    final result = await loadSampleReference(slot, sampleId: sampleId);
+    return result.success;
+  }
+
+  Future<SampleLoadResult> loadSampleReference(
+    int slot, {
+    String? sampleId,
+    String? filePathHint,
+    String? displayName,
+  }) async {
+    final resolution = await _sampleReferenceResolver.resolve(
+      sampleId: sampleId,
+      filePathHint: filePathHint,
+    );
+    if (!resolution.isResolved) {
+      Log.d(
+          '❌ [SAMPLE_BANK_STATE] Failed to resolve sample id=$sampleId reason=${resolution.failureReason}');
+      return SampleLoadResult(
+        success: false,
+        failureReason: resolution.failureReason,
+        message: resolution.message,
+      );
     }
-    return _loadSampleByManifestId(slot, sampleId);
+    if (resolution.kind == SampleReferenceKind.builtIn &&
+        resolution.assetPath != null &&
+        resolution.canonicalSampleId != null) {
+      final ok = await _loadSampleWithId(
+        slot,
+        resolution.assetPath!,
+        resolution.canonicalSampleId!,
+      );
+      return SampleLoadResult(
+        success: ok,
+        resolvedSampleId: resolution.canonicalSampleId,
+        resolvedPath: resolution.assetPath,
+      );
+    }
+    if ((resolution.kind == SampleReferenceKind.custom ||
+            resolution.kind == SampleReferenceKind.localFile) &&
+        resolution.localPath != null) {
+      final id = resolution.canonicalSampleId ??
+          sampleId ??
+          'recording_${DateTime.now().millisecondsSinceEpoch}';
+      final ok = await _loadFileWithId(slot, resolution.localPath!, id);
+      if (!ok && displayName != null) {
+        final recorded = await loadRecordedAudio(slot, resolution.localPath!,
+            displayName: displayName);
+        return SampleLoadResult(
+          success: recorded,
+          resolvedSampleId: id,
+          resolvedPath: resolution.localPath,
+        );
+      }
+      return SampleLoadResult(
+        success: ok,
+        resolvedSampleId: id,
+        resolvedPath: resolution.localPath,
+      );
+    }
+    return const SampleLoadResult(
+      success: false,
+      failureReason: SampleResolveFailureReason.unknownSampleId,
+    );
   }
 
   /// Load recorded audio from file path (not asset)
@@ -215,6 +275,8 @@ class SampleBankState extends ChangeNotifier {
 
         Log.d(
             '✅ [SAMPLE_BANK_STATE] Loaded sample $slot with id: ${_slotNames[slot]}');
+        syncSampleBankState();
+        notifyListeners();
         return true;
       } else {
         Log.d(
@@ -227,33 +289,8 @@ class SampleBankState extends ChangeNotifier {
     }
   }
 
-  /// Load sample by manifest id using samples_manifest.json (internal)
-  Future<bool> _loadSampleByManifestId(int slot, String sampleId) async {
-    try {
-      final assetPath = await _sampleAssets.resolveAssetPathFromSampleId(sampleId);
-      if (assetPath == null || assetPath.isEmpty) {
-        Log.d('❌ [SAMPLE_BANK_STATE] Manifest id not found: $sampleId');
-        return false;
-      }
-
-      return await _loadSampleWithId(slot, assetPath, sampleId);
-    } catch (e) {
-      Log.d('❌ [SAMPLE_BANK_STATE] Failed to load manifest: $e');
-      return false;
-    }
-  }
-
-  Future<bool> _loadCustomSampleById(int slot, String sampleId) async {
-    final customPath =
-        await LibrarySamplesState.resolveCustomSampleIdPath(sampleId);
-    if (customPath == null || customPath.isEmpty) {
-      Log.d('❌ [SAMPLE_BANK_STATE] Custom sample id not found: $sampleId');
-      return false;
-    }
-    return _loadFileWithId(slot, customPath, sampleId);
-  }
-
-  Future<bool> _loadFileWithId(int slot, String filePath, String sampleId) async {
+  Future<bool> _loadFileWithId(
+      int slot, String filePath, String sampleId) async {
     if (slot < 0 || slot >= maxSampleSlots) {
       Log.d('❌ [SAMPLE_BANK_STATE] Invalid slot: $slot');
       return false;
@@ -280,7 +317,8 @@ class SampleBankState extends ChangeNotifier {
       }
       idPtr[idBytes.length] = 0;
 
-      final result = _sample_bank_ffi.sampleBankLoadWithId(slot, pathPtr, idPtr);
+      final result =
+          _sample_bank_ffi.sampleBankLoadWithId(slot, pathPtr, idPtr);
       calloc.free(pathPtr);
       calloc.free(idPtr);
 
@@ -292,13 +330,18 @@ class SampleBankState extends ChangeNotifier {
       _slotNames[slot] = filePath.split('/').last;
       _slotPaths[slot] = filePath;
       if (_sampleColors[slot] == null) {
-        _sampleColors[slot] = _defaultBankColors[slot % _defaultBankColors.length];
+        _sampleColors[slot] =
+            _defaultBankColors[slot % _defaultBankColors.length];
       }
 
-      Log.d('✅ [SAMPLE_BANK_STATE] Loaded local sample id=$sampleId into slot $slot');
+      Log.d(
+          '✅ [SAMPLE_BANK_STATE] Loaded local sample id=$sampleId into slot $slot');
+      syncSampleBankState();
+      notifyListeners();
       return true;
     } catch (e) {
-      Log.d('❌ [SAMPLE_BANK_STATE] Error loading local sample id=$sampleId: $e');
+      Log.d(
+          '❌ [SAMPLE_BANK_STATE] Error loading local sample id=$sampleId: $e');
       return false;
     }
   }
@@ -306,7 +349,8 @@ class SampleBankState extends ChangeNotifier {
   /// Copy Flutter asset to temporary file for native access
   Future<String?> _copyAssetToTempFile(String assetPath) async {
     try {
-      final String? tempPath = await _sampleAssets.copyAssetToTempFile(assetPath);
+      final String? tempPath =
+          await _sampleAssets.copyAssetToTempFile(assetPath);
       if (tempPath == null) {
         return null;
       }
@@ -735,4 +779,20 @@ class SampleBankState extends ChangeNotifier {
 
     super.dispose();
   }
+}
+
+class SampleLoadResult {
+  final bool success;
+  final String? resolvedSampleId;
+  final String? resolvedPath;
+  final SampleResolveFailureReason? failureReason;
+  final String? message;
+
+  const SampleLoadResult({
+    required this.success,
+    this.resolvedSampleId,
+    this.resolvedPath,
+    this.failureReason,
+    this.message,
+  });
 }

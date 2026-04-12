@@ -547,8 +547,7 @@ void playback_set_mode(int song_mode) {
     UndoRedoManager_record();
 }
 
-// Switch to section
-void switch_to_section(int section_index) {
+void switch_to_section_immediate(int section_index) {
     int sections_count = table_get_sections_count();
     if (section_index < 0) section_index = 0;
     if (section_index >= sections_count) section_index = sections_count - 1;
@@ -588,6 +587,52 @@ void switch_to_section(int section_index) {
         playback_start(g_playback_state.bpm, g_current_step);
     }
     
+}
+
+void switch_to_section_seamless_song_mode(int section_index) {
+    int sections_count = table_get_sections_count();
+    if (section_index < 0) section_index = 0;
+    if (section_index >= sections_count) section_index = sections_count - 1;
+
+    int prev_section = g_playback_state.current_section;
+    int was_playing = g_sequencer_playing;
+
+    g_playback_state.current_section = section_index;
+    g_playback_state.current_section_loop = 0;
+    int section_start_step = table_get_section_start_step(section_index);
+    g_current_step = was_playing ? section_start_step : -1;
+
+    int section_steps_num = table_get_section_step_count(section_index);
+    g_playback_state.region_start = section_start_step;
+    g_playback_state.region_end = section_start_step + section_steps_num;
+    sunvox_wrapper_set_region(g_playback_state.region_start, g_playback_state.region_end);
+
+    // Keep transport running; only change timeline target/position.
+    sunvox_wrapper_set_playback_mode(g_playback_state.song_mode, section_index, 0);
+    int timeline_start_line = sunvox_wrapper_get_section_pattern_x(section_index);
+    if (was_playing) {
+        sv_set_position(SUNVOX_SLOT, timeline_start_line);
+        sunvox_wrapper_on_section_switch(prev_section, section_index);
+    } else {
+        sunvox_wrapper_apply_section_layer_reverb(section_index, 1);
+        sunvox_wrapper_apply_section_layer_eq(section_index);
+        sunvox_wrapper_apply_section_layer_volume(section_index);
+    }
+
+    state_write_begin();
+    state_update_prefix();
+    state_write_end();
+
+    prnt_debug("🎯 [PLAYBACK] Seamless switch to section %d (line=%d)", section_index, timeline_start_line);
+}
+
+// Backward-compatible public entry point.
+void switch_to_section(int section_index) {
+    if (g_sequencer_playing && g_playback_state.song_mode) {
+        switch_to_section_seamless_song_mode(section_index);
+        return;
+    }
+    switch_to_section_immediate(section_index);
 }
 
 // Set section loops count
@@ -708,6 +753,91 @@ void playback_set_master_reverb(float wet01) {
 void playback_set_master_eq_band(int band, int gain_0_512) {
     if (!g_initialized || !sunvox_wrapper_is_initialized()) return;
     sunvox_wrapper_set_master_eq_band(band, gain_0_512);
+}
+
+void playback_set_section_layer_reverb(int section, int layer, float send01, float room01, float damp01) {
+    if (!g_initialized || !sunvox_wrapper_is_initialized()) return;
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+
+    if (send01 < 0.0f) send01 = 0.0f;
+    if (send01 > 1.0f) send01 = 1.0f;
+    if (room01 < 0.0f) room01 = 0.0f;
+    if (room01 > 1.0f) room01 = 1.0f;
+    if (damp01 < 0.0f) damp01 = 0.0f;
+    if (damp01 > 1.0f) damp01 = 1.0f;
+
+    int send = (int)(send01 * 255.0f);
+    int room = (int)(room01 * 255.0f);
+    int damp = (int)(damp01 * 255.0f);
+    table_set_section_layer_reverb(section, layer, send, room, damp, 0);
+
+    // Apply immediately for currently audible section.
+    if (section == g_playback_state.current_section) {
+        sunvox_wrapper_apply_section_layer_reverb(section, 0);
+    }
+}
+
+float playback_get_section_layer_reverb_send(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 0.0f;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 0.0f;
+    int send = table_get_section_layer_reverb_send(section, layer);
+    return (float)send / 255.0f;
+}
+
+float playback_get_section_layer_reverb_room(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 0.5f;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 0.5f;
+    int room = table_get_section_layer_reverb_room(section, layer);
+    return (float)room / 255.0f;
+}
+
+float playback_get_section_layer_reverb_damp(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 0.5f;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 0.5f;
+    int damp = table_get_section_layer_reverb_damp(section, layer);
+    return (float)damp / 255.0f;
+}
+
+// Keep symbols exported for Dart FFI (dlsym); may otherwise be dead-stripped when only called from Dart.
+void playback_set_section_layer_eq_band(int section, int layer, int band, int db) {
+    if (!g_initialized || !sunvox_wrapper_is_initialized()) return;
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+    if (band < 0 || band > 2) return;
+
+    table_set_section_layer_eq_band(section, layer, band, db, 0);
+
+    if (section == g_playback_state.current_section) {
+        sunvox_wrapper_apply_section_layer_eq(section);
+    }
+}
+
+int playback_get_section_layer_eq_band_db(int section, int layer, int band) {
+    if (section < 0 || section >= MAX_SECTIONS) return 0;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 0;
+    if (band < 0 || band > 2) return 0;
+    return table_get_section_layer_eq_band_db(section, layer, band);
+}
+
+void playback_set_section_layer_volume(int section, int layer, float volume01) {
+    if (!g_initialized || !sunvox_wrapper_is_initialized()) return;
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+    if (volume01 < 0.0f) volume01 = 0.0f;
+    if (volume01 > 1.0f) volume01 = 1.0f;
+    int level = (int)(volume01 * 255.0f);
+    table_set_section_layer_volume(section, layer, level, 0);
+    if (section == g_playback_state.current_section) {
+        sunvox_wrapper_apply_section_layer_volume(section);
+    }
+}
+
+float playback_get_section_layer_volume(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 1.0f;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 1.0f;
+    int vol = table_get_section_layer_volume(section, layer);
+    return (float)vol / 255.0f;
 }
 
 // Enhanced playback logging control (for debugging)
@@ -956,10 +1086,16 @@ static void update_current_step_from_sunvox(void) {
     int new_global_step = section_start_step + local_line;
 
     // Update state only if something has changed.
+    int prev_section = g_playback_state.current_section;
+    int section_changed = (prev_section != current_section_from_line);
     if (g_current_step != new_global_step ||
-        g_playback_state.current_section != current_section_from_line ||
+        section_changed ||
         g_playback_state.current_section_loop != final_loop)
     {
+        if (section_changed && g_playback_state.song_mode && g_sequencer_playing) {
+            sunvox_wrapper_on_section_switch(prev_section, current_section_from_line);
+        }
+
         state_write_begin();
         g_current_step = new_global_step;
         g_playback_state.current_section = current_section_from_line;

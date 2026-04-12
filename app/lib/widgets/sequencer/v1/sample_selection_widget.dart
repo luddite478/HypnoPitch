@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../utils/log.dart';
 import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
+import '../../../utils/audio_duration_probe.dart';
 import '../../../state/sequencer/sample_browser.dart';
 import '../../../state/sequencer/sample_bank.dart';
 import '../../../state/sequencer/playback.dart';
@@ -134,10 +137,9 @@ Future<void> _selectSampleForCurrentTarget(
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close,
-                              color: AppColors.sequencerText),
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(),
+                          icon:
+                              Icon(Icons.close, color: AppColors.sequencerText),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
                           iconSize: 18,
                           padding: const EdgeInsets.all(6),
                           constraints: const BoxConstraints(
@@ -185,7 +187,8 @@ class SampleSelectionWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, SampleBrowserState browserState, SampleBankState sampleBankState) {
+  Widget _buildContent(BuildContext context, SampleBrowserState browserState,
+      SampleBankState sampleBankState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -216,16 +219,19 @@ class SampleSelectionWidget extends StatelessWidget {
                 GestureDetector(
                   onTap: () => state.navigateBack(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.sequencerSurfaceRaised,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.sequencerBorder, width: 1),
+                      border: Border.all(
+                          color: AppColors.sequencerBorder, width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.arrow_back, color: AppColors.sequencerText, size: 16),
+                        Icon(Icons.arrow_back,
+                            color: AppColors.sequencerText, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           'BACK',
@@ -262,13 +268,15 @@ class SampleSelectionWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildItemList(BuildContext context, SampleBrowserState browserState, SampleBankState sampleBankState) {
+  Widget _buildItemList(BuildContext context, SampleBrowserState browserState,
+      SampleBankState sampleBankState) {
     if (browserState.isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.folder_open, color: AppColors.sequencerLightText, size: 24),
+            Icon(Icons.folder_open,
+                color: AppColors.sequencerLightText, size: 24),
             const SizedBox(height: 8),
             Text(
               'Loading samples...',
@@ -284,13 +292,13 @@ class SampleSelectionWidget extends StatelessWidget {
     }
 
     if (browserState.currentItems.isEmpty) {
-      final message =
-          browserState.assetErrorMessage ?? 'No samples found';
+      final message = browserState.assetErrorMessage ?? 'No samples found';
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.folder_open, color: AppColors.sequencerLightText, size: 24),
+            Icon(Icons.folder_open,
+                color: AppColors.sequencerLightText, size: 24),
             const SizedBox(height: 8),
             Text(
               message,
@@ -336,7 +344,10 @@ class SampleSelectionWidget extends StatelessWidget {
       itemCount: files.length,
       itemBuilder: (context, index) {
         final item = files[index];
-        return _FileListTile(item: item, browserState: browserState, sampleBankState: sampleBankState);
+        return _FileListTile(
+            item: item,
+            browserState: browserState,
+            sampleBankState: sampleBankState);
       },
     );
   }
@@ -363,7 +374,10 @@ class SampleSelectionWidget extends StatelessWidget {
           padding: EdgeInsets.all(spacing),
           itemBuilder: (context, index) {
             final item = items[index];
-            return _GridTile(item: item, browserState: browserState, sampleBankState: sampleBankState);
+            return _GridTile(
+                item: item,
+                browserState: browserState,
+                sampleBankState: sampleBankState);
           },
         );
       },
@@ -371,7 +385,291 @@ class SampleSelectionWidget extends StatelessWidget {
   }
 }
 
-// ─── File list tile with tap-to-play + SELECT button ───────────────────────
+/// Same chrome as [PatternRecordingsOverlay] recording rows: play column, info,
+/// single action (SELECT) instead of add-to-library + menu, plus progress bar.
+class _SampleBrowserAudioTile extends StatefulWidget {
+  const _SampleBrowserAudioTile({
+    required this.item,
+    required this.browserState,
+    required this.sampleBankState,
+  });
+
+  final SampleItem item;
+  final SampleBrowserState browserState;
+  final SampleBankState sampleBankState;
+
+  @override
+  State<_SampleBrowserAudioTile> createState() =>
+      _SampleBrowserAudioTileState();
+}
+
+class _SampleBrowserAudioTileState extends State<_SampleBrowserAudioTile> {
+  double? _durationSec;
+  double _progress = 0;
+  DateTime? _previewStart;
+  Timer? _progressTimer;
+  int? _lastHandledGeneration;
+  bool _listening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.browserState.addListener(_onBrowserChanged);
+    _listening = true;
+    _loadDuration();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onBrowserChanged();
+    });
+  }
+
+  @override
+  void dispose() {
+    _progressTimer?.cancel();
+    if (_listening) {
+      widget.browserState.removeListener(_onBrowserChanged);
+    }
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SampleBrowserAudioTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.browserState != widget.browserState) {
+      oldWidget.browserState.removeListener(_onBrowserChanged);
+      widget.browserState.addListener(_onBrowserChanged);
+    }
+    if (oldWidget.item.path != widget.item.path ||
+        oldWidget.item.isCustom != widget.item.isCustom) {
+      _durationSec = null;
+      _loadDuration();
+    }
+  }
+
+  Future<void> _loadDuration() async {
+    final sec = await AudioDurationProbe.secondsForSampleBrowserPath(
+      path: widget.item.path,
+      isCustom: widget.item.isCustom,
+    );
+    if (!mounted) return;
+    setState(() => _durationSec = sec);
+  }
+
+  void _onBrowserChanged() {
+    final id = widget.browserState.previewingSampleId;
+    final gen = widget.browserState.previewGeneration;
+    final isThis = id == widget.item.sampleId;
+
+    if (!isThis) {
+      if (_progressTimer != null || _progress > 0) {
+        _progressTimer?.cancel();
+        _progressTimer = null;
+        _lastHandledGeneration = null;
+        setState(() {
+          _progress = 0;
+          _previewStart = null;
+        });
+      }
+      return;
+    }
+
+    if (_lastHandledGeneration != gen) {
+      _lastHandledGeneration = gen;
+      _previewStart = DateTime.now();
+      _progressTimer?.cancel();
+      _progressTimer =
+          Timer.periodic(const Duration(milliseconds: 40), _tickProgress);
+      setState(() => _progress = 0);
+    }
+  }
+
+  void _tickProgress(Timer timer) {
+    if (!mounted) return;
+    final start = _previewStart;
+    if (start == null) return;
+    const fallbackSec = 3.0;
+    final total = (_durationSec != null && _durationSec! > 0)
+        ? _durationSec!
+        : fallbackSec;
+    final elapsed = DateTime.now().difference(start).inMilliseconds / 1000.0;
+    final p = (elapsed / total).clamp(0.0, 1.0);
+    if (p >= 1.0) {
+      timer.cancel();
+      _progressTimer = null;
+      if (!mounted) return;
+      final playbackState = context.read<PlaybackState>();
+      widget.browserState.stopActiveSamplePreview(playbackState);
+      setState(() {
+        _progress = 0;
+        _previewStart = null;
+      });
+      return;
+    }
+    setState(() => _progress = p);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final playbackState = context.read<PlaybackState>();
+    final id = widget.browserState.previewingSampleId;
+    final isThisPreview = id == widget.item.sampleId;
+    final showProgressBar =
+        isThisPreview && (_progress > 0 || _progressTimer != null);
+    final isActivelyPreviewing = isThisPreview && _progress < 1.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final isVerySmall = availableWidth < 350;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.sequencerSurfaceBase,
+            borderRadius: BorderRadius.circular(1.0),
+            border: Border.all(
+              color: AppColors.sequencerBorder,
+              width: 0.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.sequencerSurfaceRaised,
+                      border: Border(
+                        right: BorderSide(
+                          color: AppColors.sequencerBorder,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: IconButton(
+                      onPressed: widget.item.sampleId == null
+                          ? null
+                          : () async {
+                              if (isActivelyPreviewing) {
+                                widget.browserState
+                                    .stopActiveSamplePreview(playbackState);
+                              } else {
+                                await widget.browserState.previewSample(
+                                  widget.item,
+                                  widget.sampleBankState,
+                                  playbackState,
+                                );
+                              }
+                            },
+                      icon: Icon(
+                        isActivelyPreviewing
+                            ? Icons.stop_rounded
+                            : Icons.play_arrow,
+                        size: 22,
+                      ),
+                      color: AppColors.sequencerAccent,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isVerySmall ? 6 : 8,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        widget.item.name,
+                        style: TextStyle(
+                          fontSize: isVerySmall ? 13 : 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.sequencerText,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(
+                          color: AppColors.sequencerBorder,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: widget.item.sampleId == null
+                            ? null
+                            : () async {
+                                await _selectSampleForCurrentTarget(
+                                  context,
+                                  browserState: widget.browserState,
+                                  sampleBankState: widget.sampleBankState,
+                                  item: widget.item,
+                                );
+                              },
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            minWidth: 72,
+                            maxHeight: 44,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'SELECT',
+                            style: TextStyle(
+                              fontSize: isVerySmall ? 11 : 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: AppColors.sequencerAccent,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (showProgressBar)
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: AppColors.sequencerBorder,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Container(
+                        color: AppColors.sequencerSurfaceRaised,
+                      ),
+                      FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: _progress.clamp(0.0, 1.0),
+                        child: Container(
+                          color: AppColors.sequencerAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── File list tile (Takes-style row) ──────────────────────────────────────
 
 class _FileListTile extends StatelessWidget {
   const _FileListTile({
@@ -384,131 +682,14 @@ class _FileListTile extends StatelessWidget {
   final SampleBrowserState browserState;
   final SampleBankState sampleBankState;
 
-  String get _formatLabel {
-    final n = item.name.toLowerCase();
-    if (n.endsWith('.wav')) return 'WAV';
-    if (n.endsWith('.mp3')) return 'MP3';
-    if (n.endsWith('.m4a')) return 'M4A';
-    return 'AUDIO';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        final playbackState = context.read<PlaybackState>();
-        await browserState.previewSample(item, sampleBankState, playbackState);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        decoration: BoxDecoration(
-          color: AppColors.sequencerSurfaceRaised,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.sequencerBorder, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.sequencerShadow,
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              // File name + format
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.sequencerText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatLabel,
-                      style: TextStyle(
-                        color: AppColors.sequencerLightText,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // SELECT button
-              _ActionButton(
-                label: 'SELECT',
-                filled: true,
-                onTap: () async {
-                  await _selectSampleForCurrentTarget(
-                    context,
-                    browserState: browserState,
-                    sampleBankState: sampleBankState,
-                    item: item,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Shared action button ───────────────────────────────────────────────────
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: filled ? AppColors.sequencerAccent : AppColors.sequencerAccent.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: AppColors.sequencerAccent.withOpacity(filled ? 1.0 : 0.6),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: filled ? AppColors.sequencerPageBackground : AppColors.sequencerAccent,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: _SampleBrowserAudioTile(
+        item: item,
+        browserState: browserState,
+        sampleBankState: sampleBankState,
       ),
     );
   }
@@ -529,25 +710,28 @@ class _GridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!item.isFolder) {
+      return Padding(
+        padding: const EdgeInsets.all(2),
+        child: Center(
+          child: _SampleBrowserAudioTile(
+            item: item,
+            browserState: browserState,
+            sampleBankState: sampleBankState,
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
-      onTap: () async {
-        if (item.isFolder) {
-          browserState.navigateToFolder(item.name);
-          return;
-        }
-        final playbackState = context.read<PlaybackState>();
-        await browserState.previewSample(item, sampleBankState, playbackState);
-      },
+      onTap: () =>
+          browserState.navigateToFolder(item.name, folderKey: item.folderKey),
       child: Container(
         decoration: BoxDecoration(
-          color: item.isFolder
-              ? AppColors.sequencerSurfaceRaised
-              : AppColors.sequencerAccent.withOpacity(0.3),
+          color: AppColors.sequencerSurfaceRaised,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: item.isFolder
-                ? AppColors.sequencerBorder
-                : AppColors.sequencerAccent.withOpacity(0.6),
+            color: AppColors.sequencerBorder,
             width: 1,
           ),
           boxShadow: [
@@ -563,121 +747,34 @@ class _GridTile extends StatelessWidget {
             final iconSize = tileConstraints.maxHeight * 0.4;
             final fontSize = tileConstraints.maxWidth * 0.08;
 
-            if (item.isFolder) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.folder,
-                        color: AppColors.sequencerAccent,
-                        size: iconSize.clamp(20.0, 40.0),
-                      ),
-                      const SizedBox(height: 4),
-                      Flexible(
-                        child: Text(
-                          item.name,
-                          style: TextStyle(
-                            color: AppColors.sequencerText,
-                            fontSize: fontSize.clamp(8.0, 14.0),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.folder,
+                      color: AppColors.sequencerAccent,
+                      size: iconSize.clamp(20.0, 40.0),
+                    ),
+                    const SizedBox(height: 4),
+                    Flexible(
+                      child: Text(
+                        item.name,
+                        style: TextStyle(
+                          color: AppColors.sequencerText,
+                          fontSize: fontSize.clamp(8.0, 14.0),
+                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // File tile: tap tile to play, keep dedicated SELECT action
-            return Column(
-              children: [
-                // Top — sample name / preview area
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: AppColors.sequencerSurfacePressed,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        topRight: Radius.circular(4),
-                      ),
-                      border: Border(
-                        bottom: BorderSide(color: AppColors.sequencerBorder, width: 1),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    alignment: Alignment.center,
-                    child: Text(
-                      item.name,
-                      style: TextStyle(
-                        color: AppColors.sequencerText,
-                        fontSize: (fontSize * 0.75).clamp(7.0, 12.0),
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                  ],
                 ),
-                // Bottom — SELECT
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      await _selectSampleForCurrentTarget(
-                        context,
-                        browserState: browserState,
-                        sampleBankState: sampleBankState,
-                        item: item,
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: AppColors.sequencerAccent,
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(4),
-                          bottomRight: Radius.circular(4),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.name,
-                              style: TextStyle(
-                                color: AppColors.sequencerPageBackground,
-                                fontSize: (fontSize * 0.8).clamp(6.0, 12.0),
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            'SELECT',
-                            style: TextStyle(
-                              color: AppColors.sequencerPageBackground.withOpacity(0.9),
-                              fontSize: (fontSize * 0.5).clamp(4.0, 9.0),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             );
           },
         ),

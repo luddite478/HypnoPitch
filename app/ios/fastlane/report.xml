@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="0: app_store_connect_api_key" time="0.00353">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="1: flutter_version" time="0.001385">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="2: cd .. &amp;&amp; flutter build ipa --release --build-name=1.1.2 --build-number=30" time="593.270649">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="3: upload_to_testflight" time="503.366671">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>

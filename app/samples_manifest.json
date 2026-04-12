@@ -1,1134 +1,3798 @@
 {
-  "scan_timestamp": 1774933651,
-  "total_files": 285,
+  "schema_version": 4,
+  "scan_timestamp": 1775914374,
+  "total_files": 291,
   "samples": {
-    "ef31f054d10e": {
-      "path": "samples/acoustic/Chord GuitarStrum 2.wav",
-      "built_in": true
-    },
-    "7b9f6bae90cb": {
-      "path": "samples/acoustic/Chord GuitarShort 5.wav",
-      "built_in": true
-    },
-    "dd7a8aa50a70": {
-      "path": "samples/acoustic/Chord GuitarShort 6.wav",
-      "built_in": true
-    },
-    "c4f48d5b1cb8": {
-      "path": "samples/acoustic/Chord GuitarShort 7.wav",
-      "built_in": true
-    },
-    "f1bb484d591e": {
-      "path": "samples/acoustic/Chord GuitarShort 8.wav",
-      "built_in": true
-    },
-    "33752b8b05a7": {
-      "path": "samples/acoustic/FM-Piano 1 Db2.wav",
-      "built_in": true
-    },
-    "32a2dbd81967": {
-      "path": "samples/drums/natural/kick/Kick Ghost.wav",
-      "built_in": true
-    },
-    "5786c49bd2b2": {
-      "path": "samples/drums/natural/kick/Kick 5.wav",
-      "built_in": true
-    },
-    "948c3f0d71ce": {
-      "path": "samples/drums/natural/kick/Kick 4.wav",
-      "built_in": true
-    },
-    "c2646a380759": {
-      "path": "samples/drums/natural/kick/Kick 6.wav",
-      "built_in": true
-    },
-    "f087a96958ae": {
-      "path": "samples/drums/natural/kick/Kick 3.wav",
-      "built_in": true
-    },
-    "5ed9f288e390": {
-      "path": "samples/drums/natural/kick/Kick 2.wav",
-      "built_in": true
-    },
-    "1558ee793372": {
-      "path": "samples/drums/natural/kick/Kick 1.wav",
-      "built_in": true
-    },
-    "bbeaf261bc4c": {
-      "path": "samples/drums/natural/snare/Snare 1.wav",
-      "built_in": true
-    },
-    "c2041ace2f8d": {
-      "path": "samples/drums/natural/snare/Snare 3.wav",
-      "built_in": true
-    },
-    "ed2598b8b943": {
-      "path": "samples/drums/natural/snare/Snare 2.wav",
-      "built_in": true
-    },
-    "3f1e2b3d94ae": {
-      "path": "samples/drums/natural/snare/Snare 6.wav",
-      "built_in": true
-    },
-    "bd5c0e08d1a6": {
-      "path": "samples/drums/natural/snare/Snare 10.wav",
-      "built_in": true
-    },
-    "0a68a6ff7c9a": {
-      "path": "samples/drums/natural/snare/Snare 11.wav",
-      "built_in": true
-    },
-    "0dc7ba64ba8d": {
-      "path": "samples/drums/natural/snare/Snare 7.wav",
-      "built_in": true
-    },
-    "33a241bc31e7": {
-      "path": "samples/drums/natural/snare/Snare 5.wav",
-      "built_in": true
-    },
-    "def1ab6429bf": {
-      "path": "samples/drums/natural/snare/Snare 4.wav",
-      "built_in": true
-    },
-    "680039c048e0": {
-      "path": "samples/drums/natural/snare/Snare Off 4.wav",
-      "built_in": true
-    },
-    "dffdecd57515": {
-      "path": "samples/drums/natural/snare/Snare 9.wav",
-      "built_in": true
-    },
-    "ee511cbeeb5e": {
-      "path": "samples/drums/natural/snare/Snare Flam 1.wav",
-      "built_in": true
-    },
-    "5f80075daaf2": {
-      "path": "samples/drums/natural/snare/Snare 8.wav",
-      "built_in": true
-    },
-    "3232517099f8": {
-      "path": "samples/drums/natural/snare/Snare Off 5.wav",
-      "built_in": true
-    },
-    "da045c81cecb": {
-      "path": "samples/drums/natural/snare/Snare Off 7.wav",
-      "built_in": true
-    },
-    "8b2bc780418c": {
-      "path": "samples/drums/natural/snare/Snare Flam 2.wav",
-      "built_in": true
-    },
-    "0c01c8829b89": {
-      "path": "samples/drums/natural/snare/Snare Off 6.wav",
-      "built_in": true
-    },
-    "75443c2eabce": {
-      "path": "samples/drums/natural/snare/Snare Off 2.wav",
-      "built_in": true
-    },
-    "38ec4b57abb0": {
-      "path": "samples/drums/natural/snare/Snare Off 3.wav",
-      "built_in": true
-    },
-    "aa61c0d568a4": {
-      "path": "samples/drums/natural/snare/Snare Off 1.wav",
-      "built_in": true
-    },
-    "ff108ca4207c": {
-      "path": "samples/drums/natural/toms/Tom High 1.wav",
-      "built_in": true
-    },
-    "4f8a18cbcf53": {
-      "path": "samples/drums/natural/toms/Tom High 3.wav",
-      "built_in": true
-    },
-    "ae5278766dbb": {
-      "path": "samples/drums/natural/toms/Tom High 2.wav",
-      "built_in": true
-    },
-    "b09a3c3c9bf5": {
-      "path": "samples/drums/natural/toms/Tom High 6.wav",
-      "built_in": true
-    },
-    "0bce3a33bf6f": {
-      "path": "samples/drums/natural/toms/Tom High 7.wav",
-      "built_in": true
-    },
-    "3d1025662a97": {
-      "path": "samples/drums/natural/toms/Tom Mid Flam.wav",
-      "built_in": true
-    },
-    "36cc043ad9b2": {
-      "path": "samples/drums/natural/toms/Tom High 5.wav",
-      "built_in": true
-    },
-    "6d0c345bd864": {
-      "path": "samples/drums/natural/toms/Tom High 4.wav",
-      "built_in": true
-    },
-    "0b15cba5463d": {
-      "path": "samples/drums/natural/toms/Tom Mid 4.wav",
-      "built_in": true
-    },
-    "949de06f484f": {
-      "path": "samples/drums/natural/toms/Tom Mid 5.wav",
-      "built_in": true
-    },
-    "61da2ec31021": {
-      "path": "samples/drums/natural/toms/Tom Mid 7.wav",
-      "built_in": true
-    },
-    "3421cf98d245": {
-      "path": "samples/drums/natural/toms/Tom Mid 6.wav",
-      "built_in": true
-    },
-    "b1d9f361f039": {
-      "path": "samples/drums/natural/toms/Tom Mid 2.wav",
-      "built_in": true
-    },
-    "08c6f0c3f484": {
-      "path": "samples/drums/natural/toms/Tom Mid 3.wav",
-      "built_in": true
-    },
-    "7152df92a2d0": {
-      "path": "samples/drums/natural/toms/Tom Mid 1.wav",
-      "built_in": true
-    },
-    "788a9884e5f0": {
-      "path": "samples/drums/natural/toms/Tom Floor 6.wav",
-      "built_in": true
-    },
-    "80f2938e2435": {
-      "path": "samples/drums/natural/toms/Tom Floor 5.wav",
-      "built_in": true
-    },
-    "2c39ab73902e": {
-      "path": "samples/drums/natural/toms/Tom Floor 4.wav",
-      "built_in": true
-    },
-    "418d81902890": {
-      "path": "samples/drums/natural/toms/Tom Floor 1.wav",
-      "built_in": true
-    },
-    "640d37a0395b": {
-      "path": "samples/drums/natural/toms/Tom Floor 3.wav",
-      "built_in": true
-    },
-    "a25af6115dcb": {
-      "path": "samples/drums/natural/toms/Tom Mid 8.wav",
-      "built_in": true
-    },
-    "a79a4105259e": {
-      "path": "samples/drums/natural/toms/Tom Floor 2.wav",
-      "built_in": true
-    },
-    "c9ea1fcc4105": {
-      "path": "samples/drums/natural/toms/Tom Floor Flam 2.wav",
-      "built_in": true
-    },
-    "5005c7d9beab": {
-      "path": "samples/drums/natural/toms/Tom Floor Flam 1.wav",
-      "built_in": true
-    },
-    "19e6f37ea6fb": {
-      "path": "samples/drums/natural/toms/Tom High Flam.wav",
-      "built_in": true
-    },
-    "9d24e4988aae": {
-      "path": "samples/drums/natural/plates/Splash/Splash Mute 1.wav",
-      "built_in": true
-    },
-    "c7cef55df8f3": {
-      "path": "samples/drums/natural/plates/Splash/Splash Mute 2.wav",
-      "built_in": true
-    },
-    "2f1a95f499ee": {
-      "path": "samples/drums/natural/plates/Splash/Splash 2.wav",
-      "built_in": true
-    },
-    "4dfb2bc5efd8": {
-      "path": "samples/drums/natural/plates/Splash/Splash 1.wav",
-      "built_in": true
-    },
-    "6ecaca34fc44": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal 5.wav",
-      "built_in": true
-    },
-    "5eeef3f79a70": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal 4.wav",
-      "built_in": true
-    },
-    "086f7fc107b1": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal 1.wav",
-      "built_in": true
-    },
-    "36a26eabb394": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal 3.wav",
-      "built_in": true
-    },
-    "b8eec7a10ccd": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal 2.wav",
-      "built_in": true
-    },
-    "618418efc00f": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal Bell Mute.wav",
-      "built_in": true
-    },
-    "e2fdba2ae896": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal Bell 2.wav",
-      "built_in": true
-    },
-    "73b9aa8f5087": {
-      "path": "samples/drums/natural/plates/Ride Cymbal/Ride Cymbal Bell 1.wav",
-      "built_in": true
-    },
-    "01e3471c30f3": {
-      "path": "samples/drums/natural/plates/Crash/Crash mute 1.wav",
-      "built_in": true
-    },
-    "887247594b4f": {
-      "path": "samples/drums/natural/plates/Crash/Crash 3.wav",
-      "built_in": true
-    },
-    "6c01929047c6": {
-      "path": "samples/drums/natural/plates/Crash/Crash 2.wav",
-      "built_in": true
-    },
-    "b52bd175b38c": {
-      "path": "samples/drums/natural/plates/Crash/Crash 1.wav",
-      "built_in": true
-    },
-    "56e7ad7ae5e5": {
-      "path": "samples/drums/natural/plates/Crash/Crash 5.wav",
-      "built_in": true
-    },
-    "03b41a973ea6": {
-      "path": "samples/drums/natural/plates/Crash/Crash 4.wav",
-      "built_in": true
-    },
-    "6feaf7a0922c": {
-      "path": "samples/drums/natural/plates/Crash/Crash 7.wav",
-      "built_in": true
-    },
-    "6cca9939808c": {
-      "path": "samples/drums/natural/plates/China/China mute 1.wav",
-      "built_in": true
-    },
-    "00fb820300a9": {
-      "path": "samples/drums/natural/plates/China/China Bell.wav",
-      "built_in": true
-    },
-    "51a0175b32bb": {
-      "path": "samples/drums/natural/plates/China/China 3.wav",
-      "built_in": true
-    },
-    "224857ac8219": {
-      "path": "samples/drums/natural/plates/China/China 2.wav",
-      "built_in": true
-    },
-    "6c56d23bbea9": {
-      "path": "samples/drums/natural/plates/China/China 1.wav",
-      "built_in": true
-    },
-    "548954e47185": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open 5.wav",
-      "built_in": true
-    },
-    "cef8cb17b67f": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open 4.wav",
-      "built_in": true
-    },
-    "b6a67293e049": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open 3.wav",
-      "built_in": true
-    },
-    "78e90de3cd17": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open 2.wav",
-      "built_in": true
-    },
-    "ffcacd680075": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open 1.wav",
-      "built_in": true
-    },
-    "8de9977beae8": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 15.wav",
-      "built_in": true
-    },
-    "5d0830156b2d": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Flam.wav",
-      "built_in": true
-    },
-    "d73e32a69f1e": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 14.wav",
-      "built_in": true
-    },
-    "4e88a33c2e06": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 8.wav",
-      "built_in": true
-    },
-    "7f1d2bfff376": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 9.wav",
-      "built_in": true
-    },
-    "f5cec1262b3a": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 13.wav",
-      "built_in": true
-    },
-    "33229ff14df9": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 12.wav",
-      "built_in": true
-    },
-    "fd314f268585": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 10.wav",
-      "built_in": true
-    },
-    "7d24863bb88a": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 11.wav",
-      "built_in": true
-    },
-    "36694d8331b7": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 3.wav",
-      "built_in": true
-    },
-    "34ea0e13fe00": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 1.wav",
-      "built_in": true
-    },
-    "8521c4623915": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 4.wav",
-      "built_in": true
-    },
-    "281c3a3a9358": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Bell 1.wav",
-      "built_in": true
-    },
-    "0828046a7f51": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 5.wav",
-      "built_in": true
-    },
-    "bd90ec2dd46b": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 7.wav",
-      "built_in": true
-    },
-    "d28434af365d": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Bell 2.wav",
-      "built_in": true
-    },
-    "f876c1db5fde": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat 6.wav",
-      "built_in": true
-    },
-    "7997ca9fc0f0": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 4.wav",
-      "built_in": true
-    },
-    "e898a555c11d": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 5.wav",
-      "built_in": true
-    },
-    "421174003c76": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 7.wav",
-      "built_in": true
-    },
-    "94408f25bfaa": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 6.wav",
-      "built_in": true
-    },
-    "8dd30c2b9828": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 2.wav",
-      "built_in": true
-    },
-    "9b2b32da5cd1": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 3.wav",
-      "built_in": true
-    },
-    "83035049d56b": {
-      "path": "samples/drums/natural/plates/Hi Hat/Hi Hat Open Close 1.wav",
-      "built_in": true
-    },
-    "251fa13c8383": {
-      "path": "samples/drums/electronic/kick/17_Kick_18_SP.wav",
-      "built_in": true
-    },
-    "6b673c1ab5b7": {
-      "path": "samples/drums/electronic/kick/17_Kick_14_SP.wav",
-      "built_in": true
-    },
-    "aa7be7bc7eef": {
-      "path": "samples/drums/electronic/kick/17_Kick_40_SP.wav",
-      "built_in": true
-    },
-    "2b4f177f0fe4": {
-      "path": "samples/drums/electronic/kick/17_Kick_33_SP.wav",
-      "built_in": true
-    },
-    "35d0d9ab1ea3": {
-      "path": "samples/drums/electronic/kick/17_Kick_05_SP.wav",
-      "built_in": true
-    },
-    "74c4bf298da3": {
-      "path": "samples/drums/electronic/kick/17_Kick_13_SP.wav",
-      "built_in": true
-    },
-    "a34b87e900c5": {
-      "path": "samples/drums/electronic/snare/17_Snare_31_SP.wav",
-      "built_in": true
-    },
-    "d430217ee953": {
-      "path": "samples/drums/electronic/snare/17_Snare_40_SP.wav",
-      "built_in": true
-    },
-    "2c46fa0d2bda": {
-      "path": "samples/drums/electronic/snare/17_Snare_23_SP.wav",
-      "built_in": true
-    },
-    "ae919e24bbda": {
-      "path": "samples/drums/electronic/snare/17_Snare_15_SP.wav",
-      "built_in": true
-    },
-    "344f5e3eddbe": {
-      "path": "samples/drums/electronic/snare/17_Snare_19_SP.wav",
-      "built_in": true
-    },
-    "95e40accad14": {
-      "path": "samples/drums/electronic/snare/17_Snare_07_SP.wav",
-      "built_in": true
-    },
-    "e1f88714f085": {
-      "path": "samples/drums/electronic/snare/17_Snare_21_SP.wav",
-      "built_in": true
-    },
-    "773469ad6e56": {
-      "path": "samples/drums/electronic/snare/17_Snare_33_SP.wav",
-      "built_in": true
-    },
-    "d54d9b4232bb": {
-      "path": "samples/drums/electronic/snare/17_Snare_05_SP.wav",
-      "built_in": true
-    },
-    "41615002dc65": {
-      "path": "samples/drums/electronic/snare/17_Snare_17_SP.wav",
-      "built_in": true
-    },
-    "977919d22410": {
-      "path": "samples/drums/electronic/snare/17_Snare_09_SP.wav",
-      "built_in": true
-    },
-    "066fcd9ff6ec": {
-      "path": "samples/drums/electronic/snare/17_Snare_13_SP.wav",
-      "built_in": true
-    },
-    "73a38c5d9bf7": {
-      "path": "samples/drums/electronic/snare/17_Snare_01_SP.wav",
-      "built_in": true
-    },
-    "d4ad3c921204": {
-      "path": "samples/drums/electronic/snare/17_Snare_37_SP.wav",
-      "built_in": true
-    },
-    "9970ce25bed1": {
-      "path": "samples/drums/electronic/snare/17_Snare_29_SP.wav",
-      "built_in": true
-    },
-    "99582e57d868": {
-      "path": "samples/drums/electronic/snare/17_Snare_25_SP.wav",
-      "built_in": true
-    },
-    "54a28eaf2af9": {
-      "path": "samples/drums/electronic/snare/17_Snare_03_SP.wav",
-      "built_in": true
-    },
-    "05cabfea0533": {
-      "path": "samples/drums/electronic/snare/17_Snare_11_SP.wav",
-      "built_in": true
-    },
-    "c2a4a06db72c": {
-      "path": "samples/drums/electronic/snare/17_Snare_39_SP.wav",
-      "built_in": true
-    },
-    "588c66d95673": {
-      "path": "samples/drums/electronic/snare/17_Snare_27_SP.wav",
-      "built_in": true
-    },
-    "3a7f49736509": {
-      "path": "samples/drums/electronic/snare/17_Snare_35_SP.wav",
-      "built_in": true
-    },
-    "545b6fb8e9e5": {
-      "path": "samples/drums/electronic/snare/17_Snare_14_SP.wav",
-      "built_in": true
-    },
-    "2d16cc96276d": {
-      "path": "samples/drums/electronic/snare/17_Snare_06_SP.wav",
-      "built_in": true
-    },
-    "5552ff3d495d": {
-      "path": "samples/drums/electronic/snare/17_Snare_18_SP.wav",
-      "built_in": true
-    },
-    "4c50aeed8491": {
-      "path": "samples/drums/electronic/snare/17_Snare_30_SP.wav",
-      "built_in": true
-    },
-    "20d8c09756e5": {
-      "path": "samples/drums/electronic/snare/17_Snare_22_SP.wav",
-      "built_in": true
-    },
-    "22f0c42b295f": {
-      "path": "samples/drums/electronic/snare/17_Snare_04_SP.wav",
-      "built_in": true
-    },
-    "dcef92ca3e3a": {
-      "path": "samples/drums/electronic/snare/17_Snare_08_SP.wav",
-      "built_in": true
-    },
-    "c31ec0923fdf": {
-      "path": "samples/drums/electronic/snare/17_Snare_16_SP.wav",
-      "built_in": true
-    },
-    "211d6c3e0fb7": {
-      "path": "samples/drums/electronic/snare/17_Snare_20_SP.wav",
-      "built_in": true
-    },
-    "ac8956eb2b89": {
-      "path": "samples/drums/electronic/snare/17_Snare_32_SP.wav",
-      "built_in": true
-    },
-    "bb48928f8cda": {
-      "path": "samples/drums/electronic/snare/17_Snare_28_SP.wav",
-      "built_in": true
-    },
-    "b5d0f29943bd": {
-      "path": "samples/drums/electronic/snare/17_Snare_36_SP.wav",
-      "built_in": true
-    },
-    "1d7fec7ccef8": {
-      "path": "samples/drums/electronic/snare/17_Snare_24_SP.wav",
-      "built_in": true
-    },
-    "b0428f42691c": {
-      "path": "samples/drums/electronic/snare/17_Snare_12_SP.wav",
-      "built_in": true
-    },
-    "026970e5acde": {
-      "path": "samples/drums/electronic/snare/17_Snare_26_SP.wav",
-      "built_in": true
-    },
-    "8d3299f11de8": {
-      "path": "samples/drums/electronic/snare/17_Snare_38_SP.wav",
-      "built_in": true
-    },
-    "de806d6aaf54": {
-      "path": "samples/drums/electronic/snare/17_Snare_34_SP.wav",
-      "built_in": true
-    },
-    "be25e6555bd0": {
-      "path": "samples/drums/electronic/snare/17_Snare_02_SP.wav",
-      "built_in": true
-    },
-    "99a31e3a553b": {
-      "path": "samples/drums/electronic/snare/17_Snare_10_SP.wav",
-      "built_in": true
-    },
-    "adf812bb8537": {
-      "path": "samples/drums/electronic/hat/17_Hat_15_SP.wav",
-      "built_in": true
-    },
-    "4a29390079e0": {
-      "path": "samples/drums/electronic/hat/17_Hat_19_SP.wav",
-      "built_in": true
-    },
-    "14ba91631a4d": {
-      "path": "samples/drums/electronic/hat/17_Hat_07_SP.wav",
-      "built_in": true
-    },
-    "3e8c81adb4e2": {
-      "path": "samples/drums/electronic/hat/17_Hat_31_SP.wav",
-      "built_in": true
-    },
-    "159ac3cdcf7a": {
-      "path": "samples/drums/electronic/hat/17_Hat_23_SP.wav",
-      "built_in": true
-    },
-    "1501010a197c": {
-      "path": "samples/drums/electronic/hat/17_Hat_05_SP.wav",
-      "built_in": true
-    },
-    "2f934b88cdb0": {
-      "path": "samples/drums/electronic/hat/17_Hat_17_SP.wav",
-      "built_in": true
-    },
-    "c3504141224b": {
-      "path": "samples/drums/electronic/hat/17_Hat_09_SP.wav",
-      "built_in": true
-    },
-    "bbbbcaf2f68b": {
-      "path": "samples/drums/electronic/hat/17_Hat_21_SP.wav",
-      "built_in": true
-    },
-    "9043c4413ad2": {
-      "path": "samples/drums/electronic/hat/17_Hat_33_SP.wav",
-      "built_in": true
-    },
-    "dac8aa2189ff": {
-      "path": "samples/drums/electronic/hat/17_Hat_37_SP.wav",
-      "built_in": true
-    },
-    "24a03c1be173": {
-      "path": "samples/drums/electronic/hat/17_Hat_29_SP.wav",
-      "built_in": true
-    },
-    "d2facff8ca75": {
-      "path": "samples/drums/electronic/hat/17_Hat_25_SP.wav",
-      "built_in": true
-    },
-    "3de6fa30cefe": {
-      "path": "samples/drums/electronic/hat/17_Hat_13_SP.wav",
-      "built_in": true
-    },
-    "1fa02761698f": {
-      "path": "samples/drums/electronic/hat/17_Hat_01_SP.wav",
-      "built_in": true
-    },
-    "18fc14d94b96": {
-      "path": "samples/drums/electronic/hat/17_Hat_27_SP.wav",
-      "built_in": true
-    },
-    "1081b7d4a010": {
-      "path": "samples/drums/electronic/hat/17_Hat_35_SP.wav",
-      "built_in": true
-    },
-    "be6feb79d8e4": {
-      "path": "samples/drums/electronic/hat/17_Hat_03_SP.wav",
-      "built_in": true
-    },
-    "3d83ddbc4aae": {
-      "path": "samples/drums/electronic/hat/17_Hat_11_SP.wav",
-      "built_in": true
-    },
-    "303267f0444e": {
-      "path": "samples/drums/electronic/hat/17_Hat_30_SP.wav",
-      "built_in": true
-    },
-    "14291a1ae0bf": {
-      "path": "samples/drums/electronic/hat/17_Hat_22_SP.wav",
-      "built_in": true
-    },
-    "944280a0fa00": {
-      "path": "samples/drums/electronic/hat/17_Hat_14_SP.wav",
-      "built_in": true
-    },
-    "4a577f33ac07": {
-      "path": "samples/drums/electronic/hat/17_Hat_06_SP.wav",
-      "built_in": true
-    },
-    "d4acc2d3cc05": {
-      "path": "samples/drums/electronic/hat/17_Hat_18_SP.wav",
-      "built_in": true
-    },
-    "dd548ace2639": {
-      "path": "samples/drums/electronic/hat/17_Hat_20_SP.wav",
-      "built_in": true
-    },
-    "3e62e0fbcfc9": {
-      "path": "samples/drums/electronic/hat/17_Hat_32_SP.wav",
-      "built_in": true
-    },
-    "66b211be11f9": {
-      "path": "samples/drums/electronic/hat/17_Hat_04_SP.wav",
-      "built_in": true
-    },
-    "bbf7426c3291": {
-      "path": "samples/drums/electronic/hat/17_Hat_08_SP.wav",
-      "built_in": true
-    },
-    "510744e88181": {
-      "path": "samples/drums/electronic/hat/17_Hat_16_SP.wav",
-      "built_in": true
-    },
-    "03c7abaaee9c": {
-      "path": "samples/drums/electronic/hat/17_Hat_12_SP.wav",
-      "built_in": true
-    },
-    "532b04de4995": {
-      "path": "samples/drums/electronic/hat/17_Hat_28_SP.wav",
-      "built_in": true
-    },
-    "4977752163fe": {
-      "path": "samples/drums/electronic/hat/17_Hat_36_SP.wav",
-      "built_in": true
-    },
-    "976a73cbcb70": {
-      "path": "samples/drums/electronic/hat/17_Hat_24_SP.wav",
-      "built_in": true
-    },
-    "1a91c53666f9": {
-      "path": "samples/drums/electronic/hat/17_Hat_02_SP.wav",
-      "built_in": true
-    },
-    "5b1cab5412c9": {
-      "path": "samples/drums/electronic/hat/17_Hat_10_SP.wav",
-      "built_in": true
-    },
-    "5af54690fcd9": {
-      "path": "samples/drums/electronic/hat/17_Hat_26_SP.wav",
-      "built_in": true
-    },
-    "d5ce17124e7a": {
-      "path": "samples/drums/electronic/hat/17_Hat_34_SP.wav",
-      "built_in": true
-    },
-    "4755b4da0454": {
-      "path": "samples/synth/Bass/BAS_MS20_13_F1.wav",
-      "built_in": true
-    },
-    "4688c3e624ca": {
-      "path": "samples/synth/Bass/Adrenaline f#3.wav",
-      "built_in": true
-    },
-    "12855bd4797f": {
-      "path": "samples/synth/Bass/TubeBass c1.wav",
-      "built_in": true
-    },
-    "85ba89516e24": {
-      "path": "samples/synth/Bass/BLow c1.wav",
-      "built_in": true
-    },
-    "9e54001436ec": {
-      "path": "samples/synth/Bass/BAS_MS20_1_F1.wav",
-      "built_in": true
-    },
-    "b802d85e8710": {
-      "path": "samples/synth/Lead/Chord London.wav",
-      "built_in": true
-    },
-    "fc468f1ff9f0": {
-      "path": "samples/synth/Bass/Basement c3.wav",
-      "built_in": true
-    },
-    "52cc20ea668f": {
-      "path": "samples/synth/Bass/BAS_MS20_3_F1.wav",
-      "built_in": true
-    },
-    "1bbf6fad7764": {
-      "path": "samples/synth/Bass/AnalogClassicB c1.wav",
-      "built_in": true
-    },
-    "225b83746966": {
-      "path": "samples/synth/Bass/Attacker c1.wav",
-      "built_in": true
-    },
-    "88d4b2ed6f99": {
-      "path": "samples/synth/Bass/BAS_MS20_11_F1.wav",
-      "built_in": true
-    },
-    "d089cb4c9ef9": {
-      "path": "samples/synth/Bass/BAS_MS20_15_F2.wav",
-      "built_in": true
-    },
-    "d159e525d540": {
-      "path": "samples/synth/Bass/BAS_MS20_7_F1.wav",
-      "built_in": true
-    },
-    "9e90e0843a02": {
-      "path": "samples/synth/Bass/Bass Jaunt.wav",
-      "built_in": true
-    },
-    "5868700d1c0d": {
-      "path": "samples/synth/Bass/Banzai c1.wav",
-      "built_in": true
-    },
-    "2907fc3054fe": {
-      "path": "samples/synth/Bass/BAS_MS20_5_F1.wav",
-      "built_in": true
-    },
-    "81d44c7c8bcf": {
-      "path": "samples/synth/Bass/BAS_MS20_9_F1.wav",
-      "built_in": true
-    },
-    "bd5cc21dd0bf": {
-      "path": "samples/synth/Bass/Bearded a1.wav",
-      "built_in": true
-    },
-    "b574c391e796": {
-      "path": "samples/synth/Bass/Adrenaline c2.wav",
-      "built_in": true
-    },
-    "cc482af3be9d": {
-      "path": "samples/synth/Bass/BAS_MS20_12_F1.wav",
-      "built_in": true
-    },
-    "113bcde2dae9": {
-      "path": "samples/synth/Bass/AnalogClassicA c1.wav",
-      "built_in": true
-    },
-    "c9a80ada2e92": {
-      "path": "samples/synth/Bass/BAS_MS20_10_F1.wav",
-      "built_in": true
-    },
-    "a76ac2708b09": {
-      "path": "samples/synth/Bass/AnalogClassicC c1.wav",
-      "built_in": true
-    },
-    "2211720a8ebe": {
-      "path": "samples/synth/Bass/BAS_MS20_2_F1.wav",
-      "built_in": true
-    },
-    "9e04d2ee00ec": {
-      "path": "samples/synth/Bass/BAS_MS20_14_F1.wav",
-      "built_in": true
-    },
-    "967e0f44615f": {
-      "path": "samples/synth/Bass/BDsub_MeDe.wav",
-      "built_in": true
-    },
-    "0bf6a6f262e9": {
-      "path": "samples/synth/Bass/BAS_MS20_6_F1.wav",
-      "built_in": true
-    },
-    "509d32e8a75b": {
-      "path": "samples/synth/Bass/BAS_MS20_16_F2.wav",
-      "built_in": true
-    },
-    "7aca460e47fa": {
-      "path": "samples/synth/Bass/BAS_MS20_8_F1.wav",
-      "built_in": true
-    },
-    "50d9abf9dac6": {
-      "path": "samples/synth/Bass/AnalogClassicA f#1.wav",
-      "built_in": true
-    },
-    "251e98190ca0": {
-      "path": "samples/synth/Bass/BAS_MS20_4_F2.wav",
-      "built_in": true
-    },
-    "770d38cc1fc1": {
-      "path": "samples/synth/Lead/Chord MinorJoy.wav",
-      "built_in": true
-    },
-    "65b43f07a384": {
-      "path": "samples/synth/Lead/Chord Eeprom 5.wav",
-      "built_in": true
-    },
-    "6ac819b53030": {
-      "path": "samples/synth/Lead/Chord SouthWestern Abmin 1.wav",
-      "built_in": true
-    },
-    "903509335b47": {
-      "path": "samples/synth/Lead/piano-1-1.wav",
-      "built_in": true
-    },
-    "19e00da18398": {
-      "path": "samples/synth/Lead/Chord Eeprom 4.wav",
-      "built_in": true
-    },
-    "f964de129c37": {
-      "path": "samples/synth/Lead/Chord Steveland 2.wav",
-      "built_in": true
-    },
-    "0a67f5e6b226": {
-      "path": "samples/synth/Lead/piano-1-2.wav",
-      "built_in": true
-    },
-    "df6d40828018": {
-      "path": "samples/synth/Lead/Chord 8-Ball.wav",
-      "built_in": true
-    },
-    "6fcbf7a19057": {
-      "path": "samples/synth/Lead/PLK_OBXA_3_C4.wav",
-      "built_in": true
-    },
-    "53bf60158725": {
-      "path": "samples/synth/Lead/Chord Steveland 1.wav",
-      "built_in": true
-    },
-    "aac69115109e": {
-      "path": "samples/synth/Lead/Bend Foreshadow.wav",
-      "built_in": true
-    },
-    "9d960cdd2133": {
-      "path": "samples/synth/Lead/Chord Troni BbMaj.wav",
-      "built_in": true
-    },
-    "6cc2b121fea8": {
-      "path": "samples/synth/Lead/The Mystic a3.wav",
-      "built_in": true
-    },
-    "200ae037d19a": {
-      "path": "samples/synth/Lead/Chord MelaBeauty.wav",
-      "built_in": true
-    },
-    "f998a3f66884": {
-      "path": "samples/synth/Lead/Castles Burning d#4.wav",
-      "built_in": true
-    },
-    "cd3723a46748": {
-      "path": "samples/synth/Lead/Celesta Eb2.wav",
-      "built_in": true
-    },
-    "a5d51c4523a9": {
-      "path": "samples/synth/Lead/Metal PerfValve 045.wav",
-      "built_in": true
-    },
-    "de06a2a24920": {
-      "path": "samples/synth/Lead/Chord Piano CWalk 2.wav",
-      "built_in": true
-    },
-    "0995f7f2ea98": {
-      "path": "samples/synth/Lead/Clave VBvalve F4 pDst.wav",
-      "built_in": true
-    },
-    "3ec2d52b31ee": {
-      "path": "samples/synth/Lead/EEP Lite V1 F#2 copy 2.wav",
-      "built_in": true
-    },
-    "1a7d9ad98306": {
-      "path": "samples/synth/Lead/Wurly-EP 1 Ab2.wav",
-      "built_in": true
-    },
-    "217576d548b8": {
-      "path": "samples/synth/Lead/Chord Fancy.wav",
-      "built_in": true
-    },
-    "41b52d79dc71": {
-      "path": "samples/synth/Lead/Seventh SeaWha.wav",
-      "built_in": true
-    },
-    "9e0bd265d45b": {
-      "path": "samples/synth/Lead/Cypress c4.wav",
-      "built_in": true
-    },
-    "411f27670f59": {
-      "path": "samples/synth/Lead/Cow TanValve C#3.wav",
-      "built_in": true
-    },
-    "fee719dc9b90": {
-      "path": "samples/synth/Lead/Cow TanValve A3 x.wav",
-      "built_in": true
-    },
-    "b3a303bfa7b1": {
-      "path": "samples/synth/Lead/SYNTH-BrassyBoard1.wav",
-      "built_in": true
-    },
-    "2e9432b337c6": {
-      "path": "samples/synth/Lead/Chord Robotussen.wav",
-      "built_in": true
-    },
-    "3631ee1481e2": {
-      "path": "samples/synth/Lead/Chord Sickboy.wav",
-      "built_in": true
-    },
-    "3c255b7c8103": {
-      "path": "samples/synth/Lead/Helsinki f#3.wav",
-      "built_in": true
-    },
-    "b1363bfc590a": {
-      "path": "samples/synth/Lead/PNO_OldG_C5.wav",
-      "built_in": true
-    },
-    "6091800df506": {
-      "path": "samples/synth/Lead/poly-1-1.wav",
-      "built_in": true
-    },
-    "ad64a3fe2d72": {
-      "path": "samples/synth/Lead/Chord BangerLoc 1.wav",
-      "built_in": true
-    },
-    "28da276086ca": {
-      "path": "samples/synth/Lead/Sixth SmoothBell.wav",
-      "built_in": true
-    },
-    "8986063db850": {
-      "path": "samples/synth/Lead/Wurly-EP 1 C3.wav",
-      "built_in": true
-    },
-    "a5912f8e5778": {
-      "path": "samples/synth/Lead/poly-1-2.wav",
-      "built_in": true
-    },
-    "671006cbb3c3": {
-      "path": "samples/synth/Lead/poly-1-3.wav",
-      "built_in": true
-    },
-    "8432a732a198": {
-      "path": "samples/synth/Lead/Chord ThinkAboutIt.wav",
-      "built_in": true
-    },
-    "290b1c761396": {
-      "path": "samples/synth/Lead/poly-1-7.wav",
-      "built_in": true
-    },
-    "9bc78cd2b525": {
-      "path": "samples/synth/Lead/poly-1-6.wav",
-      "built_in": true
-    },
-    "1518a8ca2588": {
-      "path": "samples/synth/Lead/poly-1-4.wav",
-      "built_in": true
-    },
-    "c755728f31a5": {
-      "path": "samples/synth/Lead/Chord Resistor.wav",
-      "built_in": true
-    },
-    "208099af83fb": {
-      "path": "samples/synth/Lead/Seventh MetalBuzz.wav",
-      "built_in": true
-    },
-    "782c2c1d4bfc": {
-      "path": "samples/synth/Lead/poly-1-5.wav",
-      "built_in": true
-    },
-    "28b297c14aef": {
-      "path": "samples/synth/Lead/Chord BeeHive 1.wav",
-      "built_in": true
-    },
-    "75a9009d8675": {
-      "path": "samples/noise/other/Bells EvilPhone.wav",
-      "built_in": true
-    },
-    "53073fa2d2bf": {
-      "path": "samples/noise/other/Air Factory.wav",
-      "built_in": true
-    },
-    "11102a6e8294": {
-      "path": "samples/noise/clicks/Click_909_2.wav",
-      "built_in": true
-    },
-    "c1156fa4547d": {
-      "path": "samples/noise/clicks/Click_808_2.wav",
-      "built_in": true
-    },
-    "a1af585c11a8": {
-      "path": "samples/noise/clicks/Click_808_1.wav",
-      "built_in": true
-    },
-    "fc655ffe2e1c": {
-      "path": "samples/noise/clicks/Clock Adler Tock.wav",
-      "built_in": true
-    },
-    "9af623ec3cfb": {
-      "path": "samples/noise/clicks/Transient_Hybrid1.wav",
-      "built_in": true
-    },
-    "0dd4a90dc6b6": {
-      "path": "samples/noise/clicks/Clave P12Valve G5.wav",
-      "built_in": true
-    },
-    "63ec994c50e3": {
-      "path": "samples/noise/clicks/Rev_Click_Future2.wav",
-      "built_in": true
-    },
-    "aab8815227b8": {
-      "path": "samples/noise/clicks/Transient_AnalogDM6.wav",
-      "built_in": true
-    },
-    "577a1d679e2b": {
-      "path": "samples/noise/clicks/Click_AnalogDM6.wav",
-      "built_in": true
-    },
-    "6a7ca0d0601f": {
-      "path": "samples/noise/clicks/Clave TanValve C#6 V6.wav",
-      "built_in": true
+    "builtin.acoustic.orchestral.cbass_pizzi_35": {
+      "path": "samples/Acoustic/Orchestral/CBass Pizzi 35.wav",
+      "asset_key": "samples/Acoustic/Orchestral/CBass%20Pizzi%2035.wav",
+      "built_in": true,
+      "sha256": "b78cf4d97310d411ebd807b9c68dcdef51501a27c45e1d1b112664c6b8199b15",
+      "legacy_hash_12": "b78cf4d97310",
+      "aliases": [
+        "b78cf4d97310"
+      ],
+      "display_name": "CBass Pizzi 35",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "CBass Pizzi 35.wav"
+    },
+    "builtin.acoustic.orchestral.cbass_stacc_28": {
+      "path": "samples/Acoustic/Orchestral/CBass Stacc 28.wav",
+      "asset_key": "samples/Acoustic/Orchestral/CBass%20Stacc%2028.wav",
+      "built_in": true,
+      "sha256": "bdb16a70b9c46f65ed8460b6b2ea302c6fc8a87b4fba07d5bf12e52cde712308",
+      "legacy_hash_12": "bdb16a70b9c4",
+      "aliases": [
+        "bdb16a70b9c4"
+      ],
+      "display_name": "CBass Stacc 28",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "CBass Stacc 28.wav"
+    },
+    "builtin.acoustic.orchestral.cfade_tremo_50": {
+      "path": "samples/Acoustic/Orchestral/CFade Tremo 50.wav",
+      "asset_key": "samples/Acoustic/Orchestral/CFade%20Tremo%2050.wav",
+      "built_in": true,
+      "sha256": "7a3a62e9b60553e3935bb1eaf5c9beaf7b086e096f9425d05f2d21568a9fb3ad",
+      "legacy_hash_12": "7a3a62e9b605",
+      "aliases": [
+        "7a3a62e9b605"
+      ],
+      "display_name": "CFade Tremo 50",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "CFade Tremo 50.wav"
+    },
+    "builtin.acoustic.orchestral.fiddle_a2": {
+      "path": "samples/Acoustic/Orchestral/Fiddle A2.wav",
+      "asset_key": "samples/Acoustic/Orchestral/Fiddle%20A2.wav",
+      "built_in": true,
+      "sha256": "43683db927efc16968d5a9b3d81883edd600ecb09b9b792146025ae0923651e4",
+      "legacy_hash_12": "43683db927ef",
+      "aliases": [
+        "43683db927ef"
+      ],
+      "display_name": "Fiddle A2",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "Fiddle A2.wav"
+    },
+    "builtin.acoustic.orchestral.tremolo_strings_d2": {
+      "path": "samples/Acoustic/Orchestral/Tremolo Strings D2.wav",
+      "asset_key": "samples/Acoustic/Orchestral/Tremolo%20Strings%20D2.wav",
+      "built_in": true,
+      "sha256": "275f057f9c060d38f0d74c3822b160d8fb17516e91a912e6f1ab29de2a32d821",
+      "legacy_hash_12": "275f057f9c06",
+      "aliases": [
+        "275f057f9c06"
+      ],
+      "display_name": "Tremolo Strings D2",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "Tremolo Strings D2.wav"
+    },
+    "builtin.acoustic.orchestral.viola_susat_55": {
+      "path": "samples/Acoustic/Orchestral/Viola SusAt 55.wav",
+      "asset_key": "samples/Acoustic/Orchestral/Viola%20SusAt%2055.wav",
+      "built_in": true,
+      "sha256": "425b6848571cef04263c7ac8d3f648a14b61c3af924c34e74d1e1229f9562bbe",
+      "legacy_hash_12": "425b6848571c",
+      "aliases": [
+        "425b6848571c"
+      ],
+      "display_name": "Viola SusAt 55",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "Viola SusAt 55.wav"
+    },
+    "builtin.acoustic.orchestral.violn_tremo_73": {
+      "path": "samples/Acoustic/Orchestral/Violn Tremo 73.wav",
+      "asset_key": "samples/Acoustic/Orchestral/Violn%20Tremo%2073.wav",
+      "built_in": true,
+      "sha256": "511497ae040bfb520ded5a805cadc0c2d816d618da57562a1f561e50b8f7c06d",
+      "legacy_hash_12": "511497ae040b",
+      "aliases": [
+        "511497ae040b"
+      ],
+      "display_name": "Violn Tremo 73",
+      "display_path": "Acoustic/Orchestral",
+      "source_file_name": "Violn Tremo 73.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_1": {
+      "path": "samples/Drums/Acoustic/Kick/Kick 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%201.wav",
+      "built_in": true,
+      "sha256": "3a99b00c08327f6ad2bd904a5c6e18eb3def4f2a03472c9223637c24bdd31df2",
+      "legacy_hash_12": "3a99b00c0832",
+      "aliases": [
+        "3a99b00c0832"
+      ],
+      "display_name": "Kick 1",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick 1.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_2": {
+      "path": "samples/Drums/Acoustic/Kick/Kick 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%202.wav",
+      "built_in": true,
+      "sha256": "f7651c5737a03835d8a761fa3b89810552bd69008ff8032dba05c00ac981a2a6",
+      "legacy_hash_12": "f7651c5737a0",
+      "aliases": [
+        "f7651c5737a0"
+      ],
+      "display_name": "Kick 2",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick 2.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_3": {
+      "path": "samples/Drums/Acoustic/Kick/Kick 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%203.wav",
+      "built_in": true,
+      "sha256": "f13dd1aa27d6dfafd8d873497db958593f0c47a81190cc730960fa19a8b10b1e",
+      "legacy_hash_12": "f13dd1aa27d6",
+      "aliases": [
+        "f13dd1aa27d6"
+      ],
+      "display_name": "Kick 3",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick 3.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_4": {
+      "path": "samples/Drums/Acoustic/Kick/Kick 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%204.wav",
+      "built_in": true,
+      "sha256": "ee279d15a930c03a58e2f82e63c38ce6400bb4f4ba806b049f3fbea419aaa520",
+      "legacy_hash_12": "ee279d15a930",
+      "aliases": [
+        "ee279d15a930"
+      ],
+      "display_name": "Kick 4",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick 4.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_5": {
+      "path": "samples/Drums/Acoustic/Kick/Kick 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%205.wav",
+      "built_in": true,
+      "sha256": "5999225cb289f47a030e93cb3892cbd5df0bd0132356ec0078ce84e38d531f8b",
+      "legacy_hash_12": "5999225cb289",
+      "aliases": [
+        "5999225cb289"
+      ],
+      "display_name": "Kick 5",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick 5.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_6": {
+      "path": "samples/Drums/Acoustic/Kick/Kick 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%206.wav",
+      "built_in": true,
+      "sha256": "ebcc418e7ae421b6e7b90265a84a0080f27d710d5e1fc4989884f1450ff77ed6",
+      "legacy_hash_12": "ebcc418e7ae4",
+      "aliases": [
+        "ebcc418e7ae4"
+      ],
+      "display_name": "Kick 6",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick 6.wav"
+    },
+    "builtin.drums.acoustic.kick.kick_ghost": {
+      "path": "samples/Drums/Acoustic/Kick/Kick Ghost.wav",
+      "asset_key": "samples/Drums/Acoustic/Kick/Kick%20Ghost.wav",
+      "built_in": true,
+      "sha256": "faec20204065a2446b923c1b224e9275e195e61c304a2dfd4a7b998023c58993",
+      "legacy_hash_12": "faec20204065",
+      "aliases": [
+        "faec20204065"
+      ],
+      "display_name": "Kick Ghost",
+      "display_path": "Drums/Acoustic/Kick",
+      "source_file_name": "Kick Ghost.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_1": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%201.wav",
+      "built_in": true,
+      "sha256": "154b7db6653d0f51f2dd90aa71949bdf76854b8af1add2e3c7854ce9aa000996",
+      "legacy_hash_12": "154b7db6653d",
+      "aliases": [
+        "154b7db6653d"
+      ],
+      "display_name": "Snare 1",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 1.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_10": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 10.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%2010.wav",
+      "built_in": true,
+      "sha256": "e0c1882f3ad94f0ab0f17d4eef26bf3e534e55cd8acb31ebc80d866b30d93672",
+      "legacy_hash_12": "e0c1882f3ad9",
+      "aliases": [
+        "e0c1882f3ad9"
+      ],
+      "display_name": "Snare 10",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 10.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_11": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 11.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%2011.wav",
+      "built_in": true,
+      "sha256": "33a16cfe8f2d5ba18275799f0cd4f0442b4c3bcfc0d844150674901902a3f863",
+      "legacy_hash_12": "33a16cfe8f2d",
+      "aliases": [
+        "33a16cfe8f2d"
+      ],
+      "display_name": "Snare 11",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 11.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_2": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%202.wav",
+      "built_in": true,
+      "sha256": "e600dc24daca75e7495d1fd75f12ab55e633dc77d943acd4840138b7c40d5a9d",
+      "legacy_hash_12": "e600dc24daca",
+      "aliases": [
+        "e600dc24daca"
+      ],
+      "display_name": "Snare 2",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 2.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_3": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%203.wav",
+      "built_in": true,
+      "sha256": "ee41a78c6f999c85cc26c2bff6eee8a18600747e5888a1067c59722f0606f745",
+      "legacy_hash_12": "ee41a78c6f99",
+      "aliases": [
+        "ee41a78c6f99"
+      ],
+      "display_name": "Snare 3",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 3.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_4": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%204.wav",
+      "built_in": true,
+      "sha256": "14743c04fc6ccfd35e2ac38352f3ad37826a54c9b4e8193d8a09076138257bf2",
+      "legacy_hash_12": "14743c04fc6c",
+      "aliases": [
+        "14743c04fc6c"
+      ],
+      "display_name": "Snare 4",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 4.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_5": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%205.wav",
+      "built_in": true,
+      "sha256": "278a2515e3fc9e46ab3a803e09dd6414da65e347e545fc755eb9ba6411a5914a",
+      "legacy_hash_12": "278a2515e3fc",
+      "aliases": [
+        "278a2515e3fc"
+      ],
+      "display_name": "Snare 5",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 5.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_6": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%206.wav",
+      "built_in": true,
+      "sha256": "2aa93fed27802ac69c2bb0b590aaf2fdd8ab2117dc2d4945b320b085b79d0ea9",
+      "legacy_hash_12": "2aa93fed2780",
+      "aliases": [
+        "2aa93fed2780"
+      ],
+      "display_name": "Snare 6",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 6.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_7": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%207.wav",
+      "built_in": true,
+      "sha256": "f286ac693ce81107755bc6bddfb757bcd705b047430be7cb8b97ab5e3bffe013",
+      "legacy_hash_12": "f286ac693ce8",
+      "aliases": [
+        "f286ac693ce8"
+      ],
+      "display_name": "Snare 7",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 7.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_8": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 8.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%208.wav",
+      "built_in": true,
+      "sha256": "1b9fa57b600f7550b1ccb84abe707c9fd1dd59fca6905c5928eda58ee5d72644",
+      "legacy_hash_12": "1b9fa57b600f",
+      "aliases": [
+        "1b9fa57b600f"
+      ],
+      "display_name": "Snare 8",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 8.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_9": {
+      "path": "samples/Drums/Acoustic/Snare/Snare 9.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%209.wav",
+      "built_in": true,
+      "sha256": "21e77afa53dc6bc4644d92a4a0a4bffd530ff6617559e9dba289e5aa38296fc6",
+      "legacy_hash_12": "21e77afa53dc",
+      "aliases": [
+        "21e77afa53dc"
+      ],
+      "display_name": "Snare 9",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare 9.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_flam_1": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Flam 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Flam%201.wav",
+      "built_in": true,
+      "sha256": "837ce22bfece92bf3c75a32b7297a6f48170243b137d15fe41b3d9dc1d694f10",
+      "legacy_hash_12": "837ce22bfece",
+      "aliases": [
+        "837ce22bfece"
+      ],
+      "display_name": "Snare Flam 1",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Flam 1.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_flam_2": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Flam 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Flam%202.wav",
+      "built_in": true,
+      "sha256": "8ebb1f657e48f573fab07dcdd7550ae4c28d2d9d4af021e67dfe433efc602e4c",
+      "legacy_hash_12": "8ebb1f657e48",
+      "aliases": [
+        "8ebb1f657e48"
+      ],
+      "display_name": "Snare Flam 2",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Flam 2.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_1": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%201.wav",
+      "built_in": true,
+      "sha256": "27007000c38cea9655cb22a3647c5306078461c96ae4437cc3ab71b0f480e909",
+      "legacy_hash_12": "27007000c38c",
+      "aliases": [
+        "27007000c38c"
+      ],
+      "display_name": "Snare Off 1",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 1.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_2": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%202.wav",
+      "built_in": true,
+      "sha256": "7762a5d46ff7468603289595019b196d181ea1c7b2eb6bde58ad98ceee791fdb",
+      "legacy_hash_12": "7762a5d46ff7",
+      "aliases": [
+        "7762a5d46ff7"
+      ],
+      "display_name": "Snare Off 2",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 2.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_3": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%203.wav",
+      "built_in": true,
+      "sha256": "1f7cdf225b7af76d19e19eb6aa1ab9cd91a33bbc6ad84e0b74898566a80412f4",
+      "legacy_hash_12": "1f7cdf225b7a",
+      "aliases": [
+        "1f7cdf225b7a"
+      ],
+      "display_name": "Snare Off 3",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 3.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_4": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%204.wav",
+      "built_in": true,
+      "sha256": "7e2541feeb4006b2fd41336fb0958054ab0c2946156b21c77c24e5e9556f12c4",
+      "legacy_hash_12": "7e2541feeb40",
+      "aliases": [
+        "7e2541feeb40"
+      ],
+      "display_name": "Snare Off 4",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 4.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_5": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%205.wav",
+      "built_in": true,
+      "sha256": "5746d42d85e9b67253fadf97a7ed0ae4b30bbaa6a624907a9a093022f9c041f4",
+      "legacy_hash_12": "5746d42d85e9",
+      "aliases": [
+        "5746d42d85e9"
+      ],
+      "display_name": "Snare Off 5",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 5.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_6": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%206.wav",
+      "built_in": true,
+      "sha256": "e7f93aea8c96b7e4952fa1c69360ea9aac0a1416b803867a04fb6220f9a732cf",
+      "legacy_hash_12": "e7f93aea8c96",
+      "aliases": [
+        "e7f93aea8c96"
+      ],
+      "display_name": "Snare Off 6",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 6.wav"
+    },
+    "builtin.drums.acoustic.snare.snare_off_7": {
+      "path": "samples/Drums/Acoustic/Snare/Snare Off 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Snare/Snare%20Off%207.wav",
+      "built_in": true,
+      "sha256": "2a3ce6c32f11b63e8524ba29946253d19edb36c61c208ca739ca10967fec0865",
+      "legacy_hash_12": "2a3ce6c32f11",
+      "aliases": [
+        "2a3ce6c32f11"
+      ],
+      "display_name": "Snare Off 7",
+      "display_path": "Drums/Acoustic/Snare",
+      "source_file_name": "Snare Off 7.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_1": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%201.wav",
+      "built_in": true,
+      "sha256": "b78e9b084473f79f3161650858892423b990f887d0e6189e18beb183af9dd3eb",
+      "legacy_hash_12": "b78e9b084473",
+      "aliases": [
+        "b78e9b084473"
+      ],
+      "display_name": "Tom Floor 1",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor 1.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_2": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%202.wav",
+      "built_in": true,
+      "sha256": "647b84b163389d72847749cf8ec4924540c04814c23569d34eaadd9e5c7e86db",
+      "legacy_hash_12": "647b84b16338",
+      "aliases": [
+        "647b84b16338"
+      ],
+      "display_name": "Tom Floor 2",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor 2.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_3": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%203.wav",
+      "built_in": true,
+      "sha256": "bb9e810a5c8ba415353b55d4c4f1f5fb9f13f33a5c66ed458dd9540cf47dde21",
+      "legacy_hash_12": "bb9e810a5c8b",
+      "aliases": [
+        "bb9e810a5c8b"
+      ],
+      "display_name": "Tom Floor 3",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor 3.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_4": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%204.wav",
+      "built_in": true,
+      "sha256": "b0a5b79349a3c04858d23a08dcad98f96ccbb198033fe5c87e37d2a4ed98c528",
+      "legacy_hash_12": "b0a5b79349a3",
+      "aliases": [
+        "b0a5b79349a3"
+      ],
+      "display_name": "Tom Floor 4",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor 4.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_5": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%205.wav",
+      "built_in": true,
+      "sha256": "f798e6957954d9543d9b197c73e17605f435aba32606705ef376a1f19446fd11",
+      "legacy_hash_12": "f798e6957954",
+      "aliases": [
+        "f798e6957954"
+      ],
+      "display_name": "Tom Floor 5",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor 5.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_6": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%206.wav",
+      "built_in": true,
+      "sha256": "5d5e74c9f017227ad880514008aed26f24c28c83c3f1387f58c88cd8802dec9e",
+      "legacy_hash_12": "5d5e74c9f017",
+      "aliases": [
+        "5d5e74c9f017"
+      ],
+      "display_name": "Tom Floor 6",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor 6.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_flam_1": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor Flam 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%20Flam%201.wav",
+      "built_in": true,
+      "sha256": "c3aa9d89cd131e7d152072be1a8ed81e5c813926bb1c51f5d153ac956bf012c0",
+      "legacy_hash_12": "c3aa9d89cd13",
+      "aliases": [
+        "c3aa9d89cd13"
+      ],
+      "display_name": "Tom Floor Flam 1",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor Flam 1.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_floor_flam_2": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Floor Flam 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Floor%20Flam%202.wav",
+      "built_in": true,
+      "sha256": "e09fbe5f024e66065deac41b3e791f2c77ab38b5a286206730e2ec2b11128223",
+      "legacy_hash_12": "e09fbe5f024e",
+      "aliases": [
+        "e09fbe5f024e"
+      ],
+      "display_name": "Tom Floor Flam 2",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Floor Flam 2.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_1": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%201.wav",
+      "built_in": true,
+      "sha256": "b9a7adb89cd5c8b63967ceca29d8e454848876b3c1eef2f7bf59929b83de5d9a",
+      "legacy_hash_12": "b9a7adb89cd5",
+      "aliases": [
+        "b9a7adb89cd5"
+      ],
+      "display_name": "Tom High 1",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 1.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_2": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%202.wav",
+      "built_in": true,
+      "sha256": "9b73aba7f9416af045fb44e2a2ac8bd63a6dc74ccd62cc6bea6b21ead46b6c7f",
+      "legacy_hash_12": "9b73aba7f941",
+      "aliases": [
+        "9b73aba7f941"
+      ],
+      "display_name": "Tom High 2",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 2.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_3": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%203.wav",
+      "built_in": true,
+      "sha256": "9917fb1b898a98934544315d92f7673761a1e345dbb824a5c16fb1149d73ba7c",
+      "legacy_hash_12": "9917fb1b898a",
+      "aliases": [
+        "9917fb1b898a"
+      ],
+      "display_name": "Tom High 3",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 3.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_4": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%204.wav",
+      "built_in": true,
+      "sha256": "22cee3bc8a9ad9c059b7585d8577948a49c197063caa0a5cf197a23987df93ed",
+      "legacy_hash_12": "22cee3bc8a9a",
+      "aliases": [
+        "22cee3bc8a9a"
+      ],
+      "display_name": "Tom High 4",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 4.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_5": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%205.wav",
+      "built_in": true,
+      "sha256": "ae84316cbc7e2f8e7d3c2f6bd9b3a1329c26ea4ca49969b7d3a6b27fc3dc3a5a",
+      "legacy_hash_12": "ae84316cbc7e",
+      "aliases": [
+        "ae84316cbc7e"
+      ],
+      "display_name": "Tom High 5",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 5.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_6": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%206.wav",
+      "built_in": true,
+      "sha256": "bb2acbaacd863ff23afc4e41eb9c7c081d1cef892b8d0d7dcb2ef9862480a8db",
+      "legacy_hash_12": "bb2acbaacd86",
+      "aliases": [
+        "bb2acbaacd86"
+      ],
+      "display_name": "Tom High 6",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 6.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_7": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%207.wav",
+      "built_in": true,
+      "sha256": "ecb4c75d8f4b06aa9c9546bc1bacdb7b1448a798e951c8f28b3358ee07460dfe",
+      "legacy_hash_12": "ecb4c75d8f4b",
+      "aliases": [
+        "ecb4c75d8f4b"
+      ],
+      "display_name": "Tom High 7",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High 7.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_high_flam": {
+      "path": "samples/Drums/Acoustic/Toms/Tom High Flam.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20High%20Flam.wav",
+      "built_in": true,
+      "sha256": "38b640e2e8a4398f551676fe01e141848cb288d46f043994fbb2af33c526ed51",
+      "legacy_hash_12": "38b640e2e8a4",
+      "aliases": [
+        "38b640e2e8a4"
+      ],
+      "display_name": "Tom High Flam",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom High Flam.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_1": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%201.wav",
+      "built_in": true,
+      "sha256": "0c4e0658050f18105b15cfcc6809d497d59cfd7139933030e422960872e5bc77",
+      "legacy_hash_12": "0c4e0658050f",
+      "aliases": [
+        "0c4e0658050f"
+      ],
+      "display_name": "Tom Mid 1",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 1.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_2": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%202.wav",
+      "built_in": true,
+      "sha256": "42413b6f905aad08fd4db89ba8bd7afa4ae54a1fa762eff8cda17f4a6358d18b",
+      "legacy_hash_12": "42413b6f905a",
+      "aliases": [
+        "42413b6f905a"
+      ],
+      "display_name": "Tom Mid 2",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 2.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_3": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%203.wav",
+      "built_in": true,
+      "sha256": "a82e44e6ad218421542bb70252a646bdbc5461b2d107a5527f66d24ad27deb6d",
+      "legacy_hash_12": "a82e44e6ad21",
+      "aliases": [
+        "a82e44e6ad21"
+      ],
+      "display_name": "Tom Mid 3",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 3.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_4": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%204.wav",
+      "built_in": true,
+      "sha256": "ce9de4a8e4e4d28428e12958411aaf82d060c4e665d797449f2464d34cda956f",
+      "legacy_hash_12": "ce9de4a8e4e4",
+      "aliases": [
+        "ce9de4a8e4e4"
+      ],
+      "display_name": "Tom Mid 4",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 4.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_5": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%205.wav",
+      "built_in": true,
+      "sha256": "8fd4a60c5a842e1a2cd92651d859ba83a9b0c18f7529d6260f9b77d60d6a1c75",
+      "legacy_hash_12": "8fd4a60c5a84",
+      "aliases": [
+        "8fd4a60c5a84"
+      ],
+      "display_name": "Tom Mid 5",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 5.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_6": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%206.wav",
+      "built_in": true,
+      "sha256": "ea057750fa02154e66d3fe0fb6ec2eb1d5382ebd9a9f4222ed4250077b21f6d2",
+      "legacy_hash_12": "ea057750fa02",
+      "aliases": [
+        "ea057750fa02"
+      ],
+      "display_name": "Tom Mid 6",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 6.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_7": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%207.wav",
+      "built_in": true,
+      "sha256": "1ea6a622a9358e557747dd9431c5dd60446735320388a326f657a785b42377fd",
+      "legacy_hash_12": "1ea6a622a935",
+      "aliases": [
+        "1ea6a622a935"
+      ],
+      "display_name": "Tom Mid 7",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 7.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_8": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid 8.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%208.wav",
+      "built_in": true,
+      "sha256": "c0240cffd79b521d1f96caa541ff209266d5b9906baf367ffe6a1800468223c5",
+      "legacy_hash_12": "c0240cffd79b",
+      "aliases": [
+        "c0240cffd79b"
+      ],
+      "display_name": "Tom Mid 8",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid 8.wav"
+    },
+    "builtin.drums.acoustic.toms.tom_mid_flam": {
+      "path": "samples/Drums/Acoustic/Toms/Tom Mid Flam.wav",
+      "asset_key": "samples/Drums/Acoustic/Toms/Tom%20Mid%20Flam.wav",
+      "built_in": true,
+      "sha256": "38bb3f08018322a95cfea7a84b650f201be33b6cea1780fea3f9faa0805cce86",
+      "legacy_hash_12": "38bb3f080183",
+      "aliases": [
+        "38bb3f080183"
+      ],
+      "display_name": "Tom Mid Flam",
+      "display_path": "Drums/Acoustic/Toms",
+      "source_file_name": "Tom Mid Flam.wav"
+    },
+    "builtin.drums.acoustic.plates.splash.splash_1": {
+      "path": "samples/Drums/Acoustic/Plates/Splash/Splash 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Splash/Splash%201.wav",
+      "built_in": true,
+      "sha256": "8f122751e2e22e04a055de5e84bbc8c1a6b2dc3ce82051f69a2dbfc8e8ee2db0",
+      "legacy_hash_12": "8f122751e2e2",
+      "aliases": [
+        "8f122751e2e2"
+      ],
+      "display_name": "Splash 1",
+      "display_path": "Drums/Acoustic/Plates/Splash",
+      "source_file_name": "Splash 1.wav"
+    },
+    "builtin.drums.acoustic.plates.splash.splash_2": {
+      "path": "samples/Drums/Acoustic/Plates/Splash/Splash 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Splash/Splash%202.wav",
+      "built_in": true,
+      "sha256": "107b2c9a3908d72f647fbb28ece1707f2e6aa569c2726e6064927d351838f930",
+      "legacy_hash_12": "107b2c9a3908",
+      "aliases": [
+        "107b2c9a3908"
+      ],
+      "display_name": "Splash 2",
+      "display_path": "Drums/Acoustic/Plates/Splash",
+      "source_file_name": "Splash 2.wav"
+    },
+    "builtin.drums.acoustic.plates.splash.splash_mute_1": {
+      "path": "samples/Drums/Acoustic/Plates/Splash/Splash Mute 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Splash/Splash%20Mute%201.wav",
+      "built_in": true,
+      "sha256": "a6580ef30af31d7fc30f6f198c1d57a60492c8eb0ec5043a7d26c4ff429fc28f",
+      "legacy_hash_12": "a6580ef30af3",
+      "aliases": [
+        "a6580ef30af3"
+      ],
+      "display_name": "Splash Mute 1",
+      "display_path": "Drums/Acoustic/Plates/Splash",
+      "source_file_name": "Splash Mute 1.wav"
+    },
+    "builtin.drums.acoustic.plates.splash.splash_mute_2": {
+      "path": "samples/Drums/Acoustic/Plates/Splash/Splash Mute 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Splash/Splash%20Mute%202.wav",
+      "built_in": true,
+      "sha256": "284925e30a5ae31cd737985ab8d5a175c0b0ba131cc4aeabc11f9a849f153a01",
+      "legacy_hash_12": "284925e30a5a",
+      "aliases": [
+        "284925e30a5a"
+      ],
+      "display_name": "Splash Mute 2",
+      "display_path": "Drums/Acoustic/Plates/Splash",
+      "source_file_name": "Splash Mute 2.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_1": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%201.wav",
+      "built_in": true,
+      "sha256": "216be15214513ff78f50440dd9e30455a6d6e8da3651a2063fa83801f36d08a7",
+      "legacy_hash_12": "216be1521451",
+      "aliases": [
+        "216be1521451"
+      ],
+      "display_name": "Ride Cymbal 1",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal 1.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_2": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%202.wav",
+      "built_in": true,
+      "sha256": "0ad3780f862f1444c7e05e7be1815fd8fd2d289396d19c058de8d47c81abf27b",
+      "legacy_hash_12": "0ad3780f862f",
+      "aliases": [
+        "0ad3780f862f"
+      ],
+      "display_name": "Ride Cymbal 2",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal 2.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_3": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%203.wav",
+      "built_in": true,
+      "sha256": "5f61716823b6a10ab4a73c6c585d04e604b316bb1c69ca7f978bb0e237054d60",
+      "legacy_hash_12": "5f61716823b6",
+      "aliases": [
+        "5f61716823b6"
+      ],
+      "display_name": "Ride Cymbal 3",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal 3.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_4": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%204.wav",
+      "built_in": true,
+      "sha256": "4f772bb1431499fd0c45fbf399f448dafcf59cdc1dfb1bb714ff91f1599de55c",
+      "legacy_hash_12": "4f772bb14314",
+      "aliases": [
+        "4f772bb14314"
+      ],
+      "display_name": "Ride Cymbal 4",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal 4.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_5": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%205.wav",
+      "built_in": true,
+      "sha256": "dec635233cf7f66443df3588466f214218be4a8b308274811876ca8222d98dcd",
+      "legacy_hash_12": "dec635233cf7",
+      "aliases": [
+        "dec635233cf7"
+      ],
+      "display_name": "Ride Cymbal 5",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal 5.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_bell_1": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal Bell 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%20Bell%201.wav",
+      "built_in": true,
+      "sha256": "7d79c0a27c2c4563957dc4b683171f5ae4ad529671d65e86cbf66ce52d4be8b2",
+      "legacy_hash_12": "7d79c0a27c2c",
+      "aliases": [
+        "7d79c0a27c2c"
+      ],
+      "display_name": "Ride Cymbal Bell 1",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal Bell 1.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_bell_2": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal Bell 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%20Bell%202.wav",
+      "built_in": true,
+      "sha256": "61577de84fbfb092ffc13ef17a63aca23dffba69cb6efedf16ab3da006788a0e",
+      "legacy_hash_12": "61577de84fbf",
+      "aliases": [
+        "61577de84fbf"
+      ],
+      "display_name": "Ride Cymbal Bell 2",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal Bell 2.wav"
+    },
+    "builtin.drums.acoustic.plates.ride_cymbal.ride_cymbal_bell_mute": {
+      "path": "samples/Drums/Acoustic/Plates/Ride Cymbal/Ride Cymbal Bell Mute.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Ride%20Cymbal/Ride%20Cymbal%20Bell%20Mute.wav",
+      "built_in": true,
+      "sha256": "9416fb5f5ace250a815b06db527f617f44a26b46cf11f7b67c45a81682e31780",
+      "legacy_hash_12": "9416fb5f5ace",
+      "aliases": [
+        "9416fb5f5ace"
+      ],
+      "display_name": "Ride Cymbal Bell Mute",
+      "display_path": "Drums/Acoustic/Plates/Ride Cymbal",
+      "source_file_name": "Ride Cymbal Bell Mute.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_1": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%201.wav",
+      "built_in": true,
+      "sha256": "26210b5050ab604afcd4984ca0a588b072860072c68e052992f06bdab5bb1359",
+      "legacy_hash_12": "26210b5050ab",
+      "aliases": [
+        "26210b5050ab"
+      ],
+      "display_name": "Crash 1",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash 1.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_2": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%202.wav",
+      "built_in": true,
+      "sha256": "3cbd85c4b1bb628876db4c57beb029c9d7a078379b7e6991e26bd5493a9b8747",
+      "legacy_hash_12": "3cbd85c4b1bb",
+      "aliases": [
+        "3cbd85c4b1bb"
+      ],
+      "display_name": "Crash 2",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash 2.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_3": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%203.wav",
+      "built_in": true,
+      "sha256": "5e8d8306f760e9092a04cb20ee653e29897b18f6c7fa85a5b52d276ccafad04d",
+      "legacy_hash_12": "5e8d8306f760",
+      "aliases": [
+        "5e8d8306f760"
+      ],
+      "display_name": "Crash 3",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash 3.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_4": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%204.wav",
+      "built_in": true,
+      "sha256": "3f709e6741e4f92cacb51ac26c01f1e104225573d0427a7cde991b9ac2a46855",
+      "legacy_hash_12": "3f709e6741e4",
+      "aliases": [
+        "3f709e6741e4"
+      ],
+      "display_name": "Crash 4",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash 4.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_5": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%205.wav",
+      "built_in": true,
+      "sha256": "c1c5dcf1c70c6ce4053f0d5eb01e8c9ad13f857850f58dfbd76994ca1b370d5b",
+      "legacy_hash_12": "c1c5dcf1c70c",
+      "aliases": [
+        "c1c5dcf1c70c"
+      ],
+      "display_name": "Crash 5",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash 5.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_7": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%207.wav",
+      "built_in": true,
+      "sha256": "c7acfcbe7f7a3d058ed301d661c583da8bda632bcc4df6ce47b073d09e11eb4a",
+      "legacy_hash_12": "c7acfcbe7f7a",
+      "aliases": [
+        "c7acfcbe7f7a"
+      ],
+      "display_name": "Crash 7",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash 7.wav"
+    },
+    "builtin.drums.acoustic.plates.crash.crash_mute_1": {
+      "path": "samples/Drums/Acoustic/Plates/Crash/Crash mute 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Crash/Crash%20mute%201.wav",
+      "built_in": true,
+      "sha256": "5ea23d5503701a28af9628d7846434bdeee6c2aad5b598e8ef82cacea5186c65",
+      "legacy_hash_12": "5ea23d550370",
+      "aliases": [
+        "5ea23d550370"
+      ],
+      "display_name": "Crash mute 1",
+      "display_path": "Drums/Acoustic/Plates/Crash",
+      "source_file_name": "Crash mute 1.wav"
+    },
+    "builtin.drums.acoustic.plates.china.china_1": {
+      "path": "samples/Drums/Acoustic/Plates/China/China 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/China/China%201.wav",
+      "built_in": true,
+      "sha256": "412b0600137daa15d2b16f0bc082cfaccf0275077e0146a397d1508be043a742",
+      "legacy_hash_12": "412b0600137d",
+      "aliases": [
+        "412b0600137d"
+      ],
+      "display_name": "China 1",
+      "display_path": "Drums/Acoustic/Plates/China",
+      "source_file_name": "China 1.wav"
+    },
+    "builtin.drums.acoustic.plates.china.china_2": {
+      "path": "samples/Drums/Acoustic/Plates/China/China 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/China/China%202.wav",
+      "built_in": true,
+      "sha256": "bbe4bcc544db835aba60a2c184f9991239de11710185530036623496d4097cc2",
+      "legacy_hash_12": "bbe4bcc544db",
+      "aliases": [
+        "bbe4bcc544db"
+      ],
+      "display_name": "China 2",
+      "display_path": "Drums/Acoustic/Plates/China",
+      "source_file_name": "China 2.wav"
+    },
+    "builtin.drums.acoustic.plates.china.china_3": {
+      "path": "samples/Drums/Acoustic/Plates/China/China 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/China/China%203.wav",
+      "built_in": true,
+      "sha256": "4a3f842fb54b5efb73c30b9041f9fc936c93ba2d3545b9044258e24f9723abb5",
+      "legacy_hash_12": "4a3f842fb54b",
+      "aliases": [
+        "4a3f842fb54b"
+      ],
+      "display_name": "China 3",
+      "display_path": "Drums/Acoustic/Plates/China",
+      "source_file_name": "China 3.wav"
+    },
+    "builtin.drums.acoustic.plates.china.china_bell": {
+      "path": "samples/Drums/Acoustic/Plates/China/China Bell.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/China/China%20Bell.wav",
+      "built_in": true,
+      "sha256": "1720ea957cb6d4ea161965cb8b4cfbc56495e98559a74e7f60a493dbb1673a3a",
+      "legacy_hash_12": "1720ea957cb6",
+      "aliases": [
+        "1720ea957cb6"
+      ],
+      "display_name": "China Bell",
+      "display_path": "Drums/Acoustic/Plates/China",
+      "source_file_name": "China Bell.wav"
+    },
+    "builtin.drums.acoustic.plates.china.china_mute_1": {
+      "path": "samples/Drums/Acoustic/Plates/China/China mute 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/China/China%20mute%201.wav",
+      "built_in": true,
+      "sha256": "973c41219d74bf7afdcdddebbbaed28d4dee311736016899c504c5634dccef0b",
+      "legacy_hash_12": "973c41219d74",
+      "aliases": [
+        "973c41219d74"
+      ],
+      "display_name": "China mute 1",
+      "display_path": "Drums/Acoustic/Plates/China",
+      "source_file_name": "China mute 1.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_1": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%201.wav",
+      "built_in": true,
+      "sha256": "739b6e666cd5534dc69fefba40b0f1ea66496ac4fce61a41899139ad6a7a6828",
+      "legacy_hash_12": "739b6e666cd5",
+      "aliases": [
+        "739b6e666cd5"
+      ],
+      "display_name": "Hi Hat 1",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 1.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_10": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 10.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%2010.wav",
+      "built_in": true,
+      "sha256": "3f872a429003c0bd1726573fae0c598566cf5ac45f8792221821bfab19a33f75",
+      "legacy_hash_12": "3f872a429003",
+      "aliases": [
+        "3f872a429003"
+      ],
+      "display_name": "Hi Hat 10",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 10.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_11": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 11.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%2011.wav",
+      "built_in": true,
+      "sha256": "e6d067b53d0ca9da30a93818324a9e5392f726c471207a01a6941778c13b31a8",
+      "legacy_hash_12": "e6d067b53d0c",
+      "aliases": [
+        "e6d067b53d0c"
+      ],
+      "display_name": "Hi Hat 11",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 11.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_12": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 12.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%2012.wav",
+      "built_in": true,
+      "sha256": "8aad6dfd083ee1d99288824235f556a0c4457382b096a4dfaecf6839a5377d60",
+      "legacy_hash_12": "8aad6dfd083e",
+      "aliases": [
+        "8aad6dfd083e"
+      ],
+      "display_name": "Hi Hat 12",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 12.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_13": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 13.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%2013.wav",
+      "built_in": true,
+      "sha256": "a591b25dae8d03fdf66ccea1f365e145e32c35e56127ad306c17f4db10ecd5f1",
+      "legacy_hash_12": "a591b25dae8d",
+      "aliases": [
+        "a591b25dae8d"
+      ],
+      "display_name": "Hi Hat 13",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 13.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_14": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 14.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%2014.wav",
+      "built_in": true,
+      "sha256": "d5a8ee6ad013ec6a4d7d122ee02050b9f211f5fa0c5aa71dc06bfb32c6c03295",
+      "legacy_hash_12": "d5a8ee6ad013",
+      "aliases": [
+        "d5a8ee6ad013"
+      ],
+      "display_name": "Hi Hat 14",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 14.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_15": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 15.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%2015.wav",
+      "built_in": true,
+      "sha256": "53cb335ecb5bad372bae4b6ec641aa8365279d466904800d376671eeec4f290c",
+      "legacy_hash_12": "53cb335ecb5b",
+      "aliases": [
+        "53cb335ecb5b"
+      ],
+      "display_name": "Hi Hat 15",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 15.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_3": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%203.wav",
+      "built_in": true,
+      "sha256": "f85b3a0eb653f3c73c3bca8d8164bf505bf3c2c33066c53d39ed453b3150922f",
+      "legacy_hash_12": "f85b3a0eb653",
+      "aliases": [
+        "f85b3a0eb653"
+      ],
+      "display_name": "Hi Hat 3",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 3.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_4": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%204.wav",
+      "built_in": true,
+      "sha256": "603235e293e6a3e97992872528cac760774da9c221ce3ca9f39abda7c87df1bd",
+      "legacy_hash_12": "603235e293e6",
+      "aliases": [
+        "603235e293e6"
+      ],
+      "display_name": "Hi Hat 4",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 4.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_5": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%205.wav",
+      "built_in": true,
+      "sha256": "a3fbdead29b8ce4c1db0a99bc430ed01394099edee0794c431dc55c60bdd2211",
+      "legacy_hash_12": "a3fbdead29b8",
+      "aliases": [
+        "a3fbdead29b8"
+      ],
+      "display_name": "Hi Hat 5",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 5.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_6": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%206.wav",
+      "built_in": true,
+      "sha256": "0bbc58285aaf1bda14dc9b1780018d97023d42a477125e5d0578b02376399d0c",
+      "legacy_hash_12": "0bbc58285aaf",
+      "aliases": [
+        "0bbc58285aaf"
+      ],
+      "display_name": "Hi Hat 6",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 6.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_7": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%207.wav",
+      "built_in": true,
+      "sha256": "70e5971e007be07be05e3d026d2975ef7096148b1f7f6674b1664e18a2cc0fdc",
+      "legacy_hash_12": "70e5971e007b",
+      "aliases": [
+        "70e5971e007b"
+      ],
+      "display_name": "Hi Hat 7",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 7.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_8": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 8.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%208.wav",
+      "built_in": true,
+      "sha256": "1c82a9ddf7bb27ce933221b00032c6c74bcfec3568d5d16fc49f6c6f48efac4a",
+      "legacy_hash_12": "1c82a9ddf7bb",
+      "aliases": [
+        "1c82a9ddf7bb"
+      ],
+      "display_name": "Hi Hat 8",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 8.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_9": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat 9.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%209.wav",
+      "built_in": true,
+      "sha256": "a5280bbd33b638fb8775e5a4a908b370d43d15a32557c2090d79b254822a217a",
+      "legacy_hash_12": "a5280bbd33b6",
+      "aliases": [
+        "a5280bbd33b6"
+      ],
+      "display_name": "Hi Hat 9",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat 9.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_bell_1": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Bell 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Bell%201.wav",
+      "built_in": true,
+      "sha256": "db0153bab14d7964f48434b8b67935f5f0d35367af6220ebce89f1975493f962",
+      "legacy_hash_12": "db0153bab14d",
+      "aliases": [
+        "db0153bab14d"
+      ],
+      "display_name": "Hi Hat Bell 1",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Bell 1.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_bell_2": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Bell 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Bell%202.wav",
+      "built_in": true,
+      "sha256": "abb47c5a902847be0753cc85fd5bda1e8217516360b9a47c4ab5cd0621025cf1",
+      "legacy_hash_12": "abb47c5a9028",
+      "aliases": [
+        "abb47c5a9028"
+      ],
+      "display_name": "Hi Hat Bell 2",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Bell 2.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_flam": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Flam.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Flam.wav",
+      "built_in": true,
+      "sha256": "9cb383587aeab4f9a2a83d0dab28e259777189255fc0ceed0e8454488db4e6a9",
+      "legacy_hash_12": "9cb383587aea",
+      "aliases": [
+        "9cb383587aea"
+      ],
+      "display_name": "Hi Hat Flam",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Flam.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_1": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%201.wav",
+      "built_in": true,
+      "sha256": "0cc435387ff04b60d4a201d7d6cd701feeae671eae8337839a6a6edc6bcb742f",
+      "legacy_hash_12": "0cc435387ff0",
+      "aliases": [
+        "0cc435387ff0"
+      ],
+      "display_name": "Hi Hat Open 1",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open 1.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_2": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%202.wav",
+      "built_in": true,
+      "sha256": "3d8a0fcaa5a026eedd0f09ea6032acb1f61b9ed8b5f36ec31adda76ba693a590",
+      "legacy_hash_12": "3d8a0fcaa5a0",
+      "aliases": [
+        "3d8a0fcaa5a0"
+      ],
+      "display_name": "Hi Hat Open 2",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open 2.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_3": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%203.wav",
+      "built_in": true,
+      "sha256": "a283f646b88055a17d57ba9543b94dc9c6fc8983ff2d59f8a0351e3504971f7e",
+      "legacy_hash_12": "a283f646b880",
+      "aliases": [
+        "a283f646b880"
+      ],
+      "display_name": "Hi Hat Open 3",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open 3.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_4": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%204.wav",
+      "built_in": true,
+      "sha256": "81687e135f9457500b816c55efc08242637327b19d923c5294324009f17c8dfc",
+      "legacy_hash_12": "81687e135f94",
+      "aliases": [
+        "81687e135f94"
+      ],
+      "display_name": "Hi Hat Open 4",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open 4.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_5": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%205.wav",
+      "built_in": true,
+      "sha256": "d696ae08e8323b40f5845a1ce07c272d99523d0d203c18df78740e898a4a55fc",
+      "legacy_hash_12": "d696ae08e832",
+      "aliases": [
+        "d696ae08e832"
+      ],
+      "display_name": "Hi Hat Open 5",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open 5.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_1": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 1.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%201.wav",
+      "built_in": true,
+      "sha256": "dc26d4471f42b2e8a2ca0e9501ac1902942d61e37269a040da2a699e5e3100e3",
+      "legacy_hash_12": "dc26d4471f42",
+      "aliases": [
+        "dc26d4471f42"
+      ],
+      "display_name": "Hi Hat Open Close 1",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 1.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_2": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 2.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%202.wav",
+      "built_in": true,
+      "sha256": "951c7c2a69512d5908172664a7d7033db91fd4683fd0c2d5c60674b8a57f4193",
+      "legacy_hash_12": "951c7c2a6951",
+      "aliases": [
+        "951c7c2a6951"
+      ],
+      "display_name": "Hi Hat Open Close 2",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 2.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_3": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 3.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%203.wav",
+      "built_in": true,
+      "sha256": "1278519e70c17be952aaa6a5bf523ca5d5bb16fcdb50898f2863040a3a06c3ac",
+      "legacy_hash_12": "1278519e70c1",
+      "aliases": [
+        "1278519e70c1"
+      ],
+      "display_name": "Hi Hat Open Close 3",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 3.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_4": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 4.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%204.wav",
+      "built_in": true,
+      "sha256": "721c9dbe8b32faae86857561395604cbfd52b5bacdeb1b42ee0eae9ace4b8b07",
+      "legacy_hash_12": "721c9dbe8b32",
+      "aliases": [
+        "721c9dbe8b32"
+      ],
+      "display_name": "Hi Hat Open Close 4",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 4.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_5": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 5.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%205.wav",
+      "built_in": true,
+      "sha256": "7f9ff4bcc43f34cd7aaa09c31f124e595dd3d081ebbfb76aab2c16101f9ff8d2",
+      "legacy_hash_12": "7f9ff4bcc43f",
+      "aliases": [
+        "7f9ff4bcc43f"
+      ],
+      "display_name": "Hi Hat Open Close 5",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 5.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_6": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 6.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%206.wav",
+      "built_in": true,
+      "sha256": "5ab0ecf79946836b63058868f7045f2ba4339256489ce00eefaf5aca7a80d16e",
+      "legacy_hash_12": "5ab0ecf79946",
+      "aliases": [
+        "5ab0ecf79946"
+      ],
+      "display_name": "Hi Hat Open Close 6",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 6.wav"
+    },
+    "builtin.drums.acoustic.plates.hi_hat.hi_hat_open_close_7": {
+      "path": "samples/Drums/Acoustic/Plates/Hi Hat/Hi Hat Open Close 7.wav",
+      "asset_key": "samples/Drums/Acoustic/Plates/Hi%20Hat/Hi%20Hat%20Open%20Close%207.wav",
+      "built_in": true,
+      "sha256": "b0edd45da9072edd72bf1e9deab6fd3801567d0c104af58786d67c013d272755",
+      "legacy_hash_12": "b0edd45da907",
+      "aliases": [
+        "b0edd45da907"
+      ],
+      "display_name": "Hi Hat Open Close 7",
+      "display_path": "Drums/Acoustic/Plates/Hi Hat",
+      "source_file_name": "Hi Hat Open Close 7.wav"
+    },
+    "builtin.drums.electronic.kick.17_kick_05_sp": {
+      "path": "samples/Drums/Electronic/Kick/17_Kick_05_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Kick/17_Kick_05_SP.wav",
+      "built_in": true,
+      "sha256": "c815bfa182e32a33da8d984e2036356f4bdcb6b482107f62269f2f8cd7d2a9a2",
+      "legacy_hash_12": "c815bfa182e3",
+      "aliases": [
+        "c815bfa182e3"
+      ],
+      "display_name": "17 Kick 05 SP",
+      "display_path": "Drums/Electronic/Kick",
+      "source_file_name": "17_Kick_05_SP.wav"
+    },
+    "builtin.drums.electronic.kick.17_kick_13_sp": {
+      "path": "samples/Drums/Electronic/Kick/17_Kick_13_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Kick/17_Kick_13_SP.wav",
+      "built_in": true,
+      "sha256": "c2ce5fbf29bec631fa3f3dea37f6b60e0aa85b4eb61ec53e5dbffbcdb91be852",
+      "legacy_hash_12": "c2ce5fbf29be",
+      "aliases": [
+        "c2ce5fbf29be"
+      ],
+      "display_name": "17 Kick 13 SP",
+      "display_path": "Drums/Electronic/Kick",
+      "source_file_name": "17_Kick_13_SP.wav"
+    },
+    "builtin.drums.electronic.kick.17_kick_14_sp": {
+      "path": "samples/Drums/Electronic/Kick/17_Kick_14_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Kick/17_Kick_14_SP.wav",
+      "built_in": true,
+      "sha256": "33cecc260a035e8738d1c2a418161725d2eb70dd65e499156d1a4ec7954faad9",
+      "legacy_hash_12": "33cecc260a03",
+      "aliases": [
+        "33cecc260a03"
+      ],
+      "display_name": "17 Kick 14 SP",
+      "display_path": "Drums/Electronic/Kick",
+      "source_file_name": "17_Kick_14_SP.wav"
+    },
+    "builtin.drums.electronic.kick.17_kick_18_sp": {
+      "path": "samples/Drums/Electronic/Kick/17_Kick_18_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Kick/17_Kick_18_SP.wav",
+      "built_in": true,
+      "sha256": "584261b9c70bf665ef12a4b62e9bb6291ec1c1a52124465b3fba3f811c0497df",
+      "legacy_hash_12": "584261b9c70b",
+      "aliases": [
+        "584261b9c70b"
+      ],
+      "display_name": "17 Kick 18 SP",
+      "display_path": "Drums/Electronic/Kick",
+      "source_file_name": "17_Kick_18_SP.wav"
+    },
+    "builtin.drums.electronic.kick.17_kick_33_sp": {
+      "path": "samples/Drums/Electronic/Kick/17_Kick_33_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Kick/17_Kick_33_SP.wav",
+      "built_in": true,
+      "sha256": "bce8e410384638466826d237b17b06924cf88b26bdf5129d3b8eb0f879d6a7b6",
+      "legacy_hash_12": "bce8e4103846",
+      "aliases": [
+        "bce8e4103846"
+      ],
+      "display_name": "17 Kick 33 SP",
+      "display_path": "Drums/Electronic/Kick",
+      "source_file_name": "17_Kick_33_SP.wav"
+    },
+    "builtin.drums.electronic.kick.17_kick_40_sp": {
+      "path": "samples/Drums/Electronic/Kick/17_Kick_40_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Kick/17_Kick_40_SP.wav",
+      "built_in": true,
+      "sha256": "ef3f3582b47b69905226bd30c18965062a7ad99cf48178df48bb553d04e38073",
+      "legacy_hash_12": "ef3f3582b47b",
+      "aliases": [
+        "ef3f3582b47b"
+      ],
+      "display_name": "17 Kick 40 SP",
+      "display_path": "Drums/Electronic/Kick",
+      "source_file_name": "17_Kick_40_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_01_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_01_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_01_SP.wav",
+      "built_in": true,
+      "sha256": "f47eb94a8b154983373e8fe8a72548c836313a35c4517882cb806fb9ca282d16",
+      "legacy_hash_12": "f47eb94a8b15",
+      "aliases": [
+        "f47eb94a8b15"
+      ],
+      "display_name": "17 Snare 01 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_01_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_02_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_02_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_02_SP.wav",
+      "built_in": true,
+      "sha256": "0a4d00f421ee03884bc64151d50e0bfd18f773f4994d5c8d4f4e7bb5c1e73866",
+      "legacy_hash_12": "0a4d00f421ee",
+      "aliases": [
+        "0a4d00f421ee"
+      ],
+      "display_name": "17 Snare 02 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_02_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_03_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_03_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_03_SP.wav",
+      "built_in": true,
+      "sha256": "e6af81ea78b67685cdeca7320ed11d50625bbf27cc4089c28b2dea0d1dacef7d",
+      "legacy_hash_12": "e6af81ea78b6",
+      "aliases": [
+        "e6af81ea78b6"
+      ],
+      "display_name": "17 Snare 03 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_03_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_04_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_04_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_04_SP.wav",
+      "built_in": true,
+      "sha256": "e3988e72d9882a2fe920778eb20d118a01ca9af7fe078fcaf6f24cb246cb6ff0",
+      "legacy_hash_12": "e3988e72d988",
+      "aliases": [
+        "e3988e72d988"
+      ],
+      "display_name": "17 Snare 04 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_04_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_05_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_05_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_05_SP.wav",
+      "built_in": true,
+      "sha256": "536f55d7775b3859209f7fa6400ee2f7b2b91b024dbae3cd84aa08399f261c44",
+      "legacy_hash_12": "536f55d7775b",
+      "aliases": [
+        "536f55d7775b"
+      ],
+      "display_name": "17 Snare 05 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_05_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_06_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_06_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_06_SP.wav",
+      "built_in": true,
+      "sha256": "fc84ac538774e7d4090a5d579ba1841b2f3eeabd1f4b2fd751f0b5c697c6f1aa",
+      "legacy_hash_12": "fc84ac538774",
+      "aliases": [
+        "fc84ac538774"
+      ],
+      "display_name": "17 Snare 06 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_06_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_07_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_07_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_07_SP.wav",
+      "built_in": true,
+      "sha256": "78a5a40f3f4cc35c6db8c91f00c18705bbf04b9fc0e6d07af44a83e355e6957d",
+      "legacy_hash_12": "78a5a40f3f4c",
+      "aliases": [
+        "78a5a40f3f4c"
+      ],
+      "display_name": "17 Snare 07 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_07_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_08_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_08_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_08_SP.wav",
+      "built_in": true,
+      "sha256": "9e0bf0649317b22955eb6a3b808822d7cc84e77d51f111fdcb6326025356b770",
+      "legacy_hash_12": "9e0bf0649317",
+      "aliases": [
+        "9e0bf0649317"
+      ],
+      "display_name": "17 Snare 08 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_08_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_09_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_09_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_09_SP.wav",
+      "built_in": true,
+      "sha256": "b850c65a2c4c580fbc14666de4fc8a6d498d68fb0d7516831e6bc0c834cc1c2d",
+      "legacy_hash_12": "b850c65a2c4c",
+      "aliases": [
+        "b850c65a2c4c"
+      ],
+      "display_name": "17 Snare 09 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_09_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_10_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_10_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_10_SP.wav",
+      "built_in": true,
+      "sha256": "c5f8df4f5e8e6b7fe9189921ae94fa95ea438fffa2d21dc019e426c2405cb540",
+      "legacy_hash_12": "c5f8df4f5e8e",
+      "aliases": [
+        "c5f8df4f5e8e"
+      ],
+      "display_name": "17 Snare 10 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_10_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_11_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_11_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_11_SP.wav",
+      "built_in": true,
+      "sha256": "8646691e18f7e5a856f9da915ea0321ccd711d34523ab3a2921809608e2eeb30",
+      "legacy_hash_12": "8646691e18f7",
+      "aliases": [
+        "8646691e18f7"
+      ],
+      "display_name": "17 Snare 11 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_11_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_12_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_12_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_12_SP.wav",
+      "built_in": true,
+      "sha256": "5ae698d0630670e390a459db4d0cae1115337913733b03f81327fe6be3dff6ca",
+      "legacy_hash_12": "5ae698d06306",
+      "aliases": [
+        "5ae698d06306"
+      ],
+      "display_name": "17 Snare 12 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_12_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_13_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_13_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_13_SP.wav",
+      "built_in": true,
+      "sha256": "6da3f249fb7b09bf9e79f667b7b263d7049928ed07296d490285231f26900753",
+      "legacy_hash_12": "6da3f249fb7b",
+      "aliases": [
+        "6da3f249fb7b"
+      ],
+      "display_name": "17 Snare 13 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_13_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_14_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_14_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_14_SP.wav",
+      "built_in": true,
+      "sha256": "f5d200e88218dfabaef678e12127df3d62a8e83023ab6e5a8b4be45746b8f46f",
+      "legacy_hash_12": "f5d200e88218",
+      "aliases": [
+        "f5d200e88218"
+      ],
+      "display_name": "17 Snare 14 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_14_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_15_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_15_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_15_SP.wav",
+      "built_in": true,
+      "sha256": "e7ea1f32f4137648a4f93565a9902a8b06128268bff15d84e22212518b2cd3c0",
+      "legacy_hash_12": "e7ea1f32f413",
+      "aliases": [
+        "e7ea1f32f413"
+      ],
+      "display_name": "17 Snare 15 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_15_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_16_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_16_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_16_SP.wav",
+      "built_in": true,
+      "sha256": "f014c247646922f19978203f177d5db260c93e8c15314e51898b88628c989111",
+      "legacy_hash_12": "f014c2476469",
+      "aliases": [
+        "f014c2476469"
+      ],
+      "display_name": "17 Snare 16 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_16_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_17_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_17_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_17_SP.wav",
+      "built_in": true,
+      "sha256": "98c48d53aec878169591d2cf49a1a4b586def53ec4775cee876753b7c1ef9354",
+      "legacy_hash_12": "98c48d53aec8",
+      "aliases": [
+        "98c48d53aec8"
+      ],
+      "display_name": "17 Snare 17 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_17_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_18_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_18_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_18_SP.wav",
+      "built_in": true,
+      "sha256": "7537f015129cdd396a8d52df487fac74a7d817d29bb82d4c6b0b47baa2df201f",
+      "legacy_hash_12": "7537f015129c",
+      "aliases": [
+        "7537f015129c"
+      ],
+      "display_name": "17 Snare 18 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_18_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_19_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_19_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_19_SP.wav",
+      "built_in": true,
+      "sha256": "b33e9f412f5ac5b385d6989cb9344a575cfbc93c908283a3d47a56b3d53444ec",
+      "legacy_hash_12": "b33e9f412f5a",
+      "aliases": [
+        "b33e9f412f5a"
+      ],
+      "display_name": "17 Snare 19 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_19_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_20_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_20_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_20_SP.wav",
+      "built_in": true,
+      "sha256": "1a627633fd8042586fc68df362f891634cbddee8d32243e23be475e44ce8a215",
+      "legacy_hash_12": "1a627633fd80",
+      "aliases": [
+        "1a627633fd80"
+      ],
+      "display_name": "17 Snare 20 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_20_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_21_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_21_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_21_SP.wav",
+      "built_in": true,
+      "sha256": "94f93ae7e8ef66207f95c1b0a6fefc6576bbac4ff995a927674966fc76d7861b",
+      "legacy_hash_12": "94f93ae7e8ef",
+      "aliases": [
+        "94f93ae7e8ef"
+      ],
+      "display_name": "17 Snare 21 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_21_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_22_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_22_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_22_SP.wav",
+      "built_in": true,
+      "sha256": "a68ac04b47a5aa02401aa36bc33b0fa03410966a8bafa0971da9acca815be019",
+      "legacy_hash_12": "a68ac04b47a5",
+      "aliases": [
+        "a68ac04b47a5"
+      ],
+      "display_name": "17 Snare 22 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_22_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_23_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_23_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_23_SP.wav",
+      "built_in": true,
+      "sha256": "2f3b4f64b844ec1f132c8f03b3af52d6403637c871bb58a4a3a536bc0d9c6945",
+      "legacy_hash_12": "2f3b4f64b844",
+      "aliases": [
+        "2f3b4f64b844"
+      ],
+      "display_name": "17 Snare 23 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_23_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_24_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_24_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_24_SP.wav",
+      "built_in": true,
+      "sha256": "16d40ce34ba1532369b3e2a6011d879cd73a3c2eb533faace83b3a5be470e0c8",
+      "legacy_hash_12": "16d40ce34ba1",
+      "aliases": [
+        "16d40ce34ba1"
+      ],
+      "display_name": "17 Snare 24 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_24_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_25_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_25_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_25_SP.wav",
+      "built_in": true,
+      "sha256": "2eeab2860b2aa4d5f547fc99f545a85cd8958724b1deabbd1203e8e9758d5fbb",
+      "legacy_hash_12": "2eeab2860b2a",
+      "aliases": [
+        "2eeab2860b2a"
+      ],
+      "display_name": "17 Snare 25 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_25_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_26_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_26_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_26_SP.wav",
+      "built_in": true,
+      "sha256": "be10d944d7a6bfc44696a5e7c448132583faf49a6ef1975cba55198c2411f747",
+      "legacy_hash_12": "be10d944d7a6",
+      "aliases": [
+        "be10d944d7a6"
+      ],
+      "display_name": "17 Snare 26 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_26_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_27_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_27_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_27_SP.wav",
+      "built_in": true,
+      "sha256": "7e6e9ce3c43a8a207421a638d2aeaa005b4fb3b23377b70316eb331f0e51c301",
+      "legacy_hash_12": "7e6e9ce3c43a",
+      "aliases": [
+        "7e6e9ce3c43a"
+      ],
+      "display_name": "17 Snare 27 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_27_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_28_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_28_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_28_SP.wav",
+      "built_in": true,
+      "sha256": "aced36fc0d0c0fd43745713a5fbbc975fd909e205222e3a24bb49bd6c12e8c58",
+      "legacy_hash_12": "aced36fc0d0c",
+      "aliases": [
+        "aced36fc0d0c"
+      ],
+      "display_name": "17 Snare 28 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_28_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_29_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_29_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_29_SP.wav",
+      "built_in": true,
+      "sha256": "809b5a973c6abe9da3704a962235eba727455218d37d67ddb93f755c2007343d",
+      "legacy_hash_12": "809b5a973c6a",
+      "aliases": [
+        "809b5a973c6a"
+      ],
+      "display_name": "17 Snare 29 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_29_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_30_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_30_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_30_SP.wav",
+      "built_in": true,
+      "sha256": "fb167a91f27bfced40df903867bdc6035505e0c04615421da66e7115711a69a0",
+      "legacy_hash_12": "fb167a91f27b",
+      "aliases": [
+        "fb167a91f27b"
+      ],
+      "display_name": "17 Snare 30 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_30_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_31_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_31_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_31_SP.wav",
+      "built_in": true,
+      "sha256": "26ba71c2f2a6fed11017db2621170963fd4b6403942bd0b7b4913b54d788f946",
+      "legacy_hash_12": "26ba71c2f2a6",
+      "aliases": [
+        "26ba71c2f2a6"
+      ],
+      "display_name": "17 Snare 31 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_31_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_32_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_32_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_32_SP.wav",
+      "built_in": true,
+      "sha256": "417c1424a7057900e026cb3e13b55f0a55030fde12549a68faff52d39359ad5e",
+      "legacy_hash_12": "417c1424a705",
+      "aliases": [
+        "417c1424a705"
+      ],
+      "display_name": "17 Snare 32 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_32_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_33_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_33_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_33_SP.wav",
+      "built_in": true,
+      "sha256": "39983fb77d31e569e0856ee65c546158804fd06e1cf817e97a27f1a65b181f55",
+      "legacy_hash_12": "39983fb77d31",
+      "aliases": [
+        "39983fb77d31"
+      ],
+      "display_name": "17 Snare 33 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_33_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_34_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_34_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_34_SP.wav",
+      "built_in": true,
+      "sha256": "6a93d8cadb4590f3e034c2d27da4717573295bb4381d0c767773e1e8ec418f99",
+      "legacy_hash_12": "6a93d8cadb45",
+      "aliases": [
+        "6a93d8cadb45"
+      ],
+      "display_name": "17 Snare 34 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_34_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_35_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_35_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_35_SP.wav",
+      "built_in": true,
+      "sha256": "5dc52cf5ab885098ca04b8d0257dcbe7552896e0ea7ea8b87969bf1213da337f",
+      "legacy_hash_12": "5dc52cf5ab88",
+      "aliases": [
+        "5dc52cf5ab88"
+      ],
+      "display_name": "17 Snare 35 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_35_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_36_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_36_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_36_SP.wav",
+      "built_in": true,
+      "sha256": "bdf3fa229f5cb1485ecd4de0879f0b13837fffeb379d7d95a13272c5f3d4d36f",
+      "legacy_hash_12": "bdf3fa229f5c",
+      "aliases": [
+        "bdf3fa229f5c"
+      ],
+      "display_name": "17 Snare 36 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_36_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_37_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_37_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_37_SP.wav",
+      "built_in": true,
+      "sha256": "e7277702fe585205018ab0c28055c500b68d0d26f41aed0c2f5bf1e0cdec6c98",
+      "legacy_hash_12": "e7277702fe58",
+      "aliases": [
+        "e7277702fe58"
+      ],
+      "display_name": "17 Snare 37 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_37_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_38_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_38_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_38_SP.wav",
+      "built_in": true,
+      "sha256": "60edb859b2dd38d53aeb1f79bc4b45b5682a19a2b3b2d89d3b078c8b2b7caaf5",
+      "legacy_hash_12": "60edb859b2dd",
+      "aliases": [
+        "60edb859b2dd"
+      ],
+      "display_name": "17 Snare 38 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_38_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_39_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_39_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_39_SP.wav",
+      "built_in": true,
+      "sha256": "85e8306febb058b7274176c89fd7ecaf9b7ddbb145468ae5ece2fdbcd7a95ad6",
+      "legacy_hash_12": "85e8306febb0",
+      "aliases": [
+        "85e8306febb0"
+      ],
+      "display_name": "17 Snare 39 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_39_SP.wav"
+    },
+    "builtin.drums.electronic.snare.17_snare_40_sp": {
+      "path": "samples/Drums/Electronic/Snare/17_Snare_40_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/17_Snare_40_SP.wav",
+      "built_in": true,
+      "sha256": "4c70043695996b58b7e7c8506fafcd624fd9df603880fd0ea991dea59764c718",
+      "legacy_hash_12": "4c7004369599",
+      "aliases": [
+        "4c7004369599"
+      ],
+      "display_name": "17 Snare 40 SP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "17_Snare_40_SP.wav"
+    },
+    "builtin.drums.electronic.snare.bp_909_cp": {
+      "path": "samples/Drums/Electronic/Snare/BP-909_CP.wav",
+      "asset_key": "samples/Drums/Electronic/Snare/BP-909_CP.wav",
+      "built_in": true,
+      "sha256": "89e799dfe03d88831839e14ede1ceb33e1a380dcb74537a965be5dc2f05f4302",
+      "legacy_hash_12": "89e799dfe03d",
+      "aliases": [
+        "89e799dfe03d"
+      ],
+      "display_name": "BP-909 CP",
+      "display_path": "Drums/Electronic/Snare",
+      "source_file_name": "BP-909_CP.wav"
+    },
+    "builtin.drums.electronic.toms.bp_909_th_tape": {
+      "path": "samples/Drums/Electronic/Toms/BP-909_TH_tape.wav",
+      "asset_key": "samples/Drums/Electronic/Toms/BP-909_TH_tape.wav",
+      "built_in": true,
+      "sha256": "af611abadade6c5fa798dfcfdfa02f5b879b38962eb1d7e508f01a53a8875f59",
+      "legacy_hash_12": "af611abadade",
+      "aliases": [
+        "af611abadade"
+      ],
+      "display_name": "BP-909 TH tape",
+      "display_path": "Drums/Electronic/Toms",
+      "source_file_name": "BP-909_TH_tape.wav"
+    },
+    "builtin.drums.electronic.toms.bp_909_tl_tape": {
+      "path": "samples/Drums/Electronic/Toms/BP-909_TL_tape.wav",
+      "asset_key": "samples/Drums/Electronic/Toms/BP-909_TL_tape.wav",
+      "built_in": true,
+      "sha256": "6815cbb1a179d25f78585d52a55ca7a6972a35d75ff289786495d014238f644e",
+      "legacy_hash_12": "6815cbb1a179",
+      "aliases": [
+        "6815cbb1a179"
+      ],
+      "display_name": "BP-909 TL tape",
+      "display_path": "Drums/Electronic/Toms",
+      "source_file_name": "BP-909_TL_tape.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_01_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_01_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_01_SP.wav",
+      "built_in": true,
+      "sha256": "44d4101b1f216fb0a1de0db93c8d59386930d8aeedd6486d1f562b6d07110442",
+      "legacy_hash_12": "44d4101b1f21",
+      "aliases": [
+        "44d4101b1f21"
+      ],
+      "display_name": "17 Hat 01 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_01_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_02_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_02_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_02_SP.wav",
+      "built_in": true,
+      "sha256": "46615b2a1eeaae0cd72d69bcebe13745244648ca20879c10b33b32b6f27f7cfc",
+      "legacy_hash_12": "46615b2a1eea",
+      "aliases": [
+        "46615b2a1eea"
+      ],
+      "display_name": "17 Hat 02 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_02_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_03_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_03_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_03_SP.wav",
+      "built_in": true,
+      "sha256": "6c707db41077f445a3a14ffe35175bea1932b47e4f0dadb893e83030bd23737e",
+      "legacy_hash_12": "6c707db41077",
+      "aliases": [
+        "6c707db41077"
+      ],
+      "display_name": "17 Hat 03 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_03_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_04_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_04_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_04_SP.wav",
+      "built_in": true,
+      "sha256": "43399a21292f9f0aa63df0791ef7a2bfee805f788577beb01487660ab603f3fb",
+      "legacy_hash_12": "43399a21292f",
+      "aliases": [
+        "43399a21292f"
+      ],
+      "display_name": "17 Hat 04 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_04_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_05_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_05_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_05_SP.wav",
+      "built_in": true,
+      "sha256": "4179c02a5f48aeb5dc4c0ecc983ac17e906e8d242f8a683917934ccd989af18c",
+      "legacy_hash_12": "4179c02a5f48",
+      "aliases": [
+        "4179c02a5f48"
+      ],
+      "display_name": "17 Hat 05 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_05_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_06_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_06_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_06_SP.wav",
+      "built_in": true,
+      "sha256": "390549575e08785f5ca50bdbe3a3b416715256ff8ee042e948c6dba0ef3c6e5d",
+      "legacy_hash_12": "390549575e08",
+      "aliases": [
+        "390549575e08"
+      ],
+      "display_name": "17 Hat 06 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_06_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_07_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_07_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_07_SP.wav",
+      "built_in": true,
+      "sha256": "b5cbdb2559dc1a36d000c4ad58da666303e5d6113d0dec276344651cd597941d",
+      "legacy_hash_12": "b5cbdb2559dc",
+      "aliases": [
+        "b5cbdb2559dc"
+      ],
+      "display_name": "17 Hat 07 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_07_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_08_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_08_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_08_SP.wav",
+      "built_in": true,
+      "sha256": "91df6e5b7d9bc89e591c348f24a060271b1d100a4a46a0c9755efc544f05a860",
+      "legacy_hash_12": "91df6e5b7d9b",
+      "aliases": [
+        "91df6e5b7d9b"
+      ],
+      "display_name": "17 Hat 08 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_08_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_09_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_09_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_09_SP.wav",
+      "built_in": true,
+      "sha256": "c4af3248f34e8115f484e406e9b6fa8cdf65ecfe2d3e53f5383166f382444e43",
+      "legacy_hash_12": "c4af3248f34e",
+      "aliases": [
+        "c4af3248f34e"
+      ],
+      "display_name": "17 Hat 09 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_09_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_10_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_10_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_10_SP.wav",
+      "built_in": true,
+      "sha256": "08d15bb094bf0f5c13122b2661deca4eac3ba718292605451aafd34d675c2f0c",
+      "legacy_hash_12": "08d15bb094bf",
+      "aliases": [
+        "08d15bb094bf"
+      ],
+      "display_name": "17 Hat 10 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_10_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_11_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_11_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_11_SP.wav",
+      "built_in": true,
+      "sha256": "b69d59a8c91496eeecba07f4888066692ac0187f5f5e0b3a26a9a48fdb3e971d",
+      "legacy_hash_12": "b69d59a8c914",
+      "aliases": [
+        "b69d59a8c914"
+      ],
+      "display_name": "17 Hat 11 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_11_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_12_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_12_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_12_SP.wav",
+      "built_in": true,
+      "sha256": "616d1289a19f31c536c3ceb443125d6511c8ba4b8c16f6e4846e497d67b6634a",
+      "legacy_hash_12": "616d1289a19f",
+      "aliases": [
+        "616d1289a19f"
+      ],
+      "display_name": "17 Hat 12 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_12_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_13_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_13_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_13_SP.wav",
+      "built_in": true,
+      "sha256": "03288bffb071768de68f6a6c0ad74e224245f01309a634862a6f5f5bea28fddf",
+      "legacy_hash_12": "03288bffb071",
+      "aliases": [
+        "03288bffb071"
+      ],
+      "display_name": "17 Hat 13 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_13_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_14_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_14_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_14_SP.wav",
+      "built_in": true,
+      "sha256": "ef3ed7e2141389b626eaf5c36b7e844f4b644c4eec4153ccb2b349caf485edc5",
+      "legacy_hash_12": "ef3ed7e21413",
+      "aliases": [
+        "ef3ed7e21413"
+      ],
+      "display_name": "17 Hat 14 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_14_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_15_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_15_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_15_SP.wav",
+      "built_in": true,
+      "sha256": "1bfca60ea8c3b31ab153307f0ead2380cf8a19ee0ec3a33bb0ee8fd67be2bc10",
+      "legacy_hash_12": "1bfca60ea8c3",
+      "aliases": [
+        "1bfca60ea8c3"
+      ],
+      "display_name": "17 Hat 15 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_15_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_16_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_16_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_16_SP.wav",
+      "built_in": true,
+      "sha256": "24ad7452ac4937a8f9fa5d6bf613797842af4e945b81160dfdd3195443e00230",
+      "legacy_hash_12": "24ad7452ac49",
+      "aliases": [
+        "24ad7452ac49"
+      ],
+      "display_name": "17 Hat 16 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_16_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_17_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_17_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_17_SP.wav",
+      "built_in": true,
+      "sha256": "ff759f1039bd173f12eb43896c9e627d50a7fe8fa4d06bff6ff8c60a7280a7f1",
+      "legacy_hash_12": "ff759f1039bd",
+      "aliases": [
+        "ff759f1039bd"
+      ],
+      "display_name": "17 Hat 17 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_17_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_18_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_18_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_18_SP.wav",
+      "built_in": true,
+      "sha256": "73bcbd3e6a94299dc956b6d193104142ecf363b8573541f7a3c8e250f14de42b",
+      "legacy_hash_12": "73bcbd3e6a94",
+      "aliases": [
+        "73bcbd3e6a94"
+      ],
+      "display_name": "17 Hat 18 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_18_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_19_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_19_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_19_SP.wav",
+      "built_in": true,
+      "sha256": "232106f63a9a03246eac8d3a6ad5bbd6d12aa499cb66783916acd76648418286",
+      "legacy_hash_12": "232106f63a9a",
+      "aliases": [
+        "232106f63a9a"
+      ],
+      "display_name": "17 Hat 19 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_19_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_20_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_20_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_20_SP.wav",
+      "built_in": true,
+      "sha256": "482df357bfe0df4510a34c023ef619cedd50a187d10bae0b838d84195b1cfe9f",
+      "legacy_hash_12": "482df357bfe0",
+      "aliases": [
+        "482df357bfe0"
+      ],
+      "display_name": "17 Hat 20 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_20_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_21_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_21_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_21_SP.wav",
+      "built_in": true,
+      "sha256": "4d9ff9f8d58576a7d6cd829e16b928185b0566f4e0822629ff6ba799ec5f958d",
+      "legacy_hash_12": "4d9ff9f8d585",
+      "aliases": [
+        "4d9ff9f8d585"
+      ],
+      "display_name": "17 Hat 21 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_21_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_22_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_22_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_22_SP.wav",
+      "built_in": true,
+      "sha256": "3ab36a7fde434d0497c22f8f63f96cf34e1445b5b274ec391ed3cc3a682d920f",
+      "legacy_hash_12": "3ab36a7fde43",
+      "aliases": [
+        "3ab36a7fde43"
+      ],
+      "display_name": "17 Hat 22 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_22_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_23_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_23_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_23_SP.wav",
+      "built_in": true,
+      "sha256": "c568f269095e2f7427da97d9939bd680c73a568ed3982f462f0c846c5c3a9b56",
+      "legacy_hash_12": "c568f269095e",
+      "aliases": [
+        "c568f269095e"
+      ],
+      "display_name": "17 Hat 23 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_23_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_24_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_24_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_24_SP.wav",
+      "built_in": true,
+      "sha256": "816414c473eaeb4b4a11ddf679ca0db2b835321f3c3188d48a98abef6e38b506",
+      "legacy_hash_12": "816414c473ea",
+      "aliases": [
+        "816414c473ea"
+      ],
+      "display_name": "17 Hat 24 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_24_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_25_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_25_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_25_SP.wav",
+      "built_in": true,
+      "sha256": "004dbccd7e8835f61cfeab72f3004e45a5500b1a2e518a7e1659ebb21fefd196",
+      "legacy_hash_12": "004dbccd7e88",
+      "aliases": [
+        "004dbccd7e88"
+      ],
+      "display_name": "17 Hat 25 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_25_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_26_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_26_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_26_SP.wav",
+      "built_in": true,
+      "sha256": "964e954905a8f21789988b8a068e5c94d412a20a3884f2e08fee0c2f8eb61313",
+      "legacy_hash_12": "964e954905a8",
+      "aliases": [
+        "964e954905a8"
+      ],
+      "display_name": "17 Hat 26 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_26_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_27_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_27_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_27_SP.wav",
+      "built_in": true,
+      "sha256": "a6a56b56a23ae86b3b1c06e046589fb6d93c0aa7f5ae01efcc430e23150876ca",
+      "legacy_hash_12": "a6a56b56a23a",
+      "aliases": [
+        "a6a56b56a23a"
+      ],
+      "display_name": "17 Hat 27 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_27_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_28_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_28_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_28_SP.wav",
+      "built_in": true,
+      "sha256": "91a7d57f26ca814650531557b3e8e8741a33137c45947130c8b5ba4e10af0227",
+      "legacy_hash_12": "91a7d57f26ca",
+      "aliases": [
+        "91a7d57f26ca"
+      ],
+      "display_name": "17 Hat 28 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_28_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_29_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_29_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_29_SP.wav",
+      "built_in": true,
+      "sha256": "8fc27fbb438f4a006bceea403d117fa2f63ec46f1d9f5decd863241f0e3d1826",
+      "legacy_hash_12": "8fc27fbb438f",
+      "aliases": [
+        "8fc27fbb438f"
+      ],
+      "display_name": "17 Hat 29 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_29_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_30_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_30_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_30_SP.wav",
+      "built_in": true,
+      "sha256": "b4cdd4c4cbc3cb0a52084a45740bb1fabc606c02e4fc755586b9f0a82ccd3a5b",
+      "legacy_hash_12": "b4cdd4c4cbc3",
+      "aliases": [
+        "b4cdd4c4cbc3"
+      ],
+      "display_name": "17 Hat 30 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_30_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_31_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_31_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_31_SP.wav",
+      "built_in": true,
+      "sha256": "175ae2d073b8d659d3c4e258f4e1c859a3a9bf4d8340b6f78e5adb8e6fcd4579",
+      "legacy_hash_12": "175ae2d073b8",
+      "aliases": [
+        "175ae2d073b8"
+      ],
+      "display_name": "17 Hat 31 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_31_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_32_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_32_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_32_SP.wav",
+      "built_in": true,
+      "sha256": "3567aecba91644258e959e1aad8a321444f0cce748d6c3b9cfafa3da5e50d143",
+      "legacy_hash_12": "3567aecba916",
+      "aliases": [
+        "3567aecba916"
+      ],
+      "display_name": "17 Hat 32 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_32_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_33_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_33_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_33_SP.wav",
+      "built_in": true,
+      "sha256": "0d12756d4077e316dd9d0b40bd18c66507f7df83ced8fe3afa520a3ae3ca9369",
+      "legacy_hash_12": "0d12756d4077",
+      "aliases": [
+        "0d12756d4077"
+      ],
+      "display_name": "17 Hat 33 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_33_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_34_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_34_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_34_SP.wav",
+      "built_in": true,
+      "sha256": "88893342c301ffca2ec7c56213ce02a946551c1bdcfc74b03674c5cfbb43451e",
+      "legacy_hash_12": "88893342c301",
+      "aliases": [
+        "88893342c301"
+      ],
+      "display_name": "17 Hat 34 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_34_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_35_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_35_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_35_SP.wav",
+      "built_in": true,
+      "sha256": "4f89d2a1d852c0639ccf83d92e10cad5e5d46dc7a7be66269e34b3586c819566",
+      "legacy_hash_12": "4f89d2a1d852",
+      "aliases": [
+        "4f89d2a1d852"
+      ],
+      "display_name": "17 Hat 35 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_35_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_36_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_36_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_36_SP.wav",
+      "built_in": true,
+      "sha256": "227f62fecf75896a39ec6c1c3a5b51ab1fb6b260e390551dbe342e01801b40e7",
+      "legacy_hash_12": "227f62fecf75",
+      "aliases": [
+        "227f62fecf75"
+      ],
+      "display_name": "17 Hat 36 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_36_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.17_hat_37_sp": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_37_SP.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_37_SP.wav",
+      "built_in": true,
+      "sha256": "7cfe11015294c560e62c75b43ad94ee9b2ac6d176dc02c9b3f56e92e5d79b222",
+      "legacy_hash_12": "7cfe11015294",
+      "aliases": [
+        "7cfe11015294"
+      ],
+      "display_name": "17 Hat 37 SP",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "17_Hat_37_SP.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.bp_909_oh": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/BP-909_OH.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/BP-909_OH.wav",
+      "built_in": true,
+      "sha256": "e412f4435b379c3ee2b763bf221f98fa2ea2b6cfb928defc9f702a7e3c29d09b",
+      "legacy_hash_12": "e412f4435b37",
+      "aliases": [
+        "e412f4435b37"
+      ],
+      "display_name": "BP-909 OH",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "BP-909_OH.wav"
+    },
+    "builtin.synth.high.distorted.castles_burning_d_4": {
+      "path": "samples/Synth/High/Distorted/Castles Burning dsharp4.wav",
+      "asset_key": "samples/Synth/High/Distorted/Castles%20Burning%20dsharp4.wav",
+      "built_in": true,
+      "sha256": "902192173fe7ca186a3b7ffa2834f5a526fd995b5e0074dcbf94dc8b2f0af2ca",
+      "legacy_hash_12": "902192173fe7",
+      "aliases": [
+        "902192173fe7",
+        "builtin.synth.high.distorted.castles_burning_dsharp4"
+      ],
+      "display_name": "Castles Burning D#4",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Castles Burning dsharp4.wav"
+    },
+    "builtin.synth.high.distorted.chord_8_ball": {
+      "path": "samples/Synth/High/Distorted/Chord 8-Ball.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%208-Ball.wav",
+      "built_in": true,
+      "sha256": "b58c2989e5cb75f16854f1cbf1cd139de3c66e01ea49c20ad8eae6b48d30e2e8",
+      "legacy_hash_12": "b58c2989e5cb",
+      "aliases": [
+        "b58c2989e5cb"
+      ],
+      "display_name": "Chord 8-Ball",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord 8-Ball.wav"
+    },
+    "builtin.synth.high.distorted.chord_bangerloc_1": {
+      "path": "samples/Synth/High/Distorted/Chord BangerLoc 1.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20BangerLoc%201.wav",
+      "built_in": true,
+      "sha256": "62fc58c817d1d1abf6eb033afa2c82147247ab61a2df94adb9d5275783c5edb3",
+      "legacy_hash_12": "62fc58c817d1",
+      "aliases": [
+        "62fc58c817d1"
+      ],
+      "display_name": "Chord BangerLoc 1",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord BangerLoc 1.wav"
+    },
+    "builtin.synth.high.distorted.chord_beehive_1": {
+      "path": "samples/Synth/High/Distorted/Chord BeeHive 1.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20BeeHive%201.wav",
+      "built_in": true,
+      "sha256": "7a53aa8706c2c7ac01e1ff3ff5755e7ad181e71cdeb29420743b648fb4bca187",
+      "legacy_hash_12": "7a53aa8706c2",
+      "aliases": [
+        "7a53aa8706c2"
+      ],
+      "display_name": "Chord BeeHive 1",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord BeeHive 1.wav"
+    },
+    "builtin.synth.high.distorted.chord_fancy": {
+      "path": "samples/Synth/High/Distorted/Chord Fancy.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20Fancy.wav",
+      "built_in": true,
+      "sha256": "71362c209731282c51fbccd4d1e7aadebf320a2901dfdb7f67cd94fec3d20de9",
+      "legacy_hash_12": "71362c209731",
+      "aliases": [
+        "71362c209731"
+      ],
+      "display_name": "Chord Fancy",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord Fancy.wav"
+    },
+    "builtin.synth.high.distorted.chord_melabeauty": {
+      "path": "samples/Synth/High/Distorted/Chord MelaBeauty.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20MelaBeauty.wav",
+      "built_in": true,
+      "sha256": "06f11dd80cd00d183679f2081e8142ad126f540d5150d70912ab4825f0fb6117",
+      "legacy_hash_12": "06f11dd80cd0",
+      "aliases": [
+        "06f11dd80cd0"
+      ],
+      "display_name": "Chord MelaBeauty",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord MelaBeauty.wav"
+    },
+    "builtin.synth.high.distorted.chord_minorjoy": {
+      "path": "samples/Synth/High/Distorted/Chord MinorJoy.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20MinorJoy.wav",
+      "built_in": true,
+      "sha256": "b0311c491b51959926498808acb546d7671552c136e27b15a844525bf25695e5",
+      "legacy_hash_12": "b0311c491b51",
+      "aliases": [
+        "b0311c491b51"
+      ],
+      "display_name": "Chord MinorJoy",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord MinorJoy.wav"
+    },
+    "builtin.synth.high.distorted.chord_piano_cwalk_2": {
+      "path": "samples/Synth/High/Distorted/Chord Piano CWalk 2.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20Piano%20CWalk%202.wav",
+      "built_in": true,
+      "sha256": "12a9b5414148a2b68779adbb3b7c69c9e46155d3302c7999f30c801c4c938963",
+      "legacy_hash_12": "12a9b5414148",
+      "aliases": [
+        "12a9b5414148"
+      ],
+      "display_name": "Chord Piano CWalk 2",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord Piano CWalk 2.wav"
+    },
+    "builtin.synth.high.distorted.chord_resistor": {
+      "path": "samples/Synth/High/Distorted/Chord Resistor.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20Resistor.wav",
+      "built_in": true,
+      "sha256": "a743695f01858ff71b0ff0c219ea570e2a1eae74b6240cc3a590d6c449797336",
+      "legacy_hash_12": "a743695f0185",
+      "aliases": [
+        "a743695f0185"
+      ],
+      "display_name": "Chord Resistor",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord Resistor.wav"
+    },
+    "builtin.synth.high.distorted.chord_robotussen": {
+      "path": "samples/Synth/High/Distorted/Chord Robotussen.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20Robotussen.wav",
+      "built_in": true,
+      "sha256": "323198223afd10f77c3d31d05ddeee2cda733673d548884bfa44725d3da4598c",
+      "legacy_hash_12": "323198223afd",
+      "aliases": [
+        "323198223afd"
+      ],
+      "display_name": "Chord Robotussen",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord Robotussen.wav"
+    },
+    "builtin.synth.high.distorted.chord_sickboy": {
+      "path": "samples/Synth/High/Distorted/Chord Sickboy.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20Sickboy.wav",
+      "built_in": true,
+      "sha256": "79c23298cb3bb8ef20e59d8d8b0962344520a21acf08bd43c35b97c2dc0d673e",
+      "legacy_hash_12": "79c23298cb3b",
+      "aliases": [
+        "79c23298cb3b"
+      ],
+      "display_name": "Chord Sickboy",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord Sickboy.wav"
+    },
+    "builtin.synth.high.distorted.chord_southwestern_abmin_1": {
+      "path": "samples/Synth/High/Distorted/Chord SouthWestern Abmin 1.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20SouthWestern%20Abmin%201.wav",
+      "built_in": true,
+      "sha256": "5ea7c5786a424c93e5ff11de58cdc6594d9ac8391e54e8967ab55c041ebae192",
+      "legacy_hash_12": "5ea7c5786a42",
+      "aliases": [
+        "5ea7c5786a42"
+      ],
+      "display_name": "Chord SouthWestern Abmin 1",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord SouthWestern Abmin 1.wav"
+    },
+    "builtin.synth.high.distorted.chord_thinkaboutit": {
+      "path": "samples/Synth/High/Distorted/Chord ThinkAboutIt.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20ThinkAboutIt.wav",
+      "built_in": true,
+      "sha256": "430852b37c9bb14588b3ba943a24057b1a4a1a88bbe785441d6be7efd7f81710",
+      "legacy_hash_12": "430852b37c9b",
+      "aliases": [
+        "430852b37c9b"
+      ],
+      "display_name": "Chord ThinkAboutIt",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord ThinkAboutIt.wav"
+    },
+    "builtin.synth.high.distorted.chord_troni_bbmaj": {
+      "path": "samples/Synth/High/Distorted/Chord Troni BbMaj.wav",
+      "asset_key": "samples/Synth/High/Distorted/Chord%20Troni%20BbMaj.wav",
+      "built_in": true,
+      "sha256": "5324e40a1835a150b43b54216227669c376a1f42e47028e9755fad763d005958",
+      "legacy_hash_12": "5324e40a1835",
+      "aliases": [
+        "5324e40a1835"
+      ],
+      "display_name": "Chord Troni BbMaj",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Chord Troni BbMaj.wav"
+    },
+    "builtin.synth.high.distorted.eep_lite_v1_f_2": {
+      "path": "samples/Synth/High/Distorted/EEP Lite V1 Fsharp2.wav",
+      "asset_key": "samples/Synth/High/Distorted/EEP%20Lite%20V1%20Fsharp2.wav",
+      "built_in": true,
+      "sha256": "8fe92fcdb00dfeb852692a19b7616e8e433cecfb1f7eb7fbe928f7980570527c",
+      "legacy_hash_12": "8fe92fcdb00d",
+      "aliases": [
+        "8fe92fcdb00d",
+        "builtin.synth.high.distorted.eep_lite_v1_fsharp2"
+      ],
+      "display_name": "EEP Lite V1 F#2",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "EEP Lite V1 Fsharp2.wav"
+    },
+    "builtin.synth.high.distorted.metal_perfvalve_045": {
+      "path": "samples/Synth/High/Distorted/Metal PerfValve 045.wav",
+      "asset_key": "samples/Synth/High/Distorted/Metal%20PerfValve%20045.wav",
+      "built_in": true,
+      "sha256": "ec26b3365af17b6b6e94a4555ed98700e62f73913379d65a3d2cce6265232f35",
+      "legacy_hash_12": "ec26b3365af1",
+      "aliases": [
+        "ec26b3365af1"
+      ],
+      "display_name": "Metal PerfValve 045",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Metal PerfValve 045.wav"
+    },
+    "builtin.synth.high.distorted.seventh_seawha": {
+      "path": "samples/Synth/High/Distorted/Seventh SeaWha.wav",
+      "asset_key": "samples/Synth/High/Distorted/Seventh%20SeaWha.wav",
+      "built_in": true,
+      "sha256": "6025bcd79da8abfe22dc945953da4bcf9b1ed375bb7a78a488e0018b2937c93d",
+      "legacy_hash_12": "6025bcd79da8",
+      "aliases": [
+        "6025bcd79da8"
+      ],
+      "display_name": "Seventh SeaWha",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Seventh SeaWha.wav"
+    },
+    "builtin.synth.high.distorted.sixth_smoothbell": {
+      "path": "samples/Synth/High/Distorted/Sixth SmoothBell.wav",
+      "asset_key": "samples/Synth/High/Distorted/Sixth%20SmoothBell.wav",
+      "built_in": true,
+      "sha256": "2acb4c85a415d8e95e7e0f86e889edb2e1cea452a9d2ae4c31a40592d6d71001",
+      "legacy_hash_12": "2acb4c85a415",
+      "aliases": [
+        "2acb4c85a415"
+      ],
+      "display_name": "Sixth SmoothBell",
+      "display_path": "Synth/High/Distorted",
+      "source_file_name": "Sixth SmoothBell.wav"
+    },
+    "builtin.synth.high.minimal.bend_foreshadow": {
+      "path": "samples/Synth/High/Minimal/Bend Foreshadow.wav",
+      "asset_key": "samples/Synth/High/Minimal/Bend%20Foreshadow.wav",
+      "built_in": true,
+      "sha256": "056a0c36b7f943103f322ff91aa17cdf2c8c6a74d25d89512cb5ac096299acb9",
+      "legacy_hash_12": "056a0c36b7f9",
+      "aliases": [
+        "056a0c36b7f9"
+      ],
+      "display_name": "Bend Foreshadow",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Bend Foreshadow.wav"
+    },
+    "builtin.synth.high.minimal.celesta_eb2": {
+      "path": "samples/Synth/High/Minimal/Celesta Eb2.wav",
+      "asset_key": "samples/Synth/High/Minimal/Celesta%20Eb2.wav",
+      "built_in": true,
+      "sha256": "5017085894b3f8c1fdcbe16929e0180064ffafbb53cf09bdfd9f3feaf46df4d9",
+      "legacy_hash_12": "5017085894b3",
+      "aliases": [
+        "5017085894b3"
+      ],
+      "display_name": "Celesta Eb2",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Celesta Eb2.wav"
+    },
+    "builtin.synth.high.minimal.chord_london": {
+      "path": "samples/Synth/High/Minimal/Chord London.wav",
+      "asset_key": "samples/Synth/High/Minimal/Chord%20London.wav",
+      "built_in": true,
+      "sha256": "64882c63def9b191509cc68e582db0eaaf3e120631ce1d3a65af6cc428968c65",
+      "legacy_hash_12": "64882c63def9",
+      "aliases": [
+        "64882c63def9"
+      ],
+      "display_name": "Chord London",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Chord London.wav"
+    },
+    "builtin.synth.high.minimal.clave_vbvalve_f4_pdst": {
+      "path": "samples/Synth/High/Minimal/Clave VBvalve F4 pDst.wav",
+      "asset_key": "samples/Synth/High/Minimal/Clave%20VBvalve%20F4%20pDst.wav",
+      "built_in": true,
+      "sha256": "fbf3aeb94a6d1d5003d46367acaba766826f63fa51fc110c559f2588e9bbec20",
+      "legacy_hash_12": "fbf3aeb94a6d",
+      "aliases": [
+        "fbf3aeb94a6d"
+      ],
+      "display_name": "Clave VBvalve F4 pDst",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Clave VBvalve F4 pDst.wav"
+    },
+    "builtin.synth.high.minimal.cow_tanvalve_a3_x": {
+      "path": "samples/Synth/High/Minimal/Cow TanValve A3 x.wav",
+      "asset_key": "samples/Synth/High/Minimal/Cow%20TanValve%20A3%20x.wav",
+      "built_in": true,
+      "sha256": "ba7e07bbb12f075a4283ecada50128a0fe6840697ff7be173c8b712d8331803d",
+      "legacy_hash_12": "ba7e07bbb12f",
+      "aliases": [
+        "ba7e07bbb12f"
+      ],
+      "display_name": "Cow TanValve A3 x",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Cow TanValve A3 x.wav"
+    },
+    "builtin.synth.high.minimal.cow_tanvalve_c_3": {
+      "path": "samples/Synth/High/Minimal/Cow TanValve Csharp3.wav",
+      "asset_key": "samples/Synth/High/Minimal/Cow%20TanValve%20Csharp3.wav",
+      "built_in": true,
+      "sha256": "a9c6b933760b1d3663ae49844091f7244cbee414a2713aac32fbf02cbb92a71e",
+      "legacy_hash_12": "a9c6b933760b",
+      "aliases": [
+        "a9c6b933760b",
+        "builtin.synth.high.minimal.cow_tanvalve_csharp3"
+      ],
+      "display_name": "Cow TanValve C#3",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Cow TanValve Csharp3.wav"
+    },
+    "builtin.synth.high.minimal.eep_lite_v3_d_3": {
+      "path": "samples/Synth/High/Minimal/EEP Lite V3 Dsharp3.wav",
+      "asset_key": "samples/Synth/High/Minimal/EEP%20Lite%20V3%20Dsharp3.wav",
+      "built_in": true,
+      "sha256": "138423664ec04cf96ad7c2a41d597e578eecb7aed6663580f3cb1ce1dc31f11a",
+      "legacy_hash_12": "138423664ec0",
+      "aliases": [
+        "138423664ec0",
+        "builtin.synth.high.minimal.eep_lite_v3_dsharp3"
+      ],
+      "display_name": "EEP Lite V3 D#3",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "EEP Lite V3 Dsharp3.wav"
+    },
+    "builtin.synth.high.minimal.fm_piano_1_db2": {
+      "path": "samples/Synth/High/Minimal/FM-Piano 1 Db2.wav",
+      "asset_key": "samples/Synth/High/Minimal/FM-Piano%201%20Db2.wav",
+      "built_in": true,
+      "sha256": "1f68da9561916ff6651a7dd720495340cd54a26360cb6e748aa148368d83f865",
+      "legacy_hash_12": "1f68da956191",
+      "aliases": [
+        "1f68da956191"
+      ],
+      "display_name": "FM-Piano 1 Db2",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "FM-Piano 1 Db2.wav"
+    },
+    "builtin.synth.high.minimal.helsinki_f_3": {
+      "path": "samples/Synth/High/Minimal/Helsinki fsharp3.wav",
+      "asset_key": "samples/Synth/High/Minimal/Helsinki%20fsharp3.wav",
+      "built_in": true,
+      "sha256": "0960c82f4059c4060565dbb4266474329683d458b442e1ad59d4b0ac9ee9cc8b",
+      "legacy_hash_12": "0960c82f4059",
+      "aliases": [
+        "0960c82f4059",
+        "builtin.synth.high.minimal.helsinki_fsharp3"
+      ],
+      "display_name": "Helsinki F#3",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Helsinki fsharp3.wav"
+    },
+    "builtin.synth.high.minimal.plk_obxa_3_c4": {
+      "path": "samples/Synth/High/Minimal/PLK_OBXA_3_C4.wav",
+      "asset_key": "samples/Synth/High/Minimal/PLK_OBXA_3_C4.wav",
+      "built_in": true,
+      "sha256": "45f1480e0530946d8b943642657d4d52b1e2e091d9597d0c3dab912b41780645",
+      "legacy_hash_12": "45f1480e0530",
+      "aliases": [
+        "45f1480e0530"
+      ],
+      "display_name": "PLK OBXA 3 C4",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "PLK_OBXA_3_C4.wav"
+    },
+    "builtin.synth.high.minimal.pno_oldg_c5": {
+      "path": "samples/Synth/High/Minimal/PNO_OldG_C5.wav",
+      "asset_key": "samples/Synth/High/Minimal/PNO_OldG_C5.wav",
+      "built_in": true,
+      "sha256": "970601d5ece0468ed1770d49a1a010f3be8e7a54ba1826fcbdb0d2a8b9d22058",
+      "legacy_hash_12": "970601d5ece0",
+      "aliases": [
+        "970601d5ece0"
+      ],
+      "display_name": "PNO OldG C5",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "PNO_OldG_C5.wav"
+    },
+    "builtin.synth.high.minimal.synth_brassyboard1": {
+      "path": "samples/Synth/High/Minimal/SYNTH-BrassyBoard1.wav",
+      "asset_key": "samples/Synth/High/Minimal/SYNTH-BrassyBoard1.wav",
+      "built_in": true,
+      "sha256": "cc954e18a9c644618668214a9ba602d7a00a78ba3b1b256657370bbb113ee96c",
+      "legacy_hash_12": "cc954e18a9c6",
+      "aliases": [
+        "cc954e18a9c6"
+      ],
+      "display_name": "SYNTH-BrassyBoard1",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "SYNTH-BrassyBoard1.wav"
+    },
+    "builtin.synth.high.minimal.seventh_metalbuzz": {
+      "path": "samples/Synth/High/Minimal/Seventh MetalBuzz.wav",
+      "asset_key": "samples/Synth/High/Minimal/Seventh%20MetalBuzz.wav",
+      "built_in": true,
+      "sha256": "4b10beeee38f96e6c10ff24eb3ff197571363bb3b6dd6bf297e69adca4cad54b",
+      "legacy_hash_12": "4b10beeee38f",
+      "aliases": [
+        "4b10beeee38f"
+      ],
+      "display_name": "Seventh MetalBuzz",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Seventh MetalBuzz.wav"
+    },
+    "builtin.synth.high.minimal.wurly_ep_1_ab2": {
+      "path": "samples/Synth/High/Minimal/Wurly-EP 1 Ab2.wav",
+      "asset_key": "samples/Synth/High/Minimal/Wurly-EP%201%20Ab2.wav",
+      "built_in": true,
+      "sha256": "01e81ef30567a88508a970b0a65de8d6a5bc14943f3ef671d4ed1e9d043dcf03",
+      "legacy_hash_12": "01e81ef30567",
+      "aliases": [
+        "01e81ef30567"
+      ],
+      "display_name": "Wurly-EP 1 Ab2",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Wurly-EP 1 Ab2.wav"
+    },
+    "builtin.synth.high.minimal.wurly_ep_1_c3": {
+      "path": "samples/Synth/High/Minimal/Wurly-EP 1 C3.wav",
+      "asset_key": "samples/Synth/High/Minimal/Wurly-EP%201%20C3.wav",
+      "built_in": true,
+      "sha256": "919c3299f949ddba946b5734906549f321ed1999ea1496a13f7f1c8410c30363",
+      "legacy_hash_12": "919c3299f949",
+      "aliases": [
+        "919c3299f949"
+      ],
+      "display_name": "Wurly-EP 1 C3",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "Wurly-EP 1 C3.wav"
+    },
+    "builtin.synth.high.minimal.piano_1_1": {
+      "path": "samples/Synth/High/Minimal/piano-1-1.wav",
+      "asset_key": "samples/Synth/High/Minimal/piano-1-1.wav",
+      "built_in": true,
+      "sha256": "977ce2a7823b731312c03df8dd2345bd837e982af8fb179996fd333ddbea61ac",
+      "legacy_hash_12": "977ce2a7823b",
+      "aliases": [
+        "977ce2a7823b"
+      ],
+      "display_name": "piano-1-1",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "piano-1-1.wav"
+    },
+    "builtin.synth.high.minimal.piano_1_2": {
+      "path": "samples/Synth/High/Minimal/piano-1-2.wav",
+      "asset_key": "samples/Synth/High/Minimal/piano-1-2.wav",
+      "built_in": true,
+      "sha256": "44e749437e59940d9b9c8bd0e516dcd71079ce1c867e39711f6cc83c97464f38",
+      "legacy_hash_12": "44e749437e59",
+      "aliases": [
+        "44e749437e59"
+      ],
+      "display_name": "piano-1-2",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "piano-1-2.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_1": {
+      "path": "samples/Synth/High/Minimal/poly-1-1.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-1.wav",
+      "built_in": true,
+      "sha256": "9308cb148a7fe809d37b2f0497cadb787edaae63ccbfcfaf657ec11a836fcff3",
+      "legacy_hash_12": "9308cb148a7f",
+      "aliases": [
+        "9308cb148a7f"
+      ],
+      "display_name": "poly-1-1",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-1.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_2": {
+      "path": "samples/Synth/High/Minimal/poly-1-2.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-2.wav",
+      "built_in": true,
+      "sha256": "f7ff38837ae3bf01f92c1227e5a941427eb8b5a56baf35b9bea2aee11d545f4b",
+      "legacy_hash_12": "f7ff38837ae3",
+      "aliases": [
+        "f7ff38837ae3"
+      ],
+      "display_name": "poly-1-2",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-2.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_3": {
+      "path": "samples/Synth/High/Minimal/poly-1-3.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-3.wav",
+      "built_in": true,
+      "sha256": "8dba4288a4d33a1ef0caef25e2428067ffa4a048136f8f8719d893792717c8fc",
+      "legacy_hash_12": "8dba4288a4d3",
+      "aliases": [
+        "8dba4288a4d3"
+      ],
+      "display_name": "poly-1-3",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-3.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_4": {
+      "path": "samples/Synth/High/Minimal/poly-1-4.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-4.wav",
+      "built_in": true,
+      "sha256": "ac82ae110fbe5e000517b7606e47bae852d3d753f069d5e53113820b5aa61e97",
+      "legacy_hash_12": "ac82ae110fbe",
+      "aliases": [
+        "ac82ae110fbe"
+      ],
+      "display_name": "poly-1-4",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-4.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_5": {
+      "path": "samples/Synth/High/Minimal/poly-1-5.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-5.wav",
+      "built_in": true,
+      "sha256": "5fc23127ad6876a17d46155df1a39e4ef2e5d67da4d022b1c0e3d193adf8dd1e",
+      "legacy_hash_12": "5fc23127ad68",
+      "aliases": [
+        "5fc23127ad68"
+      ],
+      "display_name": "poly-1-5",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-5.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_6": {
+      "path": "samples/Synth/High/Minimal/poly-1-6.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-6.wav",
+      "built_in": true,
+      "sha256": "dc074a2cf5a45c2f62f80df5da0e24624942fef26fa80daa4c078b35d091578e",
+      "legacy_hash_12": "dc074a2cf5a4",
+      "aliases": [
+        "dc074a2cf5a4"
+      ],
+      "display_name": "poly-1-6",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-6.wav"
+    },
+    "builtin.synth.high.minimal.poly_1_7": {
+      "path": "samples/Synth/High/Minimal/poly-1-7.wav",
+      "asset_key": "samples/Synth/High/Minimal/poly-1-7.wav",
+      "built_in": true,
+      "sha256": "f4e6fe91531496eabf4eb1dceadc8082eed13f8cd7b5d8423f31fb584e8b0808",
+      "legacy_hash_12": "f4e6fe915314",
+      "aliases": [
+        "f4e6fe915314"
+      ],
+      "display_name": "poly-1-7",
+      "display_path": "Synth/High/Minimal",
+      "source_file_name": "poly-1-7.wav"
+    },
+    "builtin.synth.high.pads.chord_eeprom_4": {
+      "path": "samples/Synth/High/Pads/Chord Eeprom 4.wav",
+      "asset_key": "samples/Synth/High/Pads/Chord%20Eeprom%204.wav",
+      "built_in": true,
+      "sha256": "e8c92d593c2f6e8cccb283ec2de0660dba9208f5ad5e2d06ebd24ae3ea8b52cf",
+      "legacy_hash_12": "e8c92d593c2f",
+      "aliases": [
+        "e8c92d593c2f"
+      ],
+      "display_name": "Chord Eeprom 4",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Chord Eeprom 4.wav"
+    },
+    "builtin.synth.high.pads.chord_eeprom_5": {
+      "path": "samples/Synth/High/Pads/Chord Eeprom 5.wav",
+      "asset_key": "samples/Synth/High/Pads/Chord%20Eeprom%205.wav",
+      "built_in": true,
+      "sha256": "20e5d62588f3796ce1381d00f129a01142921fe39f1341350901d5f97c9449c8",
+      "legacy_hash_12": "20e5d62588f3",
+      "aliases": [
+        "20e5d62588f3"
+      ],
+      "display_name": "Chord Eeprom 5",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Chord Eeprom 5.wav"
+    },
+    "builtin.synth.high.pads.chord_steveland_1": {
+      "path": "samples/Synth/High/Pads/Chord Steveland 1.wav",
+      "asset_key": "samples/Synth/High/Pads/Chord%20Steveland%201.wav",
+      "built_in": true,
+      "sha256": "0318e2570509ac4a7aa8d38db1d6daaa02b1d5b40ace43236c97dfca3d56117b",
+      "legacy_hash_12": "0318e2570509",
+      "aliases": [
+        "0318e2570509"
+      ],
+      "display_name": "Chord Steveland 1",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Chord Steveland 1.wav"
+    },
+    "builtin.synth.high.pads.chord_steveland_2": {
+      "path": "samples/Synth/High/Pads/Chord Steveland 2.wav",
+      "asset_key": "samples/Synth/High/Pads/Chord%20Steveland%202.wav",
+      "built_in": true,
+      "sha256": "18ca5662ddac2196da0e94a53e99e654f9af68268148c90a8d2df94beeec4280",
+      "legacy_hash_12": "18ca5662ddac",
+      "aliases": [
+        "18ca5662ddac"
+      ],
+      "display_name": "Chord Steveland 2",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Chord Steveland 2.wav"
+    },
+    "builtin.synth.high.pads.cypress_c4": {
+      "path": "samples/Synth/High/Pads/Cypress c4.wav",
+      "asset_key": "samples/Synth/High/Pads/Cypress%20c4.wav",
+      "built_in": true,
+      "sha256": "54fcf26031e02b70339f6b87f967d2eb6d798b3baf7529f88168677031dd19f2",
+      "legacy_hash_12": "54fcf26031e0",
+      "aliases": [
+        "54fcf26031e0"
+      ],
+      "display_name": "Cypress c4",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Cypress c4.wav"
+    },
+    "builtin.synth.high.pads.noir_c2": {
+      "path": "samples/Synth/High/Pads/Noir c2.wav",
+      "asset_key": "samples/Synth/High/Pads/Noir%20c2.wav",
+      "built_in": true,
+      "sha256": "78b42a60c892d9bd6167b9ddbd6daacc46db6d7d243309c8c3ca791e0a68a5e3",
+      "legacy_hash_12": "78b42a60c892",
+      "aliases": [
+        "78b42a60c892"
+      ],
+      "display_name": "Noir c2",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Noir c2.wav"
+    },
+    "builtin.synth.high.pads.the_mystic_a3": {
+      "path": "samples/Synth/High/Pads/The Mystic a3.wav",
+      "asset_key": "samples/Synth/High/Pads/The%20Mystic%20a3.wav",
+      "built_in": true,
+      "sha256": "dd26d2dc8937f15bdf9cbc4308b873e004c134916cbadf49c1adb2ba7ad7bb0c",
+      "legacy_hash_12": "dd26d2dc8937",
+      "aliases": [
+        "dd26d2dc8937"
+      ],
+      "display_name": "The Mystic a3",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "The Mystic a3.wav"
+    },
+    "builtin.synth.high.pads.vintage_strings_6_bb3": {
+      "path": "samples/Synth/High/Pads/Vintage Strings 6 Bb3.wav",
+      "asset_key": "samples/Synth/High/Pads/Vintage%20Strings%206%20Bb3.wav",
+      "built_in": true,
+      "sha256": "ae2a08c46dfa68fef1117498a16e0f01675409e00008a7586198b15e5f007f0b",
+      "legacy_hash_12": "ae2a08c46dfa",
+      "aliases": [
+        "ae2a08c46dfa"
+      ],
+      "display_name": "Vintage Strings 6 Bb3",
+      "display_path": "Synth/High/Pads",
+      "source_file_name": "Vintage Strings 6 Bb3.wav"
+    },
+    "builtin.synth.bass.adrenaline_c2": {
+      "path": "samples/Synth/Bass/Adrenaline c2.wav",
+      "asset_key": "samples/Synth/Bass/Adrenaline%20c2.wav",
+      "built_in": true,
+      "sha256": "8990ade3954b32c8f3696b25180df13771cacc0b459f6439ed0d61c10daabb22",
+      "legacy_hash_12": "8990ade3954b",
+      "aliases": [
+        "8990ade3954b"
+      ],
+      "display_name": "Adrenaline c2",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Adrenaline c2.wav"
+    },
+    "builtin.synth.bass.adrenaline_f_3": {
+      "path": "samples/Synth/Bass/Adrenaline fsharp3.wav",
+      "asset_key": "samples/Synth/Bass/Adrenaline%20fsharp3.wav",
+      "built_in": true,
+      "sha256": "d01d027f688dda06d4f04ba9ca23c6df84c66e667c35c4e20f74be8ef7e85a8e",
+      "legacy_hash_12": "d01d027f688d",
+      "aliases": [
+        "builtin.synth.bass.adrenaline_fsharp3",
+        "d01d027f688d"
+      ],
+      "display_name": "Adrenaline F#3",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Adrenaline fsharp3.wav"
+    },
+    "builtin.synth.bass.analogclassica_c1": {
+      "path": "samples/Synth/Bass/AnalogClassicA c1.wav",
+      "asset_key": "samples/Synth/Bass/AnalogClassicA%20c1.wav",
+      "built_in": true,
+      "sha256": "29fe6a962495362f56a61bdfb87b16fe2190038a4efaa8d5ed03b22f9c793376",
+      "legacy_hash_12": "29fe6a962495",
+      "aliases": [
+        "29fe6a962495"
+      ],
+      "display_name": "AnalogClassicA c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "AnalogClassicA c1.wav"
+    },
+    "builtin.synth.bass.analogclassica_f_1": {
+      "path": "samples/Synth/Bass/AnalogClassicA fsharp1.wav",
+      "asset_key": "samples/Synth/Bass/AnalogClassicA%20fsharp1.wav",
+      "built_in": true,
+      "sha256": "ac6d95858f8d165d0b4992f166e790ba6c85f182ed7c7a8ca05efa8a597b54ac",
+      "legacy_hash_12": "ac6d95858f8d",
+      "aliases": [
+        "ac6d95858f8d",
+        "builtin.synth.bass.analogclassica_fsharp1"
+      ],
+      "display_name": "AnalogClassicA F#1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "AnalogClassicA fsharp1.wav"
+    },
+    "builtin.synth.bass.analogclassicb_c1": {
+      "path": "samples/Synth/Bass/AnalogClassicB c1.wav",
+      "asset_key": "samples/Synth/Bass/AnalogClassicB%20c1.wav",
+      "built_in": true,
+      "sha256": "0293d9d4650257f63bb36648523c852544848a6a775f241ff8d4ad709effe0bb",
+      "legacy_hash_12": "0293d9d46502",
+      "aliases": [
+        "0293d9d46502"
+      ],
+      "display_name": "AnalogClassicB c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "AnalogClassicB c1.wav"
+    },
+    "builtin.synth.bass.analogclassicc_c1": {
+      "path": "samples/Synth/Bass/AnalogClassicC c1.wav",
+      "asset_key": "samples/Synth/Bass/AnalogClassicC%20c1.wav",
+      "built_in": true,
+      "sha256": "d9adf96a1a788a2fcea010e66f9bf92f1d5272df632a535e62c3832efbf0f84b",
+      "legacy_hash_12": "d9adf96a1a78",
+      "aliases": [
+        "d9adf96a1a78"
+      ],
+      "display_name": "AnalogClassicC c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "AnalogClassicC c1.wav"
+    },
+    "builtin.synth.bass.attacker_c1": {
+      "path": "samples/Synth/Bass/Attacker c1.wav",
+      "asset_key": "samples/Synth/Bass/Attacker%20c1.wav",
+      "built_in": true,
+      "sha256": "389dd09ee29ce9a93d9ed9aed9730439caed1bf567cdb01e9f23277160cedde4",
+      "legacy_hash_12": "389dd09ee29c",
+      "aliases": [
+        "389dd09ee29c"
+      ],
+      "display_name": "Attacker c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Attacker c1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_10_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_10_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_10_F1.wav",
+      "built_in": true,
+      "sha256": "c76f051f620fb98ee795ab757aef8ade983302e3bd789ac804c941a843ca4598",
+      "legacy_hash_12": "c76f051f620f",
+      "aliases": [
+        "c76f051f620f"
+      ],
+      "display_name": "BAS MS20 10 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_10_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_11_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_11_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_11_F1.wav",
+      "built_in": true,
+      "sha256": "293103f32595c6b1659451093155af09442cd3cf8c50fef82b32484ec12e0af1",
+      "legacy_hash_12": "293103f32595",
+      "aliases": [
+        "293103f32595"
+      ],
+      "display_name": "BAS MS20 11 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_11_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_12_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_12_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_12_F1.wav",
+      "built_in": true,
+      "sha256": "6a07799a5fa86176903c690101a1417ea81ccdccd8eddabf6c8b8d1573eba839",
+      "legacy_hash_12": "6a07799a5fa8",
+      "aliases": [
+        "6a07799a5fa8"
+      ],
+      "display_name": "BAS MS20 12 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_12_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_13_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_13_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_13_F1.wav",
+      "built_in": true,
+      "sha256": "b06f0ab6e3c1e734987fe6ca7cef692349168766f0d91b99fddc8f307e04a85a",
+      "legacy_hash_12": "b06f0ab6e3c1",
+      "aliases": [
+        "b06f0ab6e3c1"
+      ],
+      "display_name": "BAS MS20 13 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_13_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_14_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_14_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_14_F1.wav",
+      "built_in": true,
+      "sha256": "b6ac14a9e45e29a52c14f24a2b98bd0112e4891fb9cd0546e6ac44f437061d33",
+      "legacy_hash_12": "b6ac14a9e45e",
+      "aliases": [
+        "b6ac14a9e45e"
+      ],
+      "display_name": "BAS MS20 14 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_14_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_15_f2": {
+      "path": "samples/Synth/Bass/BAS_MS20_15_F2.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_15_F2.wav",
+      "built_in": true,
+      "sha256": "3817227a598e82a23d5158650df0c0e2c5871ef484ae0432dd83c53f13a36345",
+      "legacy_hash_12": "3817227a598e",
+      "aliases": [
+        "3817227a598e"
+      ],
+      "display_name": "BAS MS20 15 F2",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_15_F2.wav"
+    },
+    "builtin.synth.bass.bas_ms20_16_f2": {
+      "path": "samples/Synth/Bass/BAS_MS20_16_F2.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_16_F2.wav",
+      "built_in": true,
+      "sha256": "95f02779ccd40eac77b66d354138bb6e9dcdd72622cfb1052f01b9f84e0ede56",
+      "legacy_hash_12": "95f02779ccd4",
+      "aliases": [
+        "95f02779ccd4"
+      ],
+      "display_name": "BAS MS20 16 F2",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_16_F2.wav"
+    },
+    "builtin.synth.bass.bas_ms20_1_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_1_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_1_F1.wav",
+      "built_in": true,
+      "sha256": "57c6c47905fcbe62e28299d5ce0891ec2bbdc1edbf74a8cd5a8d88ccb328b999",
+      "legacy_hash_12": "57c6c47905fc",
+      "aliases": [
+        "57c6c47905fc"
+      ],
+      "display_name": "BAS MS20 1 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_1_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_2_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_2_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_2_F1.wav",
+      "built_in": true,
+      "sha256": "04ab7545872a98230654a49606668e03fb97eced553da2f3877264bfd01ce92f",
+      "legacy_hash_12": "04ab7545872a",
+      "aliases": [
+        "04ab7545872a"
+      ],
+      "display_name": "BAS MS20 2 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_2_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_3_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_3_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_3_F1.wav",
+      "built_in": true,
+      "sha256": "fa73f9ef73e12d7ea91c82eb6044922c5af881a070e8048bd1b4b65a4f319699",
+      "legacy_hash_12": "fa73f9ef73e1",
+      "aliases": [
+        "fa73f9ef73e1"
+      ],
+      "display_name": "BAS MS20 3 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_3_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_4_f2": {
+      "path": "samples/Synth/Bass/BAS_MS20_4_F2.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_4_F2.wav",
+      "built_in": true,
+      "sha256": "ae47eba02cd75c5b8d1a0fbdcf6bf2b55c70249eea7fc9390049bc2159d39cf3",
+      "legacy_hash_12": "ae47eba02cd7",
+      "aliases": [
+        "ae47eba02cd7"
+      ],
+      "display_name": "BAS MS20 4 F2",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_4_F2.wav"
+    },
+    "builtin.synth.bass.bas_ms20_5_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_5_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_5_F1.wav",
+      "built_in": true,
+      "sha256": "00598bf37cb5fd7564e58227b7d6f89b4840b36cc4e20dd69bd583dc2c7376f4",
+      "legacy_hash_12": "00598bf37cb5",
+      "aliases": [
+        "00598bf37cb5"
+      ],
+      "display_name": "BAS MS20 5 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_5_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_6_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_6_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_6_F1.wav",
+      "built_in": true,
+      "sha256": "7b098fd0e0668f903959b1deecedad11076a8f0b2a0259ae8b4bc334dd91f5ad",
+      "legacy_hash_12": "7b098fd0e066",
+      "aliases": [
+        "7b098fd0e066"
+      ],
+      "display_name": "BAS MS20 6 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_6_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_7_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_7_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_7_F1.wav",
+      "built_in": true,
+      "sha256": "69455dbc83fac9cdeb1e97f96d30122dcebd2f8fd2d50ee0450e1ebd0fc3067d",
+      "legacy_hash_12": "69455dbc83fa",
+      "aliases": [
+        "69455dbc83fa"
+      ],
+      "display_name": "BAS MS20 7 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_7_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_8_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_8_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_8_F1.wav",
+      "built_in": true,
+      "sha256": "0c4b571f16367729b87001fa3d976682715bd180b0e415417dffa443703e6ea2",
+      "legacy_hash_12": "0c4b571f1636",
+      "aliases": [
+        "0c4b571f1636"
+      ],
+      "display_name": "BAS MS20 8 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_8_F1.wav"
+    },
+    "builtin.synth.bass.bas_ms20_9_f1": {
+      "path": "samples/Synth/Bass/BAS_MS20_9_F1.wav",
+      "asset_key": "samples/Synth/Bass/BAS_MS20_9_F1.wav",
+      "built_in": true,
+      "sha256": "f75483be73bdd371ffa4dbffe577f3fd6a311f0d8b76f4efaec9c7cb2302e0bd",
+      "legacy_hash_12": "f75483be73bd",
+      "aliases": [
+        "f75483be73bd"
+      ],
+      "display_name": "BAS MS20 9 F1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BAS_MS20_9_F1.wav"
+    },
+    "builtin.synth.bass.bdsub_mede": {
+      "path": "samples/Synth/Bass/BDsub_MeDe.wav",
+      "asset_key": "samples/Synth/Bass/BDsub_MeDe.wav",
+      "built_in": true,
+      "sha256": "72738dc9a3ffd7d54e9b93a8a42c94e06b017b124da26043fa764a61e1f30c23",
+      "legacy_hash_12": "72738dc9a3ff",
+      "aliases": [
+        "72738dc9a3ff"
+      ],
+      "display_name": "BDsub MeDe",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BDsub_MeDe.wav"
+    },
+    "builtin.synth.bass.blow_c1": {
+      "path": "samples/Synth/Bass/BLow c1.wav",
+      "asset_key": "samples/Synth/Bass/BLow%20c1.wav",
+      "built_in": true,
+      "sha256": "466150b8774e4efd2d369988525705d2e612e750e0dca5224c17b52b32ebf2a9",
+      "legacy_hash_12": "466150b8774e",
+      "aliases": [
+        "466150b8774e"
+      ],
+      "display_name": "BLow c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "BLow c1.wav"
+    },
+    "builtin.synth.bass.banzai_c1": {
+      "path": "samples/Synth/Bass/Banzai c1.wav",
+      "asset_key": "samples/Synth/Bass/Banzai%20c1.wav",
+      "built_in": true,
+      "sha256": "71c465e5aa7d755c6128fc23d0934fa0489c215ff4bf21e6e5807a727d1c3c11",
+      "legacy_hash_12": "71c465e5aa7d",
+      "aliases": [
+        "71c465e5aa7d"
+      ],
+      "display_name": "Banzai c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Banzai c1.wav"
+    },
+    "builtin.synth.bass.basement_c3": {
+      "path": "samples/Synth/Bass/Basement c3.wav",
+      "asset_key": "samples/Synth/Bass/Basement%20c3.wav",
+      "built_in": true,
+      "sha256": "fcb6aef2203da72247b487a88009d10a715c3eabaf607fdee475d63fee453e34",
+      "legacy_hash_12": "fcb6aef2203d",
+      "aliases": [
+        "fcb6aef2203d"
+      ],
+      "display_name": "Basement c3",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Basement c3.wav"
+    },
+    "builtin.synth.bass.bass_jaunt": {
+      "path": "samples/Synth/Bass/Bass Jaunt.wav",
+      "asset_key": "samples/Synth/Bass/Bass%20Jaunt.wav",
+      "built_in": true,
+      "sha256": "168ef3b576d24dde8cabb9301300cdf2192a7d64d0c0bdcc97918beef1361f3e",
+      "legacy_hash_12": "168ef3b576d2",
+      "aliases": [
+        "168ef3b576d2"
+      ],
+      "display_name": "Bass Jaunt",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Bass Jaunt.wav"
+    },
+    "builtin.synth.bass.bearded_a1": {
+      "path": "samples/Synth/Bass/Bearded a1.wav",
+      "asset_key": "samples/Synth/Bass/Bearded%20a1.wav",
+      "built_in": true,
+      "sha256": "97359cca730df222518cb3154ad15acadbcd746b61b970b7797fa1cab98ba6db",
+      "legacy_hash_12": "97359cca730d",
+      "aliases": [
+        "97359cca730d"
+      ],
+      "display_name": "Bearded a1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "Bearded a1.wav"
+    },
+    "builtin.synth.bass.tubebass_c1": {
+      "path": "samples/Synth/Bass/TubeBass c1.wav",
+      "asset_key": "samples/Synth/Bass/TubeBass%20c1.wav",
+      "built_in": true,
+      "sha256": "b5a5804284ca3ca0a0411e9697cfee07bd9ee5251e3459ff0ede76fad4a4df92",
+      "legacy_hash_12": "b5a5804284ca",
+      "aliases": [
+        "b5a5804284ca"
+      ],
+      "display_name": "TubeBass c1",
+      "display_path": "Synth/Bass",
+      "source_file_name": "TubeBass c1.wav"
+    },
+    "builtin.noise.other.air_factory": {
+      "path": "samples/Noise/Other/Air Factory.wav",
+      "asset_key": "samples/Noise/Other/Air%20Factory.wav",
+      "built_in": true,
+      "sha256": "1bb6d576fbcac3aecafeeed097125d8368b84113d78e26511a438c7b79c10b34",
+      "legacy_hash_12": "1bb6d576fbca",
+      "aliases": [
+        "1bb6d576fbca"
+      ],
+      "display_name": "Air Factory",
+      "display_path": "Noise/Other",
+      "source_file_name": "Air Factory.wav"
+    },
+    "builtin.noise.other.bells_evilphone": {
+      "path": "samples/Noise/Other/Bells EvilPhone.wav",
+      "asset_key": "samples/Noise/Other/Bells%20EvilPhone.wav",
+      "built_in": true,
+      "sha256": "ccd1d3b8b07ac957dbf435a3336fbec8a8414f6fab268620f533441af9a1671c",
+      "legacy_hash_12": "ccd1d3b8b07a",
+      "aliases": [
+        "ccd1d3b8b07a"
+      ],
+      "display_name": "Bells EvilPhone",
+      "display_path": "Noise/Other",
+      "source_file_name": "Bells EvilPhone.wav"
+    },
+    "builtin.noise.clicks.clave_p12valve_g5": {
+      "path": "samples/Noise/Clicks/Clave P12Valve G5.wav",
+      "asset_key": "samples/Noise/Clicks/Clave%20P12Valve%20G5.wav",
+      "built_in": true,
+      "sha256": "1f36a69d26849f1de74d04023427eb281bf886ea8364cb2baa63d5fa67d08f21",
+      "legacy_hash_12": "1f36a69d2684",
+      "aliases": [
+        "1f36a69d2684"
+      ],
+      "display_name": "Clave P12Valve G5",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Clave P12Valve G5.wav"
+    },
+    "builtin.noise.clicks.clave_tanvalve_c_6_v6": {
+      "path": "samples/Noise/Clicks/Clave_TanValve_Csharp6_V6.wav",
+      "asset_key": "samples/Noise/Clicks/Clave_TanValve_Csharp6_V6.wav",
+      "built_in": true,
+      "sha256": "d18718821e702d7a3416d231409544304884016e373b8151efbaa15b500119f3",
+      "legacy_hash_12": "d18718821e70",
+      "aliases": [
+        "builtin.noise.clicks.clave_tanvalve_csharp6_v6",
+        "d18718821e70"
+      ],
+      "display_name": "Clave TanValve C#6 V6",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Clave_TanValve_Csharp6_V6.wav"
+    },
+    "builtin.noise.clicks.click_808_1": {
+      "path": "samples/Noise/Clicks/Click_808_1.wav",
+      "asset_key": "samples/Noise/Clicks/Click_808_1.wav",
+      "built_in": true,
+      "sha256": "96899bb77f736007e1afae9cca0ddc239a4d8c100dde8327c56bc423a9bbfe68",
+      "legacy_hash_12": "96899bb77f73",
+      "aliases": [
+        "96899bb77f73"
+      ],
+      "display_name": "Click 808 1",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Click_808_1.wav"
+    },
+    "builtin.noise.clicks.click_808_2": {
+      "path": "samples/Noise/Clicks/Click_808_2.wav",
+      "asset_key": "samples/Noise/Clicks/Click_808_2.wav",
+      "built_in": true,
+      "sha256": "7495f991a4c05db7310e2e58e80296ff20e9e011ea52c44cc93975afb29e8054",
+      "legacy_hash_12": "7495f991a4c0",
+      "aliases": [
+        "7495f991a4c0"
+      ],
+      "display_name": "Click 808 2",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Click_808_2.wav"
+    },
+    "builtin.noise.clicks.click_909_2": {
+      "path": "samples/Noise/Clicks/Click_909_2.wav",
+      "asset_key": "samples/Noise/Clicks/Click_909_2.wav",
+      "built_in": true,
+      "sha256": "e7435b9b1d393b74fa162e35554307ce173b50d481b96c327b872dc8dfc41fad",
+      "legacy_hash_12": "e7435b9b1d39",
+      "aliases": [
+        "e7435b9b1d39"
+      ],
+      "display_name": "Click 909 2",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Click_909_2.wav"
+    },
+    "builtin.noise.clicks.click_analogdm6": {
+      "path": "samples/Noise/Clicks/Click_AnalogDM6.wav",
+      "asset_key": "samples/Noise/Clicks/Click_AnalogDM6.wav",
+      "built_in": true,
+      "sha256": "3bdd1e83a53cfa3c8d1f7342b4017b90cd6f9c776fd7f73ccf2704b66f4e0a6c",
+      "legacy_hash_12": "3bdd1e83a53c",
+      "aliases": [
+        "3bdd1e83a53c"
+      ],
+      "display_name": "Click AnalogDM6",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Click_AnalogDM6.wav"
+    },
+    "builtin.noise.clicks.clock_adler_tock": {
+      "path": "samples/Noise/Clicks/Clock Adler Tock.wav",
+      "asset_key": "samples/Noise/Clicks/Clock%20Adler%20Tock.wav",
+      "built_in": true,
+      "sha256": "3a54bf84a82b60398683343e26f1c308477a03ebb194ae4f0979909f0cdbfdef",
+      "legacy_hash_12": "3a54bf84a82b",
+      "aliases": [
+        "3a54bf84a82b"
+      ],
+      "display_name": "Clock Adler Tock",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Clock Adler Tock.wav"
+    },
+    "builtin.noise.clicks.rev_click_future2": {
+      "path": "samples/Noise/Clicks/Rev_Click_Future2.wav",
+      "asset_key": "samples/Noise/Clicks/Rev_Click_Future2.wav",
+      "built_in": true,
+      "sha256": "eda9dd06467935910e13fb5492e93ce3b3710b7dd42e121426b845ab3ec0f9fc",
+      "legacy_hash_12": "eda9dd064679",
+      "aliases": [
+        "eda9dd064679"
+      ],
+      "display_name": "Rev Click Future2",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Rev_Click_Future2.wav"
+    },
+    "builtin.noise.clicks.transient_analogdm6": {
+      "path": "samples/Noise/Clicks/Transient_AnalogDM6.wav",
+      "asset_key": "samples/Noise/Clicks/Transient_AnalogDM6.wav",
+      "built_in": true,
+      "sha256": "eb6b39febd08514c58446ecb71e85b670bd249f89287711e0549007381a14ef5",
+      "legacy_hash_12": "eb6b39febd08",
+      "aliases": [
+        "eb6b39febd08"
+      ],
+      "display_name": "Transient AnalogDM6",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Transient_AnalogDM6.wav"
+    },
+    "builtin.noise.clicks.transient_hybrid1": {
+      "path": "samples/Noise/Clicks/Transient_Hybrid1.wav",
+      "asset_key": "samples/Noise/Clicks/Transient_Hybrid1.wav",
+      "built_in": true,
+      "sha256": "47f4dc64e374a12e482e977d51551ff81d54313d0ffe6a8a0b5707f79c54f643",
+      "legacy_hash_12": "47f4dc64e374",
+      "aliases": [
+        "47f4dc64e374"
+      ],
+      "display_name": "Transient Hybrid1",
+      "display_path": "Noise/Clicks",
+      "source_file_name": "Transient_Hybrid1.wav"
     }
   }
 }

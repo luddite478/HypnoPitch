@@ -8,7 +8,7 @@ import '../../ffi/table_bindings.dart' show CellData;
 import '../../utils/app_colors.dart';
 
 /// Simplified sound grid widget for testing
-/// 
+///
 /// Shows a grid of cells representing the sequencer table.
 /// Supports 4 layers (sound grids) with layer switching.
 /// Each cell shows the loaded sample and can be tapped to add/remove samples.
@@ -30,8 +30,10 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer4<TableState, SampleBankState, PlaybackState, SampleBrowserState>(
-      builder: (context, tableState, sampleBank, playback, sampleBrowser, child) {
+    return Consumer4<TableState, SampleBankState, PlaybackState,
+        SampleBrowserState>(
+      builder:
+          (context, tableState, sampleBank, playback, sampleBrowser, child) {
         return Container(
           decoration: BoxDecoration(
             color: AppColors.sequencerSurfaceBase,
@@ -45,14 +47,15 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
             children: [
               // Layer selector and controls (always visible)
               _buildHeader(tableState),
-              
+
               // Main content area - either grid or sample browser
               Expanded(
-                child: sampleBrowser.isVisible 
-                    ? _buildSampleBrowser(context, tableState, sampleBank, sampleBrowser)
+                child: sampleBrowser.isVisible
+                    ? _buildSampleBrowser(
+                        context, tableState, sampleBank, sampleBrowser)
                     : _buildGrid(tableState, sampleBank, playback),
               ),
-              
+
               // Step controls (always visible)
               _buildStepControls(tableState),
             ],
@@ -82,7 +85,7 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 8),
-          
+
           // Layer selector
           Expanded(
             child: Row(
@@ -92,19 +95,26 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
                   onTap: () => tableState.setUiSelectedLayer(index),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.sequencerAccent : AppColors.sequencerSurfacePressed,
+                      color: isActive
+                          ? AppColors.sequencerAccent
+                          : AppColors.sequencerSurfacePressed,
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: isActive ? AppColors.sequencerAccent : AppColors.sequencerBorder,
+                        color: isActive
+                            ? AppColors.sequencerAccent
+                            : AppColors.sequencerBorder,
                         width: 1,
                       ),
                     ),
                     child: Text(
                       '${index + 1}',
                       style: TextStyle(
-                        color: isActive ? AppColors.sequencerPageBackground : AppColors.sequencerText,
+                        color: isActive
+                            ? AppColors.sequencerPageBackground
+                            : AppColors.sequencerText,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -113,7 +123,7 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
               }),
             ),
           ),
-          
+
           // Grid info
           Text(
             '${tableState.getSectionStepCount()} steps',
@@ -124,32 +134,42 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     );
   }
 
-  Widget _buildGrid(TableState tableState, SampleBankState sampleBank, PlaybackState playback) {
+  Widget _buildGrid(TableState tableState, SampleBankState sampleBank,
+      PlaybackState playback) {
     final visibleCols = tableState.getVisibleCols();
-    
+
     return ListView.builder(
       controller: _scrollController,
       itemCount: tableState.getSectionStepCount(),
       itemBuilder: (context, step) {
-        return _buildGridRow(context, tableState, sampleBank, playback, step, visibleCols);
+        return _buildGridRow(
+            context, tableState, sampleBank, playback, step, visibleCols);
       },
     );
   }
 
-  Widget _buildGridRow(BuildContext context, TableState tableState, SampleBankState sampleBank, 
-                      PlaybackState playback, int step, List<int> visibleCols) {
+  Widget _buildGridRow(
+      BuildContext context,
+      TableState tableState,
+      SampleBankState sampleBank,
+      PlaybackState playback,
+      int step,
+      List<int> visibleCols) {
     final isCurrentStep = playback.currentStep == step && playback.isPlaying;
-    
+
     return Container(
       height: 50,
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: isCurrentStep ? AppColors.sequencerAccent.withOpacity(0.1) : null,
+        color:
+            isCurrentStep ? AppColors.sequencerAccent.withOpacity(0.1) : null,
         borderRadius: BorderRadius.circular(2),
-        border: isCurrentStep ? Border.all(
-          color: AppColors.sequencerAccent,
-          width: 2,
-        ) : null,
+        border: isCurrentStep
+            ? Border.all(
+                color: AppColors.sequencerAccent,
+                width: 2,
+              )
+            : null,
       ),
       child: Row(
         children: [
@@ -161,18 +181,21 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
                 '${step + 1}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isCurrentStep ? AppColors.sequencerAccent : AppColors.sequencerText,
+                  color: isCurrentStep
+                      ? AppColors.sequencerAccent
+                      : AppColors.sequencerText,
                 ),
               ),
             ),
           ),
-          
+
           // Grid cells for visible columns
           Expanded(
             child: Row(
               children: visibleCols.map((col) {
                 return Expanded(
-                  child: _buildGridCell(context, tableState, sampleBank, step, col),
+                  child: _buildGridCell(
+                      context, tableState, sampleBank, step, col),
                 );
               }).toList(),
             ),
@@ -182,16 +205,17 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     );
   }
 
-  Widget _buildGridCell(BuildContext context, TableState tableState, SampleBankState sampleBank, 
-                       int step, int col) {
+  Widget _buildGridCell(BuildContext context, TableState tableState,
+      SampleBankState sampleBank, int step, int col) {
     return ValueListenableBuilder<CellData>(
       valueListenable: tableState.getCellNotifier(step, col),
       builder: (context, cellData, child) {
         final isEmpty = cellData.isEmpty;
         final sampleSlot = cellData.sampleSlot;
-        
+
         return GestureDetector(
-          onTap: () => _handleCellTap(tableState, sampleBank, step, col, isEmpty, sampleSlot),
+          onTap: () => _handleCellTap(
+              tableState, sampleBank, step, col, isEmpty, sampleSlot),
           child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
@@ -211,7 +235,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     );
   }
 
-  Widget _getCellContent(bool isEmpty, int sampleSlot, SampleBankState sampleBank, CellData cellData) {
+  Widget _getCellContent(bool isEmpty, int sampleSlot,
+      SampleBankState sampleBank, CellData cellData) {
     if (isEmpty) {
       return Container(); // Empty cell
     } else {
@@ -239,7 +264,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     }
   }
 
-  Color _getCellColor(bool isEmpty, int sampleSlot, SampleBankState sampleBank) {
+  Color _getCellColor(
+      bool isEmpty, int sampleSlot, SampleBankState sampleBank) {
     if (isEmpty) {
       return AppColors.sequencerSurfacePressed;
     } else {
@@ -256,13 +282,15 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     }
   }
 
-  void _handleCellTap(TableState tableState, SampleBankState sampleBank, 
-                     int step, int col, bool isEmpty, int currentSampleSlot) {
-    final sampleBrowser = Provider.of<SampleBrowserState>(context, listen: false);
-    
+  void _handleCellTap(TableState tableState, SampleBankState sampleBank,
+      int step, int col, bool isEmpty, int currentSampleSlot) {
+    final sampleBrowser =
+        Provider.of<SampleBrowserState>(context, listen: false);
+
     if (isEmpty) {
       sampleBrowser.showForCell(step, col, bankSlot: sampleBank.activeSlot);
-      debugPrint('🎯 Opening sample browser for empty cell [$step, $col] slot=${sampleBank.activeSlot}');
+      debugPrint(
+          '🎯 Opening sample browser for empty cell [$step, $col] slot=${sampleBank.activeSlot}');
     } else {
       // Remove sample from cell
       tableState.clearCell(step, col);
@@ -288,24 +316,30 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
         children: [
           // Decrease steps
           ElevatedButton(
-            onPressed: tableState.getSectionStepCount() > 1 ? () {
-              final newSteps = tableState.getSectionStepCount() - 1;
-              tableState.setSectionStepCount(tableState.uiSelectedSection, newSteps);
-            } : null,
+            onPressed: tableState.getSectionStepCount() > 1
+                ? () {
+                    final newSteps = tableState.getSectionStepCount() - 1;
+                    tableState.setSectionStepCount(
+                        tableState.uiSelectedSection, newSteps);
+                  }
+                : null,
             child: const Icon(Icons.remove),
           ),
-          
+
           Text(
             '${tableState.getSectionStepCount()} steps',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          
+
           // Increase steps
           ElevatedButton(
-            onPressed: tableState.getSectionStepCount() < 256 ? () {
-              final newSteps = tableState.getSectionStepCount() + 1;
-              tableState.setSectionStepCount(tableState.uiSelectedSection, newSteps);
-            } : null,
+            onPressed: tableState.getSectionStepCount() < 256
+                ? () {
+                    final newSteps = tableState.getSectionStepCount() + 1;
+                    tableState.setSectionStepCount(
+                        tableState.uiSelectedSection, newSteps);
+                  }
+                : null,
             child: const Icon(Icons.add),
           ),
         ],
@@ -315,8 +349,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
 
   // 🔥 TEMPORARY SAMPLE BROWSER INTEGRATION
   // This shows the existing sample browser widget when a cell is clicked
-  Widget _buildSampleBrowser(BuildContext context, TableState tableState, 
-                           SampleBankState sampleBank, SampleBrowserState sampleBrowser) {
+  Widget _buildSampleBrowser(BuildContext context, TableState tableState,
+      SampleBankState sampleBank, SampleBrowserState sampleBrowser) {
     return Container(
       color: AppColors.sequencerSurfaceBase,
       child: Column(
@@ -373,10 +407,11 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
               ],
             ),
           ),
-          
+
           // Sample browser content
           Expanded(
-            child: _buildCustomSampleBrowser(context, tableState, sampleBank, sampleBrowser),
+            child: _buildCustomSampleBrowser(
+                context, tableState, sampleBank, sampleBrowser),
           ),
         ],
       ),
@@ -384,8 +419,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
   }
 
   // Custom sample browser implementation based on the v1 widget
-  Widget _buildCustomSampleBrowser(BuildContext context, TableState tableState, 
-                                  SampleBankState sampleBank, SampleBrowserState sampleBrowser) {
+  Widget _buildCustomSampleBrowser(BuildContext context, TableState tableState,
+      SampleBankState sampleBank, SampleBrowserState sampleBrowser) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -398,7 +433,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
                 GestureDetector(
                   onTap: () => sampleBrowser.navigateBack(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.sequencerSurfaceRaised,
                       borderRadius: BorderRadius.circular(2),
@@ -432,8 +468,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
               ],
               Expanded(
                 child: Text(
-                  sampleBrowser.currentPath.isEmpty 
-                      ? 'samples/' 
+                  sampleBrowser.currentPath.isEmpty
+                      ? 'samples/'
                       : 'samples/${sampleBrowser.currentPath.join('/')}/',
                   style: TextStyle(
                     color: AppColors.sequencerLightText,
@@ -446,7 +482,7 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Sample items grid
           Expanded(
             child: sampleBrowser.currentItems.isEmpty
@@ -471,7 +507,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
                     ),
                   )
                 : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       crossAxisSpacing: 8,
                       mainAxisSpacing: 8,
@@ -481,16 +518,16 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
                     itemBuilder: (context, index) {
                       final item = sampleBrowser.currentItems[index];
                       return GestureDetector(
-                        onTap: () async => _handleSampleItemTap(
-                          context, tableState, sampleBank, sampleBrowser, item),
+                        onTap: () async => _handleSampleItemTap(context,
+                            tableState, sampleBank, sampleBrowser, item),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: item.isFolder 
+                            color: item.isFolder
                                 ? AppColors.sequencerSurfaceRaised
                                 : AppColors.sequencerAccent.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: item.isFolder 
+                              color: item.isFolder
                                   ? AppColors.sequencerBorder
                                   : AppColors.sequencerAccent,
                               width: 1,
@@ -501,14 +538,15 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
                             children: [
                               Icon(
                                 item.isFolder ? Icons.folder : Icons.music_note,
-                                color: item.isFolder 
+                                color: item.isFolder
                                     ? AppColors.sequencerAccent
                                     : AppColors.sequencerText,
                                 size: 24,
                               ),
                               const SizedBox(height: 4),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
                                 child: Text(
                                   item.name,
                                   style: TextStyle(
@@ -534,26 +572,34 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
   }
 
   // Handle sample item selection
-  Future<void> _handleSampleItemTap(BuildContext context, TableState tableState, 
-                           SampleBankState sampleBank, SampleBrowserState sampleBrowser, 
-                           SampleItem item) async {
+  Future<void> _handleSampleItemTap(
+      BuildContext context,
+      TableState tableState,
+      SampleBankState sampleBank,
+      SampleBrowserState sampleBrowser,
+      SampleItem item) async {
     if (item.isFolder) {
       // Navigate into folder
-      sampleBrowser.navigateToFolder(item.name);
+      sampleBrowser.navigateToFolder(item.name, folderKey: item.folderKey);
     } else {
       // Select sample by manifest id
       final sampleId = item.sampleId;
-      if (sampleId != null && sampleBrowser.targetStep != null && sampleBrowser.targetCol != null) {
+      if (sampleId != null &&
+          sampleBrowser.targetStep != null &&
+          sampleBrowser.targetCol != null) {
         final slot = await _loadSampleIntoBankById(sampleBank, sampleId);
         final success = slot != -1;
         if (success) {
-          tableState.setCell(sampleBrowser.targetStep!, sampleBrowser.targetCol!, slot, 1.0, 1.0);
-          debugPrint('✅ Added sample id=$sampleId to cell [${sampleBrowser.targetStep}, ${sampleBrowser.targetCol}] with slot $slot');
+          tableState.setCell(sampleBrowser.targetStep!,
+              sampleBrowser.targetCol!, slot, 1.0, 1.0);
+          debugPrint(
+              '✅ Added sample id=$sampleId to cell [${sampleBrowser.targetStep}, ${sampleBrowser.targetCol}] with slot $slot');
         }
         sampleBrowser.hide();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? 'Sample added to cell!' : 'Failed to load sample'),
+            content: Text(
+                success ? 'Sample added to cell!' : 'Failed to load sample'),
             duration: const Duration(seconds: 1),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
@@ -563,7 +609,8 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
   }
 
   // Load sample by manifest id into the first available bank slot
-  Future<int> _loadSampleIntoBankById(SampleBankState sampleBank, String sampleId) async {
+  Future<int> _loadSampleIntoBankById(
+      SampleBankState sampleBank, String sampleId) async {
     for (int i = 0; i < 26; i++) {
       if (!sampleBank.isSlotLoaded(i)) {
         final success = await sampleBank.loadSample(i, sampleId);
@@ -573,6 +620,3 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
     return -1; // No empty slots
   }
 }
-
-
-

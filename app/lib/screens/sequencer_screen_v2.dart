@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../widgets/sequencer/v1/edit_buttons_widget.dart' as v1;
 import '../widgets/sequencer/v1/top_multitask_panel_widget.dart' as v1;
@@ -69,6 +72,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
       _sequencerBodyFlex + _editButtonsFlex + _multitaskPanelFlex;
   static const double _navDrawerCornerRadius = 6;
   static const double _navDrawerSideActionIconSize = 24;
+  /// Fixed slot so Patterns / Library labels share one vertical text start line.
+  static const double _navDrawerBottomIconSlotWidth = 40;
 
   // Sequencer state instances
   late final TableState _tableState;
@@ -104,6 +109,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
   /// Draft is always saved under this id for this screen instance (see [_performAutoSave]).
   String? _loadedPatternId;
   bool _bootstrapComplete = false;
+
   /// After [PatternsState.setActivePattern] flushes this screen's draft, shared table may belong to another pattern.
   bool _suppressAutoSave = false;
   bool _hasPendingChanges = false;
@@ -112,6 +118,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
   Future<void> _saveQueue = Future<void>.value();
 
   int _playbackBarBuildCount = 0;
+  List<MissingSampleIssue> _pendingMissingSamples = const [];
 
   @override
   void initState() {
@@ -125,7 +132,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
     _playbackState = Provider.of<PlaybackState>(context, listen: false);
     _sampleBankState = Provider.of<SampleBankState>(context, listen: false);
     _sampleBrowserState = SampleBrowserState(
-      librarySamplesState: Provider.of<LibrarySamplesState>(context, listen: false),
+      librarySamplesState:
+          Provider.of<LibrarySamplesState>(context, listen: false),
     );
     _multitaskPanelState = MultitaskPanelState();
     _soundSettingsState = SoundSettingsState();
@@ -164,8 +172,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
 
     // Cache PatternsState reference for later use (including dispose)
     _patternsStateRef = Provider.of<PatternsState>(context, listen: false);
-    _patternsStateRef!.addBeforeActivePatternSwitchListener(
-        _onBeforeActivePatternSwitch);
+    _patternsStateRef!
+        .addBeforeActivePatternSwitchListener(_onBeforeActivePatternSwitch);
 
     // Set up auto-save listeners
     _setupAutoSaveListeners();
@@ -440,8 +448,11 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         playbackState: _playbackState,
         sampleBankState: _sampleBankState,
       );
-      await service.importFromJson(json.encode(snapshot));
-      Log.i('Imported initial snapshot into Sequencer V2', 'SEQUENCER_V2');
+      final success = await service.importFromJson(json.encode(snapshot));
+      if (success) {
+        _pendingMissingSamples = service.lastImportReport.missingSamples;
+        Log.i('Imported initial snapshot into Sequencer V2', 'SEQUENCER_V2');
+      }
     } catch (e) {
       Log.e('Failed to import initial snapshot', 'SEQUENCER_V2', e);
     }
@@ -481,7 +492,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
       } else {
         final importSuccess =
             await service.importFromJson(json.encode(latestSnapshot));
-        if (importSuccess && _isImportedStateViable()) {
+        if (importSuccess) {
+          _pendingMissingSamples = service.lastImportReport.missingSamples;
           Log.i(
             'Loaded pattern $patternName from latest state',
             'SEQUENCER_V2',
@@ -500,7 +512,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         )) {
       final importSuccess =
           await service.importFromJson(json.encode(explicitSnapshot));
-      if (importSuccess && _isImportedStateViable()) {
+      if (importSuccess) {
+        _pendingMissingSamples = service.lastImportReport.missingSamples;
         Log.i(
           'Loaded pattern $patternName from explicit snapshot input',
           'SEQUENCER_V2',
@@ -553,29 +566,232 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
         setState(() {
           _isInitialLoading = false;
         });
+        if (_pendingMissingSamples.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _showMissingSamplesDialog(_pendingMissingSamples);
+          });
+        }
       }
     }
   }
 
-  bool _isImportedStateViable() {
-    final usedSlots = <int>{};
-    for (int step = 0; step < _tableState.maxSteps; step++) {
-      for (int col = 0; col < _tableState.maxCols; col++) {
-        final cell = _tableState.readCell(step, col);
-        if (cell.sampleSlot >= 0) {
-          usedSlots.add(cell.sampleSlot);
-        }
-      }
+  Future<void> _showMissingSamplesDialog(
+      List<MissingSampleIssue> initial) async {
+    final issues = List<MissingSampleIssue>.from(initial);
+    if (issues.isEmpty || !mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> resolveByLocate(MissingSampleIssue issue) async {
+              final picked = await FilePicker.platform.pickFiles(
+                allowMultiple: false,
+                type: FileType.custom,
+                allowedExtensions: const [
+                  'wav',
+                  'mp3',
+                  'm4a',
+                  'aif',
+                  'aiff',
+                  'flac',
+                  'ogg'
+                ],
+              );
+              final sourcePath = picked?.files.first.path;
+              if (sourcePath == null || sourcePath.isEmpty) return;
+              if (!mounted) return;
+              if (!context.mounted) return;
+
+              try {
+                final samples = context.read<LibrarySamplesState>();
+                final registration =
+                    await samples.registerRecoveredCustomSample(
+                  sourcePath: sourcePath,
+                );
+                if (!mounted) return;
+                if (!context.mounted) return;
+                if (!registration.success || registration.sampleId == null) {
+                  return;
+                }
+                final loadResult = await _sampleBankState.loadSampleReference(
+                  issue.slot,
+                  sampleId: registration.sampleId,
+                  filePathHint: registration.filePath,
+                  displayName: issue.displayName,
+                );
+                if (loadResult.success) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!dialogContext.mounted) return;
+                    setDialogState(() => issues.remove(issue));
+                  });
+                }
+              } catch (_) {}
+            }
+
+            void resolveByReplaceFromLibrary(MissingSampleIssue issue) {
+              Navigator.of(dialogContext).pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _sampleBrowserState.showForSlot(issue.slot);
+              });
+            }
+
+            if (issues.isEmpty) {
+              return AlertDialog(
+                backgroundColor: AppColors.sequencerSurfaceRaised,
+                title: Text(
+                  'Missing Samples Resolved',
+                  style: TextStyle(
+                    color: AppColors.sequencerText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(
+                      'Done',
+                      style: TextStyle(color: AppColors.sequencerAccent),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: AppColors.sequencerSurfaceRaised,
+              title: Text(
+                'Missing Samples',
+                style: TextStyle(
+                  color: AppColors.sequencerText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: issues.map((issue) {
+                      final slotLetter =
+                          String.fromCharCode(65 + issue.slot.clamp(0, 25));
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.sequencerBorder),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Slot $slotLetter',
+                              style: TextStyle(
+                                color: AppColors.sequencerText,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (issue.displayName != null &&
+                                issue.displayName!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  issue.displayName!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppColors.sequencerLightText,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6, bottom: 8),
+                              child: Text(
+                                _missingReasonLabel(issue.reason),
+                                style: TextStyle(
+                                  color: AppColors.sequencerLightText,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            // Do not use LayoutBuilder here: AlertDialog uses
+                            // IntrinsicWidth and will query intrinsic dimensions,
+                            // which LayoutBuilder cannot provide (Flutter assert).
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.start,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                TextButton(
+                                  onPressed: () => resolveByLocate(issue),
+                                  child: const Text('Locate file'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      resolveByReplaceFromLibrary(issue),
+                                  child: const Text('Replace from library'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      if (!dialogContext.mounted) return;
+                                      setDialogState(
+                                          () => issues.remove(issue));
+                                    });
+                                  },
+                                  child: const Text('Skip'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(
+                    'Continue',
+                    style: TextStyle(color: AppColors.sequencerAccent),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    _pendingMissingSamples = const [];
+  }
+
+  String _missingReasonLabel(MissingSampleReason reason) {
+    switch (reason) {
+      case MissingSampleReason.missingSampleId:
+        return 'Sample id is missing in this snapshot.';
+      case MissingSampleReason.unknownSampleId:
+        return 'Sample id is not found in the current built-in/custom index.';
+      case MissingSampleReason.missingAssetPath:
+        return 'Built-in sample exists but has no valid asset path.';
+      case MissingSampleReason.fileNotFound:
+        return 'Audio file could not be found on device storage.';
+      case MissingSampleReason.loadFailed:
+        return 'Sample failed to load in audio engine.';
     }
-    if (usedSlots.isEmpty) {
-      return true;
-    }
-    for (final slot in usedSlots) {
-      if (!_sampleBankState.isSlotLoaded(slot)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   // Draft loading disabled - only manual checkpoints are saved
@@ -842,7 +1058,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.selectSampleTutorialKey,
                 label: appState.tutorialStepLabel,
-                text: 'Select sample for this cell. Choose any sample from the library.',
+                text:
+                    'Select sample for this cell. Choose any sample from the library.',
               ),
             if (tutorialStep == TutorialStep.sequencerCellParamsHint)
               _SequencerTutorialAnchorOverlay(
@@ -860,12 +1077,12 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                 anchorKey: appState.showCopyPointer
                     ? appState.copyButtonTutorialKey
                     : appState.copyPasteTargetCellTutorialKey,
-                secondaryAnchorKey:
-                    appState.showCopyPasteSourceCellHighlight
-                        ? appState.copyPasteTargetCellTutorialKey
-                        : null,
+                secondaryAnchorKey: appState.showCopyPasteSourceCellHighlight
+                    ? appState.copyPasteTargetCellTutorialKey
+                    : null,
                 label: appState.tutorialStepLabel,
-                text: 'Select this cell again, then press Copy, then select another cell and press Paste.',
+                text:
+                    'Select this cell again, then press Copy, then select another cell and press Paste.',
               ),
             if (tutorialStep == TutorialStep.sequencerDeleteHint)
               _SequencerTutorialAnchorOverlay(
@@ -878,7 +1095,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                 anchorKey: appState.undoButtonTutorialKey,
                 secondaryAnchorKey: appState.redoButtonTutorialKey,
                 label: appState.tutorialStepLabel,
-                text: 'Press Undo to restore the deleted sample and then press Redo to delete it again.',
+                text:
+                    'Press Undo to restore the deleted sample and then press Redo to delete it again.',
               ),
             if (tutorialStep == TutorialStep.sequencerJumpValueTwoHint)
               _SequencerTutorialAnchorOverlay(
@@ -944,21 +1162,24 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.sampleGridTutorialKey,
                 label: appState.tutorialStepLabel,
-                text:
-                    'Swipe the sound grid left and create a second section.',
+                text: 'Swipe the sound grid left and create a second section.',
                 centerText: true,
                 centerInRectKey: appState.sampleGridTutorialKey,
                 drawCurvedSwipeHint: true,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionTwoStepsHint)
               _SequencerTutorialAnchorOverlay(
-                anchorKey: appState.sampleGridTutorialKey,
+                anchorKey: appState.showSectionTwoStepsIncreasePointer
+                    ? appState.sectionStepsIncreaseTutorialKey
+                    : appState.sectionStepsDecreaseTutorialKey,
                 label: appState.tutorialStepLabel,
                 text: appState.sectionTwoStepsHintInstruction,
                 centerText: false,
                 centerInRectKey: appState.sampleGridTutorialKey,
                 textPosition: _TutorialTextPosition.belowGrid,
-                drawCoachArrow: false,
+                drawVerticalScrollDownHint:
+                    appState.showSectionTwoStepsIncreasePointer,
+                drawCoachArrow: true,
               ),
             if (tutorialStep == TutorialStep.sequencerSectionTwoSamplesHint)
               _SequencerTutorialAnchorOverlay(
@@ -975,7 +1196,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               _SequencerTutorialAnchorOverlay(
                 anchorKey: appState.sampleGridTutorialKey,
                 label: appState.tutorialStepLabel,
-                text: 'Swipe right to go back to section 1 or select section 1 in section management menu.',
+                text:
+                    'Swipe right to go back to section 1 or select section 1 in section management menu.',
                 centerText: true,
                 centerInRectKey: appState.sampleGridTutorialKey,
                 drawCoachArrow: false,
@@ -1028,10 +1250,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        final gridRect =
-            _tutorialResolveAnchorRect(appState.sampleGridTutorialKey, viewport);
-        final dialogCenter = gridRect?.center ??
-            Offset(viewport.width / 2, viewport.height / 2);
+        final gridRect = _tutorialResolveAnchorRect(
+            appState.sampleGridTutorialKey, viewport);
+        final dialogCenter =
+            gridRect?.center ?? Offset(viewport.width / 2, viewport.height / 2);
         final dialogWidth = min(290.0, max(220.0, viewport.width - 24));
         const dialogHeightEstimate = 126.0;
         final left = (dialogCenter.dx - dialogWidth / 2)
@@ -1091,8 +1313,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 18, vertical: 9),
                               minimumSize: const Size(0, 0),
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -1116,8 +1337,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 18, vertical: 9),
                               minimumSize: const Size(0, 0),
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -1167,8 +1387,8 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
     if (mounted) Navigator.of(context).pop();
   }
 
-  void _openLibraryFromSequencerDrawer(BuildContext drawerContext) {
-    Navigator.of(drawerContext).pop();
+  void _openLibraryFromNavMenu(BuildContext menuContext) {
+    Navigator.of(menuContext).pop();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<AppState>().markProjectsLibraryFolderOpenAction();
@@ -1180,15 +1400,278 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
     });
   }
 
+  String _suggestedProjectArchiveFileName() {
+    final activePatternName = _patternsStateRef?.activePattern?.name.trim();
+    final safeBaseName =
+        (activePatternName == null || activePatternName.isEmpty)
+            ? 'hypnopitch_project'
+            : activePatternName
+                .replaceAll(RegExp(r'[^\w\-\s]'), '')
+                .replaceAll(RegExp(r'\s+'), '_')
+                .toLowerCase();
+    final now = DateTime.now();
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    final hh = now.hour.toString().padLeft(2, '0');
+    final mm = now.minute.toString().padLeft(2, '0');
+    final ss = now.second.toString().padLeft(2, '0');
+    return '${safeBaseName}_$y$m${d}_$hh$mm$ss.$snapshotArchiveFileExtension';
+  }
+
+  String _fileNameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final slash = normalized.lastIndexOf('/');
+    if (slash >= 0 && slash + 1 < normalized.length) {
+      return normalized.substring(slash + 1);
+    }
+    return normalized;
+  }
+
+  SnapshotService _buildSnapshotService() {
+    return SnapshotService(
+      tableState: _tableState,
+      playbackState: _playbackState,
+      sampleBankState: _sampleBankState,
+      librarySamplesState:
+          Provider.of<LibrarySamplesState>(context, listen: false),
+    );
+  }
+
+  Future<void> _exportSnapshotFromNavMenu(BuildContext menuContext) async {
+    Navigator.of(menuContext).pop();
+    try {
+      final patternName = _patternsStateRef?.activePattern?.name ?? 'Project';
+      final archiveBytes = await _buildSnapshotService().exportToArchiveBytes(
+        name: patternName,
+        description: 'Manual project export from sequencer drawer',
+      );
+      if (!mounted) return;
+
+      await showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.save_alt_outlined),
+                  title: const Text('Save to file'),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    if (!mounted) return;
+                    await _saveProjectArchiveBytes(archiveBytes);
+                  },
+                ),
+                Builder(
+                  builder: (tileContext) {
+                    return ListTile(
+                      leading: const Icon(Icons.share_outlined),
+                      title: const Text('Share'),
+                      onTap: () async {
+                        final box = tileContext.findRenderObject() as RenderBox?;
+                        final sharePositionOrigin = box == null
+                            ? const Rect.fromLTWH(0, 0, 100, 100)
+                            : box.localToGlobal(Offset.zero) & box.size;
+                        Navigator.of(sheetContext).pop();
+                        if (!mounted) return;
+                        await _shareProjectArchiveBytes(
+                          archiveBytes,
+                          sharePositionOrigin: sharePositionOrigin,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to export project archive: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _saveProjectArchiveBytes(Uint8List bytes) async {
+    try {
+      final savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export portable project archive',
+        fileName: _suggestedProjectArchiveFileName(),
+        type: FileType.custom,
+        allowedExtensions: const [snapshotArchiveFileExtension],
+        bytes: bytes,
+      );
+      if (!mounted || savePath == null || savePath.isEmpty) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Project exported: ${_fileNameFromPath(savePath)}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save project: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareProjectArchiveBytes(
+    Uint8List bytes, {
+    required Rect sharePositionOrigin,
+  }) async {
+    final fileName = _suggestedProjectArchiveFileName();
+    final tempPath =
+        '${Directory.systemTemp.path}${Platform.pathSeparator}$fileName';
+    final file = File(tempPath);
+    try {
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles(
+        [
+          XFile(
+            tempPath,
+            name: fileName,
+            mimeType: 'application/zip',
+          ),
+        ],
+        subject: 'HypnoPitch project',
+        text: 'HypnoPitch project',
+        sharePositionOrigin: sharePositionOrigin,
+      );
+      // Share can return before the OS finishes copying the file (Android).
+      Future<void>.delayed(const Duration(seconds: 3), () async {
+        try {
+          if (await file.exists()) await file.delete();
+        } catch (_) {}
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to share project: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      try {
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _importSnapshotFromNavMenu(BuildContext menuContext) async {
+    Navigator.of(menuContext).pop();
+    try {
+      // Use FileType.any: custom extensions like `hypnopattern` are not registered
+      // with the OS (iOS UTI / Android MimeTypeMap), so FileType.custom drops them
+      // and .hypnopattern files never appear in the filtered picker.
+      final picked = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        withData: true,
+        type: FileType.any,
+        dialogTitle: 'Select project file (.hypnopattern, .json, or .zip)',
+      );
+      final file = picked?.files.first;
+      final path = file?.path;
+      final fileName = file?.name ?? '';
+      if (!mounted || file == null) return;
+
+      final fileBytes = file.bytes ??
+          (path != null && path.isNotEmpty
+              ? await File(path).readAsBytes()
+              : null);
+      if (!mounted || fileBytes == null || fileBytes.isEmpty) return;
+
+      if (!mounted) return;
+
+      final snapshotService = _buildSnapshotService();
+      var restoredEmbeddedSamples = 0;
+      bool success;
+      if (snapshotService.validateArchiveBytes(fileBytes)) {
+        final archiveResult =
+            await snapshotService.importFromArchiveBytes(fileBytes);
+        success = archiveResult.success;
+        restoredEmbeddedSamples = archiveResult.restoredEmbeddedSampleCount;
+      } else {
+        String? jsonString;
+        try {
+          jsonString = utf8.decode(fileBytes);
+        } catch (_) {
+          jsonString = null;
+        }
+        if (jsonString == null || !snapshotService.validateJson(jsonString)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unsupported project archive format.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+        success = await snapshotService.importFromJson(jsonString);
+      }
+
+      if (!mounted) return;
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to import project snapshot.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      final missing = snapshotService.lastImportReport.missingSamples;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            restoredEmbeddedSamples > 0
+                ? 'Project imported: ${_fileNameFromPath(path ?? fileName)} ($restoredEmbeddedSamples embedded samples restored)'
+                : 'Project imported: ${_fileNameFromPath(path ?? fileName)}',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      if (missing.isNotEmpty) {
+        _pendingMissingSamples = missing;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _showMissingSamplesDialog(missing);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to import project archive: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Widget _buildSequencerNavDrawer() {
+    final takesTitleStyle = TextStyle(
+      color: AppColors.sequencerText,
+      fontSize: 17,
+      fontWeight: FontWeight.w600,
+    );
     return Builder(
       builder: (drawerContext) {
         final width = MediaQuery.sizeOf(drawerContext).width * 0.75;
-        final takesTitleStyle = TextStyle(
-          color: AppColors.sequencerText,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        );
         return Drawer(
           width: width,
           backgroundColor: AppColors.sequencerSurfaceRaised,
@@ -1201,153 +1684,231 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
           child: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                          child: Text(
-                            'Menu',
-                            style: TextStyle(
-                              color: AppColors.sequencerLightText,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        ListTile(
-                          leading: Icon(
-                            Icons.graphic_eq,
-                            color: AppColors.sequencerAccent,
-                          ),
-                          title: Text(
-                            'Takes',
-                            style: takesTitleStyle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () {
-                            Navigator.of(drawerContext).pop();
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted) {
-                                _showRecordingsOverlay(context);
-                              }
-                            });
-                          },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: const Color(0xFF9A9A96),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 4, 12, 16),
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.of(drawerContext).pop();
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                      if (mounted) {
-                                        unawaited(_navigateBackToPatterns());
-                                      }
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 10,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.grid_view_rounded,
-                                          size: _navDrawerSideActionIconSize,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Text(
-                                            'Patterns',
-                                            style: TextStyle(
-                                              color: AppColors.sequencerText,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                                child: Text(
+                                  'Menu',
+                                  style: TextStyle(
+                                    color: AppColors.sequencerLightText,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () => _openLibraryFromSequencerDrawer(
-                                    drawerContext,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 10,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.folder_outlined,
-                                          size: _navDrawerSideActionIconSize,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Text(
-                                            'Library',
-                                            style: TextStyle(
-                                              color: AppColors.sequencerText,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                              ListTile(
+                                leading: Icon(
+                                  Icons.graphic_eq,
+                                  color: AppColors.sequencerAccent,
                                 ),
+                                title: Text(
+                                  'Takes',
+                                  style: takesTitleStyle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  Navigator.of(drawerContext).pop();
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    if (mounted) {
+                                      _showRecordingsOverlay(context);
+                                    }
+                                  });
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(
+                                  Icons.upload_file_rounded,
+                                  color: AppColors.sequencerAccent,
+                                ),
+                                title: Text(
+                                  'Export',
+                                  style: takesTitleStyle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () =>
+                                    _exportSnapshotFromNavMenu(drawerContext),
+                              ),
+                              ListTile(
+                                leading: Icon(
+                                  Icons.download_rounded,
+                                  color: AppColors.sequencerAccent,
+                                ),
+                                title: Text(
+                                  'Import',
+                                  style: takesTitleStyle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () =>
+                                    _importSnapshotFromNavMenu(drawerContext),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: const Color(0xFF9A9A96),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 16, 16),
+                        child: Align(
+                          alignment: Alignment.bottomRight,
+                          child: Builder(
+                            builder: (_) {
+                              // Outer padding 12+16; InkWell inner padding 8+8; icon column + gap.
+                              final textMaxW = max(
+                                0.0,
+                                constraints.maxWidth -
+                                    28 -
+                                    16 -
+                                    _navDrawerBottomIconSlotWidth -
+                                    14,
+                              );
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        Navigator.of(drawerContext).pop();
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (mounted) {
+                                            unawaited(
+                                                _navigateBackToPatterns());
+                                          }
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 10,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width:
+                                                  _navDrawerBottomIconSlotWidth,
+                                              child: Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Icon(
+                                                  Icons.grid_view_rounded,
+                                                  size:
+                                                      _navDrawerSideActionIconSize,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 14),
+                                            ConstrainedBox(
+                                              constraints: BoxConstraints(
+                                                maxWidth: textMaxW,
+                                              ),
+                                              child: Text(
+                                                'Patterns',
+                                                style: TextStyle(
+                                                  color:
+                                                      AppColors.sequencerText,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () =>
+                                          _openLibraryFromNavMenu(
+                                              drawerContext),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 10,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width:
+                                                  _navDrawerBottomIconSlotWidth,
+                                              child: Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Icon(
+                                                  Icons.folder_outlined,
+                                                  size:
+                                                      _navDrawerSideActionIconSize,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 14),
+                                            ConstrainedBox(
+                                              constraints: BoxConstraints(
+                                                maxWidth: textMaxW,
+                                              ),
+                                              child: Text(
+                                                'Library',
+                                                style: TextStyle(
+                                                  color:
+                                                      AppColors.sequencerText,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -1371,9 +1932,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
     }
     final appState = context.read<AppState>();
     final tutorialStep = appState.activeTutorialStep;
-    final isTakesTutorialStep = tutorialStep == TutorialStep.sequencerTakesHint ||
-        appState.showSecondTakeAddPointer ||
-        appState.showSecondTakeClosePointer;
+    final isTakesTutorialStep =
+        tutorialStep == TutorialStep.sequencerTakesHint ||
+            appState.showSecondTakeAddPointer ||
+            appState.showSecondTakeClosePointer;
     showDialog(
       context: context,
       barrierDismissible: !isTakesTutorialStep,
@@ -1433,8 +1995,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
               );
               final double bottomInset = padding.bottom +
                   playbackControl +
-                  flexRegion *
-                      (_multitaskPanelFlex / _contentFlexTotal);
+                  flexRegion * (_multitaskPanelFlex / _contentFlexTotal);
               return Padding(
                 padding: EdgeInsets.only(top: 0, bottom: bottomInset),
                 child: const ValueControlOverlay(),
@@ -1524,63 +2085,65 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                       builder: (context, isRecording, _) {
                                         return Stack(
                                           children: [
-                                            // Section chain (conversion happens in thread view now)
-                                            // Make clickable to toggle section management
-                                            GestureDetector(
-                                              onTap: isRecording
-                                                  ? null
-                                                  : () {
-                                                      if (!appState
-                                                          .canInteractWithTutorialTarget(
-                                                        TutorialInteractionTarget
-                                                            .sectionMenuButton,
-                                                      )) {
-                                                        return;
-                                                      }
-                                                      final multitaskPanelState =
-                                                          context.read<
-                                                              MultitaskPanelState>();
-                                                      if (multitaskPanelState
-                                                              .currentMode ==
-                                                          MultitaskPanelMode
-                                                              .sectionManagement) {
-                                                        multitaskPanelState
-                                                            .showPlaceholder();
-                                                      } else {
-                                                        multitaskPanelState
-                                                            .showSectionManagement();
-                                                      }
-                                                      if (appState
-                                                              .activeTutorialStep ==
-                                                          TutorialStep
-                                                              .sequencerSectionsMenuHint) {
-                                                        appState
-                                                            .completeSectionMenuTutorialStep();
-                                                      }
-                                                    },
-                                              child: Container(
-                                                key: appState
-                                                    .sectionMenuButtonTutorialKey,
-                                                decoration: BoxDecoration(
+                                            // Section chain: tap toggles section management; neutral chrome +
+                                            // opacity blink on tap (no persistent active styling).
+                                            Container(
+                                              key: appState
+                                                  .sectionMenuButtonTutorialKey,
+                                              clipBehavior: Clip.antiAlias,
+                                              decoration: BoxDecoration(
+                                                color: AppColors
+                                                    .sequencerSurfaceBase,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
                                                   color: AppColors
-                                                      .sequencerSurfaceBase,
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  border: Border.all(
-                                                      color: AppColors
-                                                          .sequencerBorder,
-                                                      width: 0.5),
+                                                      .sequencerBorder,
+                                                  width: 0.5,
                                                 ),
-                                                clipBehavior: Clip.hardEdge,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8),
-                                                child: Center(
-                                                  child: _buildSectionChain(
-                                                    tableState.sectionsCount,
-                                                    playbackState,
-                                                    allActive:
-                                                        false, // Always false (no thread view)
+                                              ),
+                                              child: _SequencerTapBlinkChild(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                onTap: isRecording
+                                                    ? null
+                                                    : () {
+                                                        if (!appState
+                                                            .canInteractWithTutorialTarget(
+                                                          TutorialInteractionTarget
+                                                              .sectionMenuButton,
+                                                        )) {
+                                                          return;
+                                                        }
+                                                        if (multitaskPanelState
+                                                                .currentMode ==
+                                                            MultitaskPanelMode
+                                                                .sectionManagement) {
+                                                          multitaskPanelState
+                                                              .showPlaceholder();
+                                                        } else {
+                                                          multitaskPanelState
+                                                              .showSectionManagement();
+                                                        }
+                                                        if (appState
+                                                                .activeTutorialStep ==
+                                                            TutorialStep
+                                                                .sequencerSectionsMenuHint) {
+                                                          appState
+                                                              .completeSectionMenuTutorialStep();
+                                                        }
+                                                      },
+                                                child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8),
+                                                  child: Center(
+                                                    child: _buildSectionChain(
+                                                      tableState
+                                                          .sectionsCount,
+                                                      playbackState,
+                                                      allActive: false,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -1709,150 +2272,221 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                       box.maxWidth / 3;
                                                   final double perButtonHeight =
                                                       box.maxHeight;
-                                                  return ToggleButtons(
-                                                    isSelected: [
-                                                      false, // Never show background selection for master button
-                                                      isRecordButtonActive,
-                                                      isPlaying,
-                                                    ],
-                                                    onPressed: (index) async {
-                                                      if (index == 0) {
-                                                        if (appState
-                                                            .isTutorialRunning) {
-                                                          return;
-                                                        }
-                                                        // Master settings button - toggle
-                                                        Log.d(
-                                                            'Master settings button pressed',
-                                                            'SEQUENCER_V2');
-                                                        if (multitaskPanelState
-                                                                .currentMode ==
-                                                            MultitaskPanelMode
-                                                                .masterSettings) {
-                                                          multitaskPanelState
-                                                              .showPlaceholder();
-                                                        } else {
-                                                          multitaskPanelState
-                                                              .showMasterSettings();
-                                                        }
-                                                      } else if (index == 1) {
-                                                        if (!appState
-                                                            .canInteractWithTutorialTarget(
-                                                          TutorialInteractionTarget
-                                                              .recordButton,
-                                                        )) {
-                                                          return;
-                                                        }
-                                                        if (isRecording ||
-                                                            isArmed) {
-                                                          appState
-                                                              .markRecordingStopAction(
-                                                            recordingDuration:
-                                                                recordingState
-                                                                    .recordingDuration,
-                                                          );
-                                                          appState
-                                                              .markSongRecordingStopAction(
-                                                            recordingDuration:
-                                                                recordingState
-                                                                    .recordingDuration,
-                                                            sectionsCount:
-                                                                tableState
-                                                                    .sectionsCount,
-                                                            isSongMode:
-                                                                playbackState
-                                                                    .songMode,
-                                                          );
-                                                          await recordingState
-                                                              .stopRecording();
-                                                        } else {
-                                                          appState
-                                                              .markRecordingAction();
-                                                          appState
-                                                              .markSongRecordingAction();
-                                                          final currentLayer =
-                                                              _tableState
-                                                                  .uiSelectedLayer;
-                                                          await recordingState
-                                                              .startRecording(
-                                                                  layer:
-                                                                      currentLayer);
-                                                        }
-                                                      } else if (index == 2) {
-                                                        if (!appState
-                                                            .canInteractWithTutorialTarget(
-                                                          TutorialInteractionTarget
-                                                              .playButton,
-                                                        )) {
-                                                          return;
-                                                        }
-                                                        if (isPlaying) {
-                                                          playbackState.stop();
-                                                          appState
-                                                              .markStopAction();
-                                                        } else {
-                                                          playbackState.start();
-                                                          appState
-                                                              .markPlayAction();
-                                                          appState
-                                                              .markRecordingPlayAction();
-                                                          appState
-                                                              .markSongRecordingPlayAction();
-                                                        }
-                                                      }
-                                                    },
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            2),
-                                                    constraints:
-                                                        BoxConstraints.tightFor(
-                                                            width:
-                                                                perButtonWidth,
-                                                            height:
-                                                                perButtonHeight),
-                                                    fillColor: AppColors
-                                                        .sequencerPrimaryButton,
-                                                    selectedColor: Colors.white,
-                                                    color: AppColors
-                                                        .sequencerLightText,
-                                                    renderBorder: false,
-                                                    splashColor:
-                                                        Colors.transparent,
-                                                    highlightColor:
-                                                        Colors.transparent,
+                                                  return Row(
                                                     children: [
-                                                      Transform.rotate(
-                                                        angle:
-                                                            1.5708, // 90 degrees in radians (π/2)
-                                                        child: Icon(
-                                                          Icons.tune,
-                                                          size: 20,
-                                                          color: multitaskPanelState
-                                                                      .currentMode ==
-                                                                  MultitaskPanelMode
-                                                                      .masterSettings
-                                                              ? Colors
-                                                                  .white // Brighter when active
-                                                              : AppColors
-                                                                  .sequencerLightText, // Normal color
+                                                      SizedBox(
+                                                        width: perButtonWidth,
+                                                        height:
+                                                            perButtonHeight,
+                                                        child:
+                                                            _SequencerTapBlinkChild(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      2),
+                                                          onTap: appState
+                                                                  .isTutorialRunning
+                                                              ? null
+                                                              : () {
+                                                                  Log.d(
+                                                                    'Master settings button pressed',
+                                                                    'SEQUENCER_V2',
+                                                                  );
+                                                                  if (multitaskPanelState
+                                                                          .currentMode ==
+                                                                      MultitaskPanelMode
+                                                                          .masterSettings) {
+                                                                    multitaskPanelState
+                                                                        .showPlaceholder();
+                                                                  } else {
+                                                                    multitaskPanelState
+                                                                        .showMasterSettings();
+                                                                  }
+                                                                },
+                                                          child: Center(
+                                                            child:
+                                                                Transform
+                                                                    .rotate(
+                                                              angle: 1.5708,
+                                                              child: Icon(
+                                                                Icons.tune,
+                                                                size: 20,
+                                                                color: AppColors
+                                                                    .sequencerLightText,
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
-                                                      KeyedSubtree(
-                                                        key: appState
-                                                            .recordButtonTutorialKey,
-                                                        child: const Icon(
-                                                            Icons.circle,
-                                                            size: 14),
+                                                      SizedBox(
+                                                        width: perButtonWidth,
+                                                        height:
+                                                            perButtonHeight,
+                                                        child: Material(
+                                                          color: Colors
+                                                              .transparent,
+                                                          child: InkWell(
+                                                            onTap: () async {
+                                                              if (!appState
+                                                                  .canInteractWithTutorialTarget(
+                                                                TutorialInteractionTarget
+                                                                    .recordButton,
+                                                              )) {
+                                                                return;
+                                                              }
+                                                              if (isRecording ||
+                                                                  isArmed) {
+                                                                appState
+                                                                    .markRecordingStopAction(
+                                                                  recordingDuration:
+                                                                      recordingState
+                                                                          .recordingDuration,
+                                                                );
+                                                                appState
+                                                                    .markSongRecordingStopAction(
+                                                                  recordingDuration:
+                                                                      recordingState
+                                                                          .recordingDuration,
+                                                                  sectionsCount:
+                                                                      tableState
+                                                                          .sectionsCount,
+                                                                  isSongMode:
+                                                                      playbackState
+                                                                          .songMode,
+                                                                );
+                                                                await recordingState
+                                                                    .stopRecording();
+                                                              } else {
+                                                                appState
+                                                                    .markRecordingAction();
+                                                                appState
+                                                                    .markSongRecordingAction();
+                                                                final currentLayer =
+                                                                    _tableState
+                                                                        .uiSelectedLayer;
+                                                                await recordingState
+                                                                    .startRecording(
+                                                                        layer:
+                                                                            currentLayer);
+                                                              }
+                                                            },
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        2),
+                                                            splashColor: Colors
+                                                                .transparent,
+                                                            highlightColor:
+                                                                Colors
+                                                                    .transparent,
+                                                            child: Container(
+                                                              width:
+                                                                  perButtonWidth,
+                                                              height:
+                                                                  perButtonHeight,
+                                                              alignment:
+                                                                  Alignment
+                                                                      .center,
+                                                              color:
+                                                                  isRecordButtonActive
+                                                                      ? AppColors
+                                                                          .sequencerPrimaryButton
+                                                                      : Colors
+                                                                          .transparent,
+                                                              child:
+                                                                  KeyedSubtree(
+                                                                key: appState
+                                                                    .recordButtonTutorialKey,
+                                                                child: Icon(
+                                                                  Icons.circle,
+                                                                  size: 14,
+                                                                  color:
+                                                                      isRecordButtonActive
+                                                                          ? Colors
+                                                                              .white
+                                                                          : AppColors
+                                                                              .sequencerLightText,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ),
-                                                      KeyedSubtree(
-                                                        key: appState
-                                                            .playButtonTutorialKey,
-                                                        child: Icon(
-                                                          isPlaying
-                                                              ? Icons.stop
-                                                              : Icons
-                                                                  .play_arrow,
-                                                          size: 20,
+                                                      SizedBox(
+                                                        width: perButtonWidth,
+                                                        height:
+                                                            perButtonHeight,
+                                                        child: Material(
+                                                          color: Colors
+                                                              .transparent,
+                                                          child: InkWell(
+                                                            onTap: () {
+                                                              if (!appState
+                                                                  .canInteractWithTutorialTarget(
+                                                                TutorialInteractionTarget
+                                                                    .playButton,
+                                                              )) {
+                                                                return;
+                                                              }
+                                                              if (isPlaying) {
+                                                                playbackState
+                                                                    .stop();
+                                                                appState
+                                                                    .markStopAction();
+                                                              } else {
+                                                                playbackState
+                                                                    .start();
+                                                                appState
+                                                                    .markPlayAction();
+                                                                appState
+                                                                    .markRecordingPlayAction();
+                                                                appState
+                                                                    .markSongRecordingPlayAction();
+                                                              }
+                                                            },
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        2),
+                                                            splashColor: Colors
+                                                                .transparent,
+                                                            highlightColor:
+                                                                Colors
+                                                                    .transparent,
+                                                            child: Container(
+                                                              width:
+                                                                  perButtonWidth,
+                                                              height:
+                                                                  perButtonHeight,
+                                                              alignment:
+                                                                  Alignment
+                                                                      .center,
+                                                              color: isPlaying
+                                                                  ? AppColors
+                                                                      .sequencerPrimaryButton
+                                                                  : Colors
+                                                                      .transparent,
+                                                              child:
+                                                                  KeyedSubtree(
+                                                                key: appState
+                                                                    .playButtonTutorialKey,
+                                                                child: Icon(
+                                                                  isPlaying
+                                                                      ? Icons
+                                                                          .stop
+                                                                      : Icons
+                                                                          .play_arrow,
+                                                                  size: 20,
+                                                                  color:
+                                                                      isPlaying
+                                                                          ? Colors
+                                                                              .white
+                                                                          : AppColors
+                                                                              .sequencerLightText,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -2128,8 +2762,13 @@ class _SequencerTutorialAnchorOverlay extends StatefulWidget {
   final GlobalKey? centerInRectKey;
   final bool drawLayerPointers;
   final int layerPointersCount;
+
   /// Cubic swipe arrow on the sound grid (no straight coach-mark arrow).
   final bool drawCurvedSwipeHint;
+
+  /// Vertical scroll-down hint on [centerInRectKey] (e.g. sound grid).
+  final bool drawVerticalScrollDownHint;
+
   /// Draw default straight arrow from text card to target.
   final bool drawCoachArrow;
 
@@ -2144,6 +2783,7 @@ class _SequencerTutorialAnchorOverlay extends StatefulWidget {
     this.drawLayerPointers = false,
     this.layerPointersCount = 5,
     this.drawCurvedSwipeHint = false,
+    this.drawVerticalScrollDownHint = false,
     this.drawCoachArrow = true,
   });
 
@@ -2157,6 +2797,7 @@ class _SequencerTutorialAnchorOverlayState
     with SingleTickerProviderStateMixin {
   int _layoutTick = 0;
   static const int _maxLayoutWaits = 48;
+
   /// Largest [sampleGridTutorialKey] rect seen while "Sections swipe" is shown;
   /// keeps the text card fixed when the grid is temporarily smaller (e.g. creation sheet).
   Rect? _lockedSwipeTutorialTextRect;
@@ -2193,6 +2834,10 @@ class _SequencerTutorialAnchorOverlayState
     if (oldWidget.drawCurvedSwipeHint && !widget.drawCurvedSwipeHint) {
       _lockedSwipeTutorialTextRect = null;
     }
+    if (oldWidget.drawVerticalScrollDownHint !=
+        widget.drawVerticalScrollDownHint) {
+      _layoutTick = 0;
+    }
   }
 
   @override
@@ -2216,7 +2861,8 @@ class _SequencerTutorialAnchorOverlayState
               _tutorialResolveAnchorRect(widget.anchorKey, viewport);
           final secondaryAnchorRect = widget.secondaryAnchorKey == null
               ? null
-              : _tutorialResolveAnchorRect(widget.secondaryAnchorKey!, viewport);
+              : _tutorialResolveAnchorRect(
+                  widget.secondaryAnchorKey!, viewport);
           final rawCenterRect = _tutorialResolveAnchorRect(
             widget.centerInRectKey ?? appState.sampleGridTutorialKey,
             viewport,
@@ -2234,12 +2880,13 @@ class _SequencerTutorialAnchorOverlayState
               _lockedSwipeTutorialTextRect = rawCenterRect;
             }
           }
-          final textLayoutRect = widget.drawCurvedSwipeHint &&
-                  _lockedSwipeTutorialTextRect != null
-              ? _lockedSwipeTutorialTextRect!
-              : centerRect;
+          final textLayoutRect =
+              widget.drawCurvedSwipeHint && _lockedSwipeTutorialTextRect != null
+                  ? _lockedSwipeTutorialTextRect!
+                  : centerRect;
           final anchorsReady = anchorRect != null &&
-              (widget.secondaryAnchorKey == null || secondaryAnchorRect != null);
+              (widget.secondaryAnchorKey == null ||
+                  secondaryAnchorRect != null);
           if (!anchorsReady) {
             if (_layoutTick < _maxLayoutWaits) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2252,19 +2899,17 @@ class _SequencerTutorialAnchorOverlayState
           final safeTop = MediaQuery.of(context).padding.top + 10;
           final safeBottom = MediaQuery.of(context).padding.bottom;
           final resolvedAnchorRect = anchorRect ?? centerRect;
-          final resolvedSecondaryAnchorRect = anchorsReady
-              ? secondaryAnchorRect
-              : null;
+          final resolvedSecondaryAnchorRect =
+              anchorsReady ? secondaryAnchorRect : null;
           final ti = appState.activeTutorialTextInsets;
           // Percent-based edge insets with safety buffer to prevent edge overflow.
-          final leftInset = max(8.0,
-              (viewport.width * ti.left).floorToDouble());
-          final rightInset = max(8.0,
-              (viewport.width * ti.right).floorToDouble());
-          final topInset = max(0.0,
-              (viewport.height * ti.top).floorToDouble());
-          final bottomInset = max(0.0,
-              (viewport.height * ti.bottom).floorToDouble());
+          final leftInset =
+              max(8.0, (viewport.width * ti.left).floorToDouble());
+          final rightInset =
+              max(8.0, (viewport.width * ti.right).floorToDouble());
+          final topInset = max(0.0, (viewport.height * ti.top).floorToDouble());
+          final bottomInset =
+              max(0.0, (viewport.height * ti.bottom).floorToDouble());
           final spaceBelowGrid = max(
             0.0,
             viewport.height -
@@ -2276,7 +2921,8 @@ class _SequencerTutorialAnchorOverlayState
           );
           final availableForCard =
               max(0.0, viewport.width - leftInset - rightInset);
-          final textWidth = min(272.0, availableForCard * 0.995).floorToDouble();
+          final textWidth =
+              min(272.0, availableForCard * 0.995).floorToDouble();
           final maxCardBodyHeight = max(
             120.0,
             min(
@@ -2290,12 +2936,11 @@ class _SequencerTutorialAnchorOverlayState
           const cardHeightEstimate = 126.0;
           // Step 15 (two samples): tall scrollable card; cap height when using belowGrid
           // or stepControlsGap so the card does not cover edit buttons / stays in the gap.
-          final useStep15SamplesLayout =
-              appState.activeTutorialStep ==
-                      TutorialStep.sequencerSectionTwoSamplesHint &&
-                  (position == _TutorialTextPosition.bottom ||
-                      position == _TutorialTextPosition.belowGrid ||
-                      position == _TutorialTextPosition.stepControlsGap);
+          final useStep15SamplesLayout = appState.activeTutorialStep ==
+                  TutorialStep.sequencerSectionTwoSamplesHint &&
+              (position == _TutorialTextPosition.bottom ||
+                  position == _TutorialTextPosition.belowGrid ||
+                  position == _TutorialTextPosition.stepControlsGap);
           const tutorialCardChromeExcludingBody = 94.0;
           final rawStep15SamplesCardHeight = min(
             viewport.height * 0.92,
@@ -2361,8 +3006,7 @@ class _SequencerTutorialAnchorOverlayState
               break;
             case _TutorialTextPosition.center:
               desiredLeft = textLayoutRect.center.dx - textWidth / 2;
-              desiredTop =
-                  textLayoutRect.center.dy - (layoutCardHeight / 2);
+              desiredTop = textLayoutRect.center.dy - (layoutCardHeight / 2);
               break;
             case _TutorialTextPosition.bottom:
               desiredLeft = textLayoutRect.center.dx - textWidth / 2;
@@ -2410,7 +3054,9 @@ class _SequencerTutorialAnchorOverlayState
                 minAllowedLeft,
                 min(maxL, textLayoutRect.right - textWidth - 8),
               );
-              return desiredLeft.clamp(minAllowedLeft, maxAllowedLeft).toDouble();
+              return desiredLeft
+                  .clamp(minAllowedLeft, maxAllowedLeft)
+                  .toDouble();
             }
             return desiredLeft.clamp(minL, maxL).toDouble();
           })();
@@ -2450,26 +3096,27 @@ class _SequencerTutorialAnchorOverlayState
               textLeft + (textWidth / 2), textTop + (layoutCardHeight / 2));
           final swipeHintTopUpper =
               max(resolvedAnchorRect.top, resolvedAnchorRect.bottom - 12.0);
-          final swipeHintTop =
-              (textTop + layoutCardHeight + 8.0)
-                  .clamp(resolvedAnchorRect.top, swipeHintTopUpper)
-                  .toDouble();
-          final swipeHintRect =
-              Rect.fromLTRB(resolvedAnchorRect.left, swipeHintTop,
-                  resolvedAnchorRect.right, resolvedAnchorRect.bottom);
+          final swipeHintTop = (textTop + layoutCardHeight + 8.0)
+              .clamp(resolvedAnchorRect.top, swipeHintTopUpper)
+              .toDouble();
+          final swipeHintRect = Rect.fromLTRB(
+              resolvedAnchorRect.left,
+              swipeHintTop,
+              resolvedAnchorRect.right,
+              resolvedAnchorRect.bottom);
           final arrowEnd = _tutorialResolveArrowTarget(
             from: textCenter,
             targetRect: resolvedAnchorRect,
             edgePadding: 4,
           );
-          final spotlightRects = appState.activeTutorialStep ==
-                  TutorialStep.sequencerFirstCellHint
-              ? <Rect>[centerRect]
-              : <Rect>[
-                  resolvedAnchorRect,
-                  if (resolvedSecondaryAnchorRect != null)
-                    resolvedSecondaryAnchorRect,
-                ];
+          final spotlightRects =
+              appState.activeTutorialStep == TutorialStep.sequencerFirstCellHint
+                  ? <Rect>[centerRect]
+                  : <Rect>[
+                      resolvedAnchorRect,
+                      if (resolvedSecondaryAnchorRect != null)
+                        resolvedSecondaryAnchorRect,
+                    ];
           final pulseRects = <Rect>[
             if (_shouldPulseTargetRect(resolvedAnchorRect, viewport))
               resolvedAnchorRect,
@@ -2501,6 +3148,19 @@ class _SequencerTutorialAnchorOverlayState
                   ),
                 ),
               ),
+              if (widget.drawVerticalScrollDownHint &&
+                  rawCenterRect != null &&
+                  rawCenterRect.width >= 8 &&
+                  rawCenterRect.height >= 8)
+                IgnorePointer(
+                  child: CustomPaint(
+                    size: viewport,
+                    painter: _VerticalScrollDownHintPainter(
+                      targetRect: rawCenterRect,
+                      color: AppColors.tutorialArrowColor,
+                    ),
+                  ),
+                ),
               if (widget.drawCoachArrow &&
                   !widget.drawLayerPointers &&
                   !widget.drawCurvedSwipeHint &&
@@ -2730,8 +3390,10 @@ enum _TutorialTextPosition {
   top,
   right,
   bottom,
+
   /// Card top sits at [centerInRectKey].bottom + padding (under sound grid).
   belowGrid,
+
   /// Card in the gap between +/- row and bottom of grid (above edit buttons).
   /// Uses [AppState.gridStepRowControlsTutorialKey] and [centerInRectKey].
   stepControlsGap,
@@ -2958,9 +3620,8 @@ class _CurvedSwipeHintPainter extends CustomPainter {
 
     final tangent = (p3 - p2) * 3.0;
     final len = tangent.distance;
-    final dir = len > 0.001
-        ? tangent / len
-        : Offset(leftToRight ? 1.0 : -1.0, 0.0);
+    final dir =
+        len > 0.001 ? tangent / len : Offset(leftToRight ? 1.0 : -1.0, 0.0);
     final angle = dir.direction;
     const arrowLength = 11.0;
     const arrowSpread = 0.55;
@@ -2983,6 +3644,57 @@ class _CurvedSwipeHintPainter extends CustomPainter {
     return oldDelegate.targetRect != targetRect ||
         oldDelegate.color != color ||
         oldDelegate.leftToRight != leftToRight;
+  }
+}
+
+/// Straight vertical scroll-down hint on the sound grid (scroll to reach step +/- row).
+class _VerticalScrollDownHintPainter extends CustomPainter {
+  final Rect targetRect;
+  final Color color;
+
+  _VerticalScrollDownHintPainter({
+    required this.targetRect,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (targetRect.width < 8 || targetRect.height < 8) return;
+
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round;
+
+    final h = targetRect.height;
+    final midX = targetRect.center.dx;
+
+    final pTop = Offset(midX, targetRect.top + h * 0.10);
+    final pBottom = Offset(midX, targetRect.bottom - h * 0.14);
+    canvas.drawLine(pTop, pBottom, linePaint);
+
+    // Arrowhead pointing down (line direction +y).
+    const arrowLength = 11.0;
+    const arrowSpread = 0.55;
+    const angle = pi / 2;
+    final arrowPath = Path()
+      ..moveTo(pBottom.dx, pBottom.dy)
+      ..lineTo(
+        pBottom.dx - arrowLength * cos(angle - arrowSpread),
+        pBottom.dy - arrowLength * sin(angle - arrowSpread),
+      )
+      ..moveTo(pBottom.dx, pBottom.dy)
+      ..lineTo(
+        pBottom.dx - arrowLength * cos(angle + arrowSpread),
+        pBottom.dy - arrowLength * sin(angle + arrowSpread),
+      );
+    canvas.drawPath(arrowPath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VerticalScrollDownHintPainter oldDelegate) {
+    return oldDelegate.targetRect != targetRect || oldDelegate.color != color;
   }
 }
 
@@ -3037,6 +3749,79 @@ class _LayerPointersPainter extends CustomPainter {
     return oldDelegate.targetRect != targetRect ||
         oldDelegate.color != color ||
         oldDelegate.count != count;
+  }
+}
+
+/// Tap feedback: [InkWell] + short opacity blink (matches JUMP / section chain).
+/// No persistent “selected” fill — use for controls that toggle a multitask panel.
+class _SequencerTapBlinkChild extends StatefulWidget {
+  final VoidCallback? onTap;
+  final BorderRadius borderRadius;
+  final Widget child;
+
+  const _SequencerTapBlinkChild({
+    required this.onTap,
+    required this.borderRadius,
+    required this.child,
+  });
+
+  @override
+  State<_SequencerTapBlinkChild> createState() =>
+      _SequencerTapBlinkChildState();
+}
+
+class _SequencerTapBlinkChildState extends State<_SequencerTapBlinkChild>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tapBlinkController;
+  late final Animation<double> _tapBlinkOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _tapBlinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+    _tapBlinkOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.38), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.38, end: 1.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.48), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.48, end: 1.0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _tapBlinkController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _tapBlinkController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: widget.onTap == null
+            ? null
+            : () {
+                widget.onTap!();
+                _tapBlinkController.forward(from: 0);
+              },
+        borderRadius: widget.borderRadius,
+        child: AnimatedBuilder(
+          animation: _tapBlinkController,
+          builder: (context, __) {
+            return Opacity(
+              opacity: _tapBlinkOpacity.value,
+              child: widget.child,
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 

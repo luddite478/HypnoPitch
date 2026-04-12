@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../state/sequencer/table.dart';
 import '../../../state/sequencer/playback.dart';
@@ -12,11 +15,13 @@ import '../../../utils/app_colors.dart';
 import 'generic_slider.dart';
 import 'offset_controls_widget.dart';
 import 'sequencer_layer_label.dart';
+import 'wheel_select_widget.dart';
 
 /// Which sub-panel fills the bottom region of [LayerSettingsWidget].
 enum LayerSettingsBottomPanel {
   /// Per-column mute/solo (and mic strip when recording).
   muteSoloColumns,
+  volume,
   eq,
   reverb,
 }
@@ -31,10 +36,21 @@ class LayerSettingsWidget extends StatefulWidget {
 class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     with SingleTickerProviderStateMixin {
   String _selectedMicControl = 'VOL';
+  int _reverbSection = -1;
+  int _reverbLayer = -1;
+  double _reverbSend01 = 0.0;
+
+  int _volumeSection = -1;
+  int _volumeLayer = -1;
+  double _layerVolume01 = 1.0;
+
+  int _layerEqBand = 0;
 
   LayerSettingsBottomPanel _bottomPanel = LayerSettingsBottomPanel.muteSoloColumns;
 
-  /// Scrollable top chrome: layer badge, mute/solo group, EQ/REVERB stubs, mic row.
+  /// Scrollable top chrome: layer badge, mute/solo group, EQ/RVB, mic row.
+  /// Matches [SoundSettingsWidget] header row: `_headerButtonsHeight` (0.45).
+  static const double _soundSettingsHeaderRowFraction = 0.45;
   static const double _topChromeHeightFraction = 0.40;
   static const double _contentHeightPercent = 0.54;
   static const double _spacingHeight = 0.02;
@@ -107,8 +123,11 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
             final contentHeight = innerHeightAdj * _contentHeightPercent;
             final labelFontSize =
                 (innerHeightAdj * 0.065).clamp(8.0, 11.0);
-            final layerBadgeFontSize =
-                (innerHeightAdj * 0.11).clamp(13.0, 20.0);
+            final masterHeaderH =
+                innerHeightAdj * _soundSettingsHeaderRowFraction;
+            final masterHeaderButtonFontSize =
+                (masterHeaderH * 0.25).clamp(8.0, 11.0);
+            final masterHeaderButtonHeight = masterHeaderH * 0.7;
             int safeFlex(double fraction) {
               final flex = (fraction * 100).round();
               return flex > 0 ? flex : 1;
@@ -146,11 +165,12 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
                             innerHeightAdj * _topChromeHeightFraction;
                         final buttonH = (chromeH * 0.22).clamp(22.0, 34.0);
                         return _buildHorizontalLayerMenuStrip(
-                          layerBadgeFontSize: layerBadgeFontSize,
                           layerBadgeBlinkOpacity: _layerBadgeBlinkOpacity,
                           viewportWidth: topConstraints.maxWidth,
                           buttonHeight: buttonH,
                           labelFontSize: labelFontSize,
+                          masterHeaderButtonFontSize: masterHeaderButtonFontSize,
+                          masterHeaderButtonHeight: masterHeaderButtonHeight,
                           layerIndex: layerIndex,
                           tableState: tableState,
                           micState: micState,
@@ -202,25 +222,27 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     );
   }
 
-  /// Layer badge + mute/solo + EQ/REVERB + mic controls in one horizontal strip.
+  /// Layer badge + mute/solo + EQ/RVB + mic controls in one horizontal strip.
   /// Scroll prevents horizontal overflow on narrow panels (see flutter_overflow_prevention_guide).
   Widget _buildHorizontalLayerMenuStrip({
-    required double layerBadgeFontSize,
     required Animation<double> layerBadgeBlinkOpacity,
     required double viewportWidth,
     required double buttonHeight,
     required double labelFontSize,
+    required double masterHeaderButtonFontSize,
+    required double masterHeaderButtonHeight,
     required int layerIndex,
     required TableState tableState,
     required MicrophoneState micState,
     required LayerSettingsBottomPanel bottomPanel,
     required void Function(LayerSettingsBottomPanel panel) onSelectBottomPanel,
   }) {
-    const double gap = 8.0;
     final safeW = viewportWidth.isFinite ? viewportWidth : 320.0;
-    // Round down; leave headroom vs viewport (guide: buffer / floor).
-    final badgeMaxOuterW =
-        (safeW * 0.34).floorToDouble().clamp(48.0, 100.0);
+    // Same cap as [SoundSettingsWidget._buildContextLabelTile] (buffer / floor).
+    final contextLabelMaxWidth = math.max(
+      36.0,
+      (safeW * 0.179).floorToDouble(),
+    );
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -231,44 +253,51 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildLayerTitleBadge(
-              layerBadgeFontSize,
-              layerBadgeBlinkOpacity,
-              badgeMaxOuterW,
-              layerIndex,
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: _buildLayerTitleBadge(
+                letterFontSize: masterHeaderButtonFontSize,
+                tileHeight: masterHeaderButtonHeight,
+                layerBadgeBlinkOpacity: layerBadgeBlinkOpacity,
+                maxBadgeWidth: contextLabelMaxWidth,
+                layerIndex: layerIndex,
+              ),
             ),
-            const SizedBox(width: gap),
-            _buildLayerMuteSoloGroup(
-              labelFontSize: labelFontSize,
-              buttonHeight: buttonHeight,
-              layerIndex: layerIndex,
-              tableState: tableState,
-              isBottomSelected:
+            _buildMasterStyleHeaderButton(
+              label: 'M/S',
+              height: masterHeaderButtonHeight,
+              fontSize: masterHeaderButtonFontSize,
+              selected:
                   bottomPanel == LayerSettingsBottomPanel.muteSoloColumns,
-              onSelectMuteSoloPanel: () => onSelectBottomPanel(
-                    LayerSettingsBottomPanel.muteSoloColumns,
-                  ),
+              onTap: () =>
+                  onSelectBottomPanel(LayerSettingsBottomPanel.muteSoloColumns),
+              fitMultilineLabel: true,
             ),
-            const SizedBox(width: gap),
-            _buildBottomPanelChip(
-              title: 'EQ',
-              labelFontSize: labelFontSize,
+            _buildMasterStyleHeaderButton(
+              label: 'VOL',
+              height: masterHeaderButtonHeight,
+              fontSize: masterHeaderButtonFontSize,
+              selected: bottomPanel == LayerSettingsBottomPanel.volume,
+              onTap: () =>
+                  onSelectBottomPanel(LayerSettingsBottomPanel.volume),
+            ),
+            _buildMasterStyleHeaderButton(
+              label: 'EQ',
+              height: masterHeaderButtonHeight,
+              fontSize: masterHeaderButtonFontSize,
               selected: bottomPanel == LayerSettingsBottomPanel.eq,
-              enabled: true,
               onTap: () =>
                   onSelectBottomPanel(LayerSettingsBottomPanel.eq),
             ),
-            const SizedBox(width: gap),
-            _buildBottomPanelChip(
-              title: 'REVERB',
-              labelFontSize: labelFontSize,
+            _buildMasterStyleHeaderButton(
+              label: 'RVB',
+              height: masterHeaderButtonHeight,
+              fontSize: masterHeaderButtonFontSize,
               selected: bottomPanel == LayerSettingsBottomPanel.reverb,
-              enabled: true,
               onTap: () =>
                   onSelectBottomPanel(LayerSettingsBottomPanel.reverb),
             ),
             if (enableMicrophoneIntegration) ...[
-              const SizedBox(width: gap),
               ..._buildMicHeaderWidgets(
                 buttonHeight: buttonHeight,
                 labelFontSize: labelFontSize,
@@ -282,25 +311,25 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     );
   }
 
-  /// Layer letter badge; fixed max width from parent [maxBadgeWidth] (floored upstream).
-  Widget _buildLayerTitleBadge(
-    double layerBadgeFontSize,
-    Animation<double> layerBadgeBlinkOpacity,
-    double maxBadgeWidth,
-    int layerIndex,
-  ) {
-    final badgeHeight = (layerBadgeFontSize * 1.55).clamp(28.0, 40.0);
-
+  /// Layer letter badge — same tile height and font scale as [SoundSettingsWidget]
+  /// header row (`headerHeight * 0.7`, `headerHeight * 0.25` clamped).
+  Widget _buildLayerTitleBadge({
+    required double letterFontSize,
+    required double tileHeight,
+    required Animation<double> layerBadgeBlinkOpacity,
+    required double maxBadgeWidth,
+    required int layerIndex,
+  }) {
     return FadeTransition(
       opacity: layerBadgeBlinkOpacity,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          minWidth: 40,
+          minWidth: 36,
           maxWidth: maxBadgeWidth,
-          maxHeight: badgeHeight,
+          maxHeight: tileHeight,
         ),
         child: SizedBox(
-          height: badgeHeight,
+          height: tileHeight,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: AppColors.sequencerSurfaceBase,
@@ -311,8 +340,9 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
               ),
             ),
             child: Padding(
+              // Slightly tighter than master context label (8,4) in sound_settings.
               padding:
-                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
               child: Center(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -324,7 +354,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: AppColors.sequencerLightText,
-                      fontSize: layerBadgeFontSize,
+                      fontSize: letterFontSize,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -337,184 +367,72 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     );
   }
 
-  /// Bordered group: tappable [mute/solo] label selects column M/S bottom panel; [M] [S] are layer controls.
-  Widget _buildLayerMuteSoloGroup({
-    required double labelFontSize,
-    required double buttonHeight,
-    required int layerIndex,
-    required TableState tableState,
-    required bool isBottomSelected,
-    required VoidCallback onSelectMuteSoloPanel,
-  }) {
-    final labelStyle = TextStyle(
-      color: AppColors.sequencerLightText.withOpacity(0.9),
-      fontSize: (labelFontSize * 0.95).clamp(7.5, 10.5),
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.35,
-      height: 1.05,
-    );
-    const labelButtonGap = 8.0;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.sequencerSurfaceRaised,
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(
-          color: AppColors.sequencerBorder,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.sequencerShadow,
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-          BoxShadow(
-            color: AppColors.sequencerSurfaceRaised,
-            blurRadius: 1,
-            offset: const Offset(0, -0.5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onSelectMuteSoloPanel,
-              borderRadius: BorderRadius.circular(2),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 52, maxWidth: 72),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
-                    border: Border.all(
-                      color: isBottomSelected
-                          ? AppColors.sequencerAccent
-                          : AppColors.sequencerBorder.withOpacity(0.5),
-                      width: isBottomSelected ? 1.5 : 0.5,
-                    ),
-                    color: isBottomSelected
-                        ? AppColors.sequencerAccent.withOpacity(0.12)
-                        : null,
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.center,
-                    child: Text(
-                      'mute/\nsolo',
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      style: labelStyle,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: labelButtonGap),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 36,
-                height: buttonHeight,
-                child: _buildSettingsButton(
-                  'M',
-                  tableState.isLayerMuted(layerIndex),
-                  buttonHeight,
-                  labelFontSize,
-                  () {
-                    final nextMuted = !tableState.isLayerMuted(layerIndex);
-                    tableState.setLayerMuted(layerIndex, nextMuted);
-                    final appState = context.read<AppState>();
-                    if (appState.activeTutorialStep ==
-                        TutorialStep.sequencerLayersHint) {
-                      appState.markLayersMuteToggleAction(
-                        isMutedAfterToggle: nextMuted,
-                      );
-                    }
-                  },
-                  key: context.watch<AppState>().activeTutorialStep ==
-                              TutorialStep.sequencerLayersHint &&
-                          context.watch<AppState>().isLayersTabDone &&
-                          !context.watch<AppState>().isLayersUnmuteDone
-                      ? context.read<AppState>().layerMuteButtonTutorialKey
-                      : null,
-                  tutorialTarget: TutorialInteractionTarget.layerMuteButton,
-                ),
-              ),
-              const SizedBox(width: 6),
-              SizedBox(
-                width: 36,
-                height: buttonHeight,
-                child: _buildSettingsButton(
-                  'S',
-                  tableState.isLayerSoloed(layerIndex),
-                  buttonHeight,
-                  labelFontSize,
-                  () => tableState.setLayerSoloed(
-                        layerIndex,
-                        !tableState.isLayerSoloed(layerIndex),
-                      ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomPanelChip({
-    required String title,
-    required double labelFontSize,
+  /// Same look as [SoundSettingsWidget] `_buildSettingsButton` (VOL / RVB / EQ row).
+  /// [fitMultilineLabel] scales two-line labels (e.g. mute/solo) to the button height.
+  Widget _buildMasterStyleHeaderButton({
+    required String label,
+    required double height,
+    required double fontSize,
     required bool selected,
-    required bool enabled,
     required VoidCallback onTap,
+    bool fitMultilineLabel = false,
   }) {
     final textStyle = TextStyle(
-      color: enabled
-          ? AppColors.sequencerText
-          : AppColors.sequencerText.withOpacity(0.35),
-      fontSize: labelFontSize,
+      color: selected
+          ? AppColors.sequencerPageBackground
+          : AppColors.sequencerText,
+      fontSize: fontSize,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.4,
+      letterSpacing: 0.5,
+      height: fitMultilineLabel ? 1.05 : null,
     );
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(2),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 64, maxWidth: 120),
+    final textWidget = Text(
+      label,
+      textAlign: TextAlign.center,
+      maxLines: fitMultilineLabel ? 2 : 1,
+      style: textStyle,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: SizedBox(
+        width: 80,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            height: height,
             decoration: BoxDecoration(
               color: selected
-                  ? AppColors.sequencerAccent.withOpacity(0.14)
-                  : AppColors.sequencerSurfacePressed.withOpacity(0.65),
+                  ? AppColors.sequencerAccent
+                  : AppColors.sequencerSurfaceRaised,
               borderRadius: BorderRadius.circular(2),
               border: Border.all(
-                color: selected
-                    ? AppColors.sequencerAccent
-                    : AppColors.sequencerBorder.withOpacity(0.75),
-                width: selected ? 1.25 : 0.5,
+                color: AppColors.sequencerBorder,
+                width: 0.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.sequencerShadow,
+                  blurRadius: 1.5,
+                  offset: const Offset(0, 1),
+                ),
+                BoxShadow(
+                  color: AppColors.sequencerSurfaceRaised,
+                  blurRadius: 0.5,
+                  offset: const Offset(0, -0.5),
+                ),
+              ],
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: Center(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: textStyle,
-              ),
+              child: fitMultilineLabel
+                  ? FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: textWidget,
+                    )
+                  : textWidget,
             ),
           ),
         ),
@@ -758,16 +676,24 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     required LayerSettingsBottomPanel bottomPanel,
   }) {
     switch (bottomPanel) {
-      case LayerSettingsBottomPanel.eq:
-        return _buildBottomPlaceholderPanel(
-          title: 'EQ',
+      case LayerSettingsBottomPanel.volume:
+        return _buildLayerVolumePanel(
+          tableState: tableState,
+          playbackState: playbackState,
           height: height,
           padding: padding,
           fontSize: fontSize,
         );
+      case LayerSettingsBottomPanel.eq:
+        return _buildLayerEqPanel(
+          tableState: tableState,
+          playbackState: playbackState,
+          padding: padding,
+        );
       case LayerSettingsBottomPanel.reverb:
-        return _buildBottomPlaceholderPanel(
-          title: 'REVERB',
+        return _buildLayerReverbPanel(
+          tableState: tableState,
+          playbackState: playbackState,
           height: height,
           padding: padding,
           fontSize: fontSize,
@@ -786,13 +712,217 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     }
   }
 
-  /// Stub until EQ/reverb editors are wired (same pattern as column M/S selection).
-  Widget _buildBottomPlaceholderPanel({
-    required String title,
+  static const List<String> _kLayerEqBandLabels = ['LOW', 'MID', 'HIGH'];
+
+  String _layerEqBandLabel(int band) =>
+      _kLayerEqBandLabels[band.clamp(0, 2)];
+
+  String _formatLayerEqDbWheel(int v) {
+    if (v == 0) return '0';
+    return v > 0 ? '+$v' : '$v';
+  }
+
+  void _cycleLayerEqBand(int delta) {
+    setState(() {
+      _layerEqBand = (_layerEqBand + delta + 3) % 3;
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  Widget _buildLayerEqArrowButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required double size,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: AppColors.sequencerSurfaceRaised,
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.sequencerShadow,
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            color: AppColors.sequencerAccent,
+            size: size * 0.70,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayerEqPanel({
+    required TableState tableState,
+    required PlaybackState playbackState,
+    required double padding,
+  }) {
+    final int section = tableState.uiSelectedSection;
+    final int layer = tableState.uiSelectedLayer;
+    final int db = playbackState.getSectionLayerEqBandDb(section, layer, _layerEqBand);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: padding * 0.5,
+        vertical: padding * 0.3,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.sequencerSurfaceRaised,
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(
+          color: AppColors.sequencerBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 1,
+            offset: const Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxH = constraints.maxHeight;
+          final buttonSize = (maxH * 0.72).clamp(22.0, 52.0);
+          final labelBoxHeight = buttonSize;
+          final spacing = (maxH * 0.12).clamp(2.0, 8.0);
+          final gapBesideDivider = (padding * 0.35).clamp(4.0, 10.0);
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: EdgeInsets.only(right: gapBesideDivider),
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: padding * 0.1),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildLayerEqArrowButton(
+                            icon: Icons.chevron_left,
+                            size: buttonSize,
+                            onTap: () => _cycleLayerEqBand(-1),
+                          ),
+                          SizedBox(width: spacing),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Container(
+                                height: labelBoxHeight,
+                                constraints: const BoxConstraints(minWidth: 0),
+                                decoration: BoxDecoration(
+                                  color: AppColors.sequencerSurfacePressed,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                alignment: Alignment.center,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0),
+                                    child: Text(
+                                      _layerEqBandLabel(_layerEqBand),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: AppColors.sequencerAccent,
+                                        fontSize: labelBoxHeight * 0.42,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: spacing),
+                          _buildLayerEqArrowButton(
+                            icon: Icons.chevron_right,
+                            size: buttonSize,
+                            onTap: () => _cycleLayerEqBand(1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                color: AppColors.sequencerBorder,
+              ),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: EdgeInsets.only(left: gapBesideDivider),
+                  child: ClipRect(
+                    clipBehavior: Clip.hardEdge,
+                    child: WheelSelectWidget(
+                      key: ValueKey<int>(
+                          section * 1000 + layer * 10 + _layerEqBand),
+                      value: db,
+                      minValue: PlaybackState.masterEqMinDb,
+                      maxValue: PlaybackState.masterEqMaxDb,
+                      valueFormatter: _formatLayerEqDbWheel,
+                      onValueChanged: (v) {
+                        playbackState.setSectionLayerEqBandDb(
+                          section: section,
+                          layer: layer,
+                          band: _layerEqBand,
+                          db: v,
+                        );
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLayerVolumePanel({
+    required TableState tableState,
+    required PlaybackState playbackState,
     required double height,
     required double padding,
     required double fontSize,
   }) {
+    final int section = tableState.uiSelectedSection;
+    final int layer = tableState.uiSelectedLayer;
+
+    if (_volumeSection != section || _volumeLayer != layer) {
+      _volumeSection = section;
+      _volumeLayer = layer;
+      _layerVolume01 = playbackState
+          .getSectionLayerVolume(section, layer)
+          .clamp(0.0, 1.0);
+    }
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(padding * 0.5),
@@ -800,19 +930,101 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
         color: AppColors.sequencerSurfaceRaised,
         borderRadius: BorderRadius.circular(2),
         border: Border.all(color: AppColors.sequencerBorder, width: 1),
-      ),
-      child: Center(
-        child: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: AppColors.sequencerLightText.withOpacity(0.55),
-            fontSize: (fontSize * 1.15).clamp(10.0, 14.0),
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
-        ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 1,
+            offset: const Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: GenericSlider(
+        value: _layerVolume01,
+        min: 0.0,
+        max: 1.0,
+        divisions: 100,
+        type: SliderType.volume,
+        onChanged: (v) {
+          final next = v.clamp(0.0, 1.0);
+          setState(() {
+            _layerVolume01 = next;
+          });
+          playbackState.setSectionLayerVolume(
+            section: section,
+            layer: layer,
+            volume01: next,
+          );
+        },
+        height: height,
+        sliderOverlay: context.read<SliderOverlayState>(),
+        contextLabel: 'L${layer + 1}',
+      ),
+    );
+  }
+
+  Widget _buildLayerReverbPanel({
+    required TableState tableState,
+    required PlaybackState playbackState,
+    required double height,
+    required double padding,
+    required double fontSize,
+  }) {
+    final int section = tableState.uiSelectedSection;
+    final int layer = tableState.uiSelectedLayer;
+
+    if (_reverbSection != section || _reverbLayer != layer) {
+      _reverbSection = section;
+      _reverbLayer = layer;
+      _reverbSend01 = playbackState
+          .getSectionLayerReverbSend(section, layer)
+          .clamp(0.0, 1.0);
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(padding * 0.5),
+      decoration: BoxDecoration(
+        color: AppColors.sequencerSurfaceRaised,
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: AppColors.sequencerBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 1,
+            offset: const Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: GenericSlider(
+        value: _reverbSend01,
+        min: 0.0,
+        max: 1.0,
+        divisions: 100,
+        type: SliderType.reverb,
+        onChanged: (v) {
+          final next = v.clamp(0.0, 1.0);
+          setState(() {
+            _reverbSend01 = next;
+          });
+          playbackState.setSectionLayerReverb(
+            section: section,
+            layer: layer,
+            send01: next,
+          );
+        },
+        height: height,
+        sliderOverlay: context.read<SliderOverlayState>(),
+        contextLabel: 'L${layer + 1}',
       ),
     );
   }
@@ -1042,11 +1254,10 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
       return const SizedBox.shrink();
     }
 
-    return Container(
-      child: LayoutBuilder(
+    return LayoutBuilder(
         builder: (context, constraints) {
-          final px = (constraints.maxWidth * 0.015).clamp(3.0, 8.0);
-          final py = (constraints.maxHeight * 0.08).clamp(1.0, 6.0);
+          final px = (constraints.maxWidth * 0.008).clamp(2.0, 5.0);
+          final py = (constraints.maxHeight * 0.04).clamp(1.0, 4.0);
           return Container(
             padding: EdgeInsets.symmetric(horizontal: px, vertical: py),
             decoration: BoxDecoration(
@@ -1075,127 +1286,109 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
                 tableState.columnMuteSoloNotifier,
               ]),
               builder: (context, _) {
-                final gap = (constraints.maxWidth * 0.01).clamp(3.0, 8.0);
+                final gap = (constraints.maxWidth * 0.012).clamp(4.0, 8.0);
+                final h = constraints.maxHeight;
+                // Wide tiles + horizontal scroll keeps M/S large and easy to tap.
+                const tileMinWidth = 118.0;
                 final layerMuted = tableState.isLayerMuted(layerIndex);
                 final layerSoloed = tableState.isLayerSoloed(layerIndex);
-                return Row(
-                  children: List.generate(visibleColumns, (colInLayer) {
-                    final isColMuted = tableState.isLayerColumnMuted(layerIndex, colInLayer);
-                    final isColSoloed = tableState.isLayerColumnSoloed(layerIndex, colInLayer);
-                    final muteButtonActive = layerMuted || isColMuted;
-                    // Layer mute suppresses column solo UI; solo cannot be on while layer is muted.
-                    final soloVisual =
-                        !layerMuted && (layerSoloed || isColSoloed);
-                    final isLast = colInLayer == visibleColumns - 1;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: isLast ? 0 : gap),
-                        child: _buildColumnMuteSoloTile(
-                          layerIndex: layerIndex,
-                          colInLayer: colInLayer,
-                          isColMuted: isColMuted,
-                          isLayerMuted: layerMuted,
-                          muteButtonActive: muteButtonActive,
-                          soloVisual: soloVisual,
-                          fontSize: fontSize,
-                          tableState: tableState,
+                final appState = context.watch<AppState>();
+                final layerMuteTutorialKey =
+                    appState.activeTutorialStep ==
+                                TutorialStep.sequencerLayersHint &&
+                            appState.isLayersTabDone &&
+                            !appState.isLayersUnmuteDone
+                        ? context.read<AppState>().layerMuteButtonTutorialKey
+                        : null;
+
+                Widget sizedTile(Widget child) => SizedBox(
+                      width: tileMinWidth,
+                      height: h,
+                      child: child,
+                    );
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.hardEdge,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(right: gap),
+                        child: sizedTile(
+                          _buildColumnMuteSoloTile(
+                            layerIndex: layerIndex,
+                            isAllTile: true,
+                            colInLayer: null,
+                            isColMuted: false,
+                            isLayerMuted: layerMuted,
+                            muteButtonActive: layerMuted,
+                            soloVisual: !layerMuted && layerSoloed,
+                            fontSize: fontSize,
+                            tableState: tableState,
+                            layerMuteTutorialKey: layerMuteTutorialKey,
+                          ),
                         ),
                       ),
-                    );
-                  }),
+                      ...List.generate(visibleColumns, (colInLayer) {
+                        final isColMuted = tableState.isLayerColumnMuted(
+                            layerIndex, colInLayer);
+                        final isColSoloed = tableState.isLayerColumnSoloed(
+                            layerIndex, colInLayer);
+                        final muteButtonActive = layerMuted || isColMuted;
+                        final soloVisual =
+                            !layerMuted && (layerSoloed || isColSoloed);
+                        final isLast = colInLayer == visibleColumns - 1;
+                        return Padding(
+                          padding: EdgeInsets.only(right: isLast ? 0 : gap),
+                          child: sizedTile(
+                            _buildColumnMuteSoloTile(
+                              layerIndex: layerIndex,
+                              isAllTile: false,
+                              colInLayer: colInLayer,
+                              isColMuted: isColMuted,
+                              isLayerMuted: layerMuted,
+                              muteButtonActive: muteButtonActive,
+                              soloVisual: soloVisual,
+                              fontSize: fontSize,
+                              tableState: tableState,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
                 );
               },
             ),
           );
         },
-      ),
     );
   }
 
   Widget _buildColumnMuteSoloTile({
     required int layerIndex,
-    required int colInLayer,
+    required bool isAllTile,
+    required int? colInLayer,
     required bool isColMuted,
     required bool isLayerMuted,
     required bool muteButtonActive,
     required bool soloVisual,
     required double fontSize,
     required TableState tableState,
+    Key? layerMuteTutorialKey,
   }) {
-    final mutedVisual = isLayerMuted || isColMuted;
+    final mutedVisual =
+        isAllTile ? isLayerMuted : (isLayerMuted || isColMuted);
+    final labelText =
+        isAllTile ? 'ALL' : 'COL${colInLayer! + 1}';
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.sequencerSurfaceBase,
         borderRadius: BorderRadius.circular(2),
         border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tileHeight = constraints.maxHeight;
-          final showLabel = tileHeight >= 34;
-          final gap = showLabel ? (tileHeight * 0.08).clamp(1.0, 4.0) : 0.0;
-          final buttonHeight = showLabel
-              ? (tileHeight * 0.50).clamp(12.0, 28.0)
-              : (tileHeight * 0.78).clamp(10.0, 24.0);
-          final buttonFontSize = (buttonHeight * 0.38).clamp(7.0, 11.0);
-          final labelFontSize = (fontSize * 0.9).clamp(7.0, 11.0);
-
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (showLabel)
-                Text(
-                  'COL${colInLayer + 1}',
-                  maxLines: 1,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
-                  style: TextStyle(
-                    color: mutedVisual
-                        ? AppColors.sequencerLightText.withOpacity(0.65)
-                        : AppColors.sequencerLightText,
-                    fontSize: labelFontSize,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.35,
-                  ),
-                ),
-              if (showLabel) SizedBox(height: gap),
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Expanded(
-                    child: _buildSettingsButton(
-                      'M',
-                      muteButtonActive,
-                      buttonHeight,
-                      buttonFontSize,
-                      () => tableState.setLayerColumnMuted(
-                            layerIndex,
-                            colInLayer,
-                            !muteButtonActive,
-                          ),
-                    ),
-                  ),
-                  SizedBox(width: (constraints.maxWidth * 0.05).clamp(2.0, 4.0)),
-                  Expanded(
-                    child: _buildSettingsButton(
-                      'S',
-                      soloVisual,
-                      buttonHeight,
-                      buttonFontSize,
-                      () => tableState.setLayerColumnSoloed(
-                            layerIndex,
-                            colInLayer,
-                            !soloVisual,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
       ),
       foregroundDecoration: mutedVisual
           ? BoxDecoration(
@@ -1203,6 +1396,113 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
               borderRadius: BorderRadius.circular(2),
             )
           : null,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final labelFontSizeTile =
+              (fontSize * 0.95).clamp(8.0, 11.0);
+          const gapAfterLabel = 5.0;
+          const gapBetweenMs = 6.0;
+
+          void onMuteTap() {
+            if (isAllTile) {
+              final nextMuted = !tableState.isLayerMuted(layerIndex);
+              tableState.setLayerMuted(layerIndex, nextMuted);
+              final appState = context.read<AppState>();
+              if (appState.activeTutorialStep ==
+                  TutorialStep.sequencerLayersHint) {
+                appState.markLayersMuteToggleAction(
+                  isMutedAfterToggle: nextMuted,
+                );
+              }
+            } else {
+              tableState.setLayerColumnMuted(
+                layerIndex,
+                colInLayer!,
+                !muteButtonActive,
+              );
+            }
+          }
+
+          void onSoloTap() {
+            if (isAllTile) {
+              tableState.setLayerSoloed(
+                layerIndex,
+                !tableState.isLayerSoloed(layerIndex),
+              );
+            } else {
+              tableState.setLayerColumnSoloed(
+                layerIndex,
+                colInLayer!,
+                !soloVisual,
+              );
+            }
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                labelText,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: TextStyle(
+                  color: mutedVisual
+                      ? AppColors.sequencerLightText.withOpacity(0.65)
+                      : AppColors.sequencerLightText,
+                  fontSize: labelFontSizeTile,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: gapAfterLabel),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, b) {
+                          final bh = b.maxHeight;
+                          final bfs = (bh * 0.42).clamp(12.0, 18.0);
+                          return _buildSettingsButton(
+                            'M',
+                            muteButtonActive,
+                            bh,
+                            bfs,
+                            onMuteTap,
+                            key: layerMuteTutorialKey,
+                            tutorialTarget: isAllTile
+                                ? TutorialInteractionTarget.layerMuteButton
+                                : null,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: gapBetweenMs),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, b) {
+                          final bh = b.maxHeight;
+                          final bfs = (bh * 0.42).clamp(12.0, 18.0);
+                          return _buildSettingsButton(
+                            'S',
+                            soloVisual,
+                            bh,
+                            bfs,
+                            onSoloTap,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 

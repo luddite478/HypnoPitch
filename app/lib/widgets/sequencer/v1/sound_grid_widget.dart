@@ -1352,26 +1352,23 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColors.sequencerSurfaceRaised // Active tab protruding
+                    ? AppColors.sequencerAccent
                     : AppColors.sequencerSurfaceBase, // Inactive tabs recessed
                 borderRadius: BorderRadius.circular(2), // Sharp corners
                 border: Border.all(
-                  color: isActive
-                      ? AppColors.sequencerAccent // Brown accent for active
-                      : AppColors.sequencerBorder, // Subtle border for inactive
-                  width: isActive ? 1.0 : 0.5,
+                  color: AppColors.sequencerBorder,
+                  width: 0.5,
                 ),
                 boxShadow: isActive
                     ? [
                         BoxShadow(
                           color: AppColors.sequencerShadow,
-                          blurRadius: 2,
+                          blurRadius: 1.5,
                           offset: const Offset(0, 1),
                         ),
-                        // Extra highlight for protruding effect
                         BoxShadow(
                           color: AppColors.sequencerSurfaceRaised,
-                          blurRadius: 1,
+                          blurRadius: 0.5,
                           offset: const Offset(0, -0.5),
                         ),
                       ]
@@ -1388,11 +1385,10 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                   sequencerLayerLabelForIndex(gridIndex),
                   style: TextStyle(
                     color: isActive
-                        ? AppColors.sequencerText // Light text for active tab
-                        : AppColors
-                            .sequencerLightText, // Muted text for inactive tab
+                        ? AppColors.sequencerPageBackground
+                        : AppColors.sequencerLightText,
                     fontSize: 14,
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 1,
                   ),
                   textAlign: TextAlign.center,
@@ -1601,6 +1597,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                   appState.showTutorialPromptThisSession) ||
               tutorialStep == TutorialStep.sequencerSelectModeHint ||
               tutorialStep == TutorialStep.sequencerSectionsSwipeHint ||
+              tutorialStep == TutorialStep.sequencerSectionTwoStepsHint ||
               tutorialStep == TutorialStep.sequencerSectionTwoSamplesHint ||
               tutorialStep == TutorialStep.sequencerSectionsNavigateHint ||
               tutorialStep == TutorialStep.sequencerLayersHint
@@ -1693,7 +1690,11 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                             : null,
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 8, top: 4),
-                          child: _buildGridRowControls(tableState),
+                          child: _buildGridRowControls(
+                            tableState,
+                            tutorialStep: tutorialStep,
+                            appState: appState,
+                          ),
                         ),
                       );
                     }
@@ -1879,12 +1880,27 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   bool _isDecreasePressed = false;
   bool _isIncreasePressed = false;
 
-  Widget _buildGridRowControls(TableState tableState) {
+  Widget _buildGridRowControls(
+    TableState tableState, {
+    required TutorialStep tutorialStep,
+    required AppState appState,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth;
         final actualRowNumberColumnWidth =
             availableWidth * (rowNumberColumnWidthPercent / 100.0);
+
+        final bool twoStepsTutorial =
+            tutorialStep == TutorialStep.sequencerSectionTwoStepsHint;
+        final GlobalKey? decreaseTutorialKey = twoStepsTutorial &&
+                appState.showSectionTwoStepsDecreasePointer
+            ? appState.sectionStepsDecreaseTutorialKey
+            : null;
+        final GlobalKey? increaseTutorialKey = twoStepsTutorial &&
+                appState.showSectionTwoStepsIncreasePointer
+            ? appState.sectionStepsIncreaseTutorialKey
+            : null;
 
         return Container(
           height: 30, // Reduced height from 40 to 30
@@ -1903,6 +1919,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               // Remove rows button - left half
               Expanded(
                 child: _buildControlButton(
+                  tutorialKey: decreaseTutorialKey,
                   isEnabled: tableState.getSectionStepCount() > 4,
                   onAction: () => _handleDecreaseRows(tableState),
                   icon: Icons.remove,
@@ -1915,6 +1932,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               // Add rows button - right half
               Expanded(
                 child: _buildControlButton(
+                  tutorialKey: increaseTutorialKey,
                   isEnabled:
                       tableState.getSectionStepCount() < tableState.maxSteps,
                   onAction: () => _handleIncreaseRows(tableState),
@@ -1932,6 +1950,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   }
 
   Widget _buildControlButton({
+    GlobalKey? tutorialKey,
     required bool isEnabled,
     required VoidCallback onAction,
     required IconData icon,
@@ -1940,6 +1959,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     required String buttonType,
   }) {
     return Listener(
+      key: tutorialKey,
       onPointerDown: isEnabled
           ? (event) {
               // Update pressed state
@@ -2130,7 +2150,9 @@ class _LayerTabLabel extends StatefulWidget {
 
 class _LayerTabLabelState extends State<_LayerTabLabel>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  /// Nullable so [dispose] is safe if unmount happens before [initState] finishes
+  /// (e.g. hot reload / frame churn).
+  AnimationController? _controller;
   double _currentLevel = 0.0;
 
   @override
@@ -2151,7 +2173,7 @@ class _LayerTabLabelState extends State<_LayerTabLabel>
     if (widget.showLevel && !oldWidget.showLevel) {
       _startPolling();
     } else if (!widget.showLevel && oldWidget.showLevel) {
-      _controller.stop();
+      _controller?.stop();
       setState(() {
         _currentLevel = 0.0;
       });
@@ -2159,8 +2181,10 @@ class _LayerTabLabelState extends State<_LayerTabLabel>
   }
 
   void _startPolling() {
-    _controller.repeat();
-    _controller.addListener(_pollLevel);
+    final c = _controller;
+    if (c == null) return;
+    c.repeat();
+    c.addListener(_pollLevel);
   }
 
   void _pollLevel() {
@@ -2178,8 +2202,11 @@ class _LayerTabLabelState extends State<_LayerTabLabel>
 
   @override
   void dispose() {
-    _controller.removeListener(_pollLevel);
-    _controller.dispose();
+    final c = _controller;
+    if (c != null) {
+      c.removeListener(_pollLevel);
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -2190,22 +2217,33 @@ class _LayerTabLabelState extends State<_LayerTabLabel>
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
       decoration: BoxDecoration(
         color: widget.isActive
-            ? AppColors.sequencerSurfaceRaised
+            ? AppColors.sequencerAccent
             : AppColors.sequencerSurfaceBase,
         borderRadius: BorderRadius.circular(2),
         border: Border.all(
-          color: widget.isActive
-              ? AppColors.sequencerAccent
-              : AppColors.sequencerBorder,
-          width: widget.isActive ? 1.0 : 0.5,
+          color: AppColors.sequencerBorder,
+          width: 0.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.sequencerShadow,
-            blurRadius: widget.isActive ? 2 : 1,
-            offset: Offset(0, widget.isActive ? 1 : 0.5),
-          ),
-        ],
+        boxShadow: widget.isActive
+            ? [
+                BoxShadow(
+                  color: AppColors.sequencerShadow,
+                  blurRadius: 1.5,
+                  offset: const Offset(0, 1),
+                ),
+                BoxShadow(
+                  color: AppColors.sequencerSurfaceRaised,
+                  blurRadius: 0.5,
+                  offset: const Offset(0, -0.5),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: AppColors.sequencerShadow,
+                  blurRadius: 1,
+                  offset: const Offset(0, 0.5),
+                ),
+              ],
       ),
       child: Stack(
         children: [
@@ -2227,49 +2265,60 @@ class _LayerTabLabelState extends State<_LayerTabLabel>
               ),
             ),
           Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: mutedVisual
-                        ? AppColors.sequencerLightText.withOpacity(0.65)
-                        : (widget.isActive
-                            ? AppColors.sequencerText
-                            : AppColors.sequencerLightText),
-                    fontSize: 14,
-                    fontWeight:
-                        widget.isActive ? FontWeight.bold : FontWeight.w600,
-                    letterSpacing: 1,
-                  ),
-                ),
-                if (widget.isMuted) ...[
-                  const SizedBox(width: 2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
                   Text(
-                    'M',
+                    widget.label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
                     style: TextStyle(
-                      color: AppColors.menuErrorColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+                      color: mutedVisual
+                          ? (widget.isActive
+                              ? AppColors.sequencerPageBackground
+                                  .withOpacity(0.55)
+                              : AppColors.sequencerLightText.withOpacity(0.65))
+                          : (widget.isActive
+                              ? AppColors.sequencerPageBackground
+                              : AppColors.sequencerLightText),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1,
                     ),
                   ),
-                ],
-                if (widget.isSoloed) ...[
-                  const SizedBox(width: 2),
-                  Text(
-                    'S',
-                    style: TextStyle(
-                      color: const Color(0xFFF4D35E),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  if (widget.isMuted) ...[
+                    const SizedBox(width: 2),
+                    Text(
+                      'M',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: AppColors.menuErrorColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
+                  ],
+                  if (widget.isSoloed) ...[
+                    const SizedBox(width: 2),
+                    Text(
+                      'S',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: const Color(0xFFF4D35E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],

@@ -78,6 +78,14 @@ class PlaybackBindings {
 
     _switchToSectionPtr = lib.lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>('switch_to_section');
     switchToSection = _switchToSectionPtr.asFunction<void Function(int)>();
+    _switchToSectionImmediatePtr = lib.lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>('switch_to_section_immediate');
+    switchToSectionImmediate =
+        _switchToSectionImmediatePtr.asFunction<void Function(int)>();
+    _switchToSectionSeamlessSongModePtr =
+        lib.lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>(
+            'switch_to_section_seamless_song_mode');
+    switchToSectionSeamlessSongMode =
+        _switchToSectionSeamlessSongModePtr.asFunction<void Function(int)>();
 
     // Master volume
     _playbackSetMasterVolumePtr = lib.lookup<ffi.NativeFunction<ffi.Void Function(ffi.Float)>>('playback_set_master_volume');
@@ -88,6 +96,59 @@ class PlaybackBindings {
 
     _playbackSetMasterEqBandPtr = lib.lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int32, ffi.Int32)>>('playback_set_master_eq_band');
     playbackSetMasterEqBand = _playbackSetMasterEqBandPtr.asFunction<void Function(int, int)>();
+
+    _playbackSetSectionLayerReverbPtr = lib.lookup<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Int32, ffi.Int32, ffi.Float, ffi.Float, ffi.Float)>>(
+        'playback_set_section_layer_reverb');
+    playbackSetSectionLayerReverb = _playbackSetSectionLayerReverbPtr
+        .asFunction<void Function(int, int, double, double, double)>();
+
+    _playbackGetSectionLayerReverbSendPtr = lib.lookup<
+            ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>(
+        'playback_get_section_layer_reverb_send');
+    playbackGetSectionLayerReverbSend =
+        _playbackGetSectionLayerReverbSendPtr.asFunction<double Function(int, int)>();
+
+    _playbackGetSectionLayerReverbRoomPtr = lib.lookup<
+            ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>(
+        'playback_get_section_layer_reverb_room');
+    playbackGetSectionLayerReverbRoom =
+        _playbackGetSectionLayerReverbRoomPtr.asFunction<double Function(int, int)>();
+
+    _playbackGetSectionLayerReverbDampPtr = lib.lookup<
+            ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>(
+        'playback_get_section_layer_reverb_damp');
+    playbackGetSectionLayerReverbDamp =
+        _playbackGetSectionLayerReverbDampPtr.asFunction<double Function(int, int)>();
+
+    _playbackSetSectionLayerEqBandPtr = lib.lookup<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Int32, ffi.Int32, ffi.Int32, ffi.Int32)>>(
+        'playback_set_section_layer_eq_band');
+    playbackSetSectionLayerEqBand = _playbackSetSectionLayerEqBandPtr
+        .asFunction<void Function(int, int, int, int)>();
+
+    _playbackGetSectionLayerEqBandDbPtr = lib.lookup<
+            ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32, ffi.Int32)>>(
+        'playback_get_section_layer_eq_band_db');
+    playbackGetSectionLayerEqBandDb =
+        _playbackGetSectionLayerEqBandDbPtr.asFunction<int Function(int, int, int)>();
+
+    _playbackSetSectionLayerVolumePtr = lib.lookup<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Float)>>(
+        'playback_set_section_layer_volume');
+    playbackSetSectionLayerVolume = _playbackSetSectionLayerVolumePtr
+        .asFunction<void Function(int, int, double)>();
+
+    _playbackGetSectionLayerVolumePtr = lib.lookup<
+            ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>(
+        'playback_get_section_layer_volume');
+    playbackGetSectionLayerVolume = _playbackGetSectionLayerVolumePtr
+        .asFunction<double Function(int, int)>();
 
     // Recording
     _recordingStartPtr = lib.lookup<ffi.NativeFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>)>>('recording_start');
@@ -179,6 +240,12 @@ class PlaybackBindings {
 
   late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>> _switchToSectionPtr;
   late final void Function(int) switchToSection;
+  late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>
+      _switchToSectionImmediatePtr;
+  late final void Function(int) switchToSectionImmediate;
+  late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>
+      _switchToSectionSeamlessSongModePtr;
+  late final void Function(int) switchToSectionSeamlessSongMode;
 
   // Master volume
   late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Float)>> _playbackSetMasterVolumePtr;
@@ -189,6 +256,45 @@ class PlaybackBindings {
 
   late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32, ffi.Int32)>> _playbackSetMasterEqBandPtr;
   late final void Function(int, int) playbackSetMasterEqBand;
+  late final ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              ffi.Int32, ffi.Int32, ffi.Float, ffi.Float, ffi.Float)>>
+      _playbackSetSectionLayerReverbPtr;
+  late final void Function(int, int, double, double, double)
+      playbackSetSectionLayerReverb;
+  late final ffi.Pointer<
+      ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>
+      _playbackGetSectionLayerReverbSendPtr;
+  late final double Function(int, int) playbackGetSectionLayerReverbSend;
+  late final ffi.Pointer<
+      ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>
+      _playbackGetSectionLayerReverbRoomPtr;
+  late final double Function(int, int) playbackGetSectionLayerReverbRoom;
+  late final ffi.Pointer<
+      ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>
+      _playbackGetSectionLayerReverbDampPtr;
+  late final double Function(int, int) playbackGetSectionLayerReverbDamp;
+
+  late final ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Int32, ffi.Int32)>>
+      _playbackSetSectionLayerEqBandPtr;
+  late final void Function(int, int, int, int) playbackSetSectionLayerEqBand;
+  late final ffi.Pointer<
+          ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32, ffi.Int32)>>
+      _playbackGetSectionLayerEqBandDbPtr;
+  late final int Function(int, int, int) playbackGetSectionLayerEqBandDb;
+
+  late final ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Float)>>
+      _playbackSetSectionLayerVolumePtr;
+  late final void Function(int, int, double) playbackSetSectionLayerVolume;
+  late final ffi.Pointer<
+          ffi.NativeFunction<ffi.Float Function(ffi.Int32, ffi.Int32)>>
+      _playbackGetSectionLayerVolumePtr;
+  late final double Function(int, int) playbackGetSectionLayerVolume;
 
   // Recording
   late final ffi.Pointer<ffi.NativeFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>)>> _recordingStartPtr;

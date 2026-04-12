@@ -73,6 +73,11 @@ elif [[ "$ENVIRONMENT" == "prod" ]]; then
   echo "Using production entitlements (4tnd.link)"
 fi
 
+# Regenerate samples_manifest.json from samples/ (merges with existing manifest for stable builtin IDs).
+# Run from app/ (same cwd as the rest of this script).
+echo "📂 Scanning built-in samples → samples_manifest.json..."
+python3 sample_scanner.py --samples-dir samples --output-file samples_manifest.json
+
 # Step 1: Find all directories (including empty ones) in samples folder
 ASSET_DIRS=$(find samples/ -type d | sort)
 

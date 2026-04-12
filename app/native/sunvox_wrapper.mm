@@ -3,6 +3,7 @@
 #include "sample_bank.h"
 #include "playback.h"  // For PlaybackState and playback_get_state_ptr
 #include <math.h>
+#include <unistd.h>
 
 // Platform-specific logging
 #ifdef __APPLE__
@@ -40,28 +41,87 @@ extern "C" {
 #define SUNVOX_OUTPUT_MODULE 0           // Output module is always 0
 #define SUNVOX_BASE_NOTE 60              // Middle C (C4)
 
-// Master bus: all samplers feed the head of this chain; tail connects to SUNVOX_OUTPUT_MODULE.
-// Order is signal order (effects[0] -> effects[1] -> ...). Add new modules here and link
-// consecutive pairs in connect_master_effect_chain().
+// Master bus: all layer sums feed this chain; tail connects to SUNVOX_OUTPUT_MODULE.
 #define MAX_MASTER_EFFECT_MODULES 8
 static int g_master_effect_modules[MAX_MASTER_EFFECT_MODULES];
 static int g_master_effect_module_count = 0;
 // Indices into g_master_effect_modules[] (creation order = signal order for the chain).
-enum {
-    MASTER_FX_EQ = 0,
-    MASTER_FX_REVERB = 1,
-};
+enum { MASTER_FX_EQ = 0 };
 
-// SunVox "Reverb" module controller indices (psynths_reverb.cpp)
+// SunVox module controller indices used in this wrapper.
+#define SV_AMP_CTL_VOL 0
+#define SV_REVERB_CTL_DRY 0
 #define SV_REVERB_CTL_WET 1
+#define SV_REVERB_CTL_FEEDBACK 2
+#define SV_REVERB_CTL_DAMP 3
+#define SV_REVERB_CTL_ROOM_SIZE 8
+#define SV_REVERB_CTL_MAX_INDEX 9
+#define SV_REVERB_RETURN_TRIM 240
+#define REVERB_BANK_COUNT 2
 
 // State
 static int g_sunvox_initialized = 0;
 static int g_section_patterns[MAX_SECTIONS]; // Pattern IDs for each section (-1 = not created)
-static int g_sampler_modules[MAX_SAMPLE_SLOTS]; // Module IDs for each sample slot
+static int g_sampler_modules[MAX_LAYERS_PER_SECTION][MAX_SAMPLE_SLOTS]; // [layer][slot]
+// Dedicated dry samplers for slot preview; bypass layer/master FX graph.
+static int g_preview_dry_sampler_modules[MAX_SAMPLE_SLOTS]; // [slot]
+static int g_layer_send_amp[MAX_LAYERS_PER_SECTION][REVERB_BANK_COUNT];
+static int g_layer_reverb_mod[MAX_LAYERS_PER_SECTION][REVERB_BANK_COUNT];
+static int g_layer_return_amp[MAX_LAYERS_PER_SECTION][REVERB_BANK_COUNT];
+static int g_layer_eq_mod[MAX_LAYERS_PER_SECTION];
+static int g_layer_post_eq_amp[MAX_LAYERS_PER_SECTION];
+static int g_layer_active_bank[MAX_LAYERS_PER_SECTION];
 static int g_song_mode = 0; // 0 = loop mode, 1 = song mode
 static int g_current_section = 0; // Current section for loop mode
 static int g_updating_timeline = 0; // Recursion guard for update_timeline
+
+static int clamp_0_255(int v) {
+    if (v < 0) return 0;
+    if (v > 255) return 255;
+    return v;
+}
+
+// Reverb room size in SunVox Reverb is 0..(16 * MAX_BUF_SCALE) = 0..128.
+static int map_room_u8_to_sunvox(int room_u8) {
+    int clamped = clamp_0_255(room_u8);
+    return (clamped * 128 + 127) / 255;
+}
+
+static void set_reverb_ctl_value_safe(int reverb_mod, int ctl_idx, int value) {
+    static int warned_invalid_ctl = 0;
+    if (reverb_mod < 0) return;
+    // Source of truth for indices: psynths_reverb.cpp psynth_register_ctl order.
+    if (ctl_idx < 0 || ctl_idx > SV_REVERB_CTL_MAX_INDEX) {
+        if (!warned_invalid_ctl) {
+            prnt_err("❌ [SUNVOX] Reverb ctl index out of range: %d", ctl_idx);
+            warned_invalid_ctl = 1;
+        }
+        return;
+    }
+    sv_set_module_ctl_value(SUNVOX_SLOT, reverb_mod, ctl_idx, value, 0);
+}
+
+// Match Dart PlaybackState._dbToSunvoxGain512: linear gain = ctl/256, 256 ≈ 0 dB.
+static int db_to_sunvox_eq_gain512(int db) {
+    if (db < SECTION_LAYER_EQ_MIN_DB) db = SECTION_LAYER_EQ_MIN_DB;
+    if (db > SECTION_LAYER_EQ_MAX_DB) db = SECTION_LAYER_EQ_MAX_DB;
+    double g = pow(10.0, (double)db / 20.0);
+    int out = (int)round(256.0 * g);
+    if (out < 0) out = 0;
+    if (out > 512) out = 512;
+    return out;
+}
+
+static int get_sampler_module_for_layer_slot(int layer, int sample_slot) {
+    if (sample_slot < 0 || sample_slot >= MAX_SAMPLE_SLOTS) return -1;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) layer = 0;
+    return g_sampler_modules[layer][sample_slot];
+}
+
+static int get_preview_dry_sampler_for_slot(int sample_slot) {
+    if (sample_slot < 0 || sample_slot >= MAX_SAMPLE_SLOTS) return -1;
+    return g_preview_dry_sampler_modules[sample_slot];
+}
 
 static int any_layer_solo_active() {
     for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
@@ -96,7 +156,7 @@ static int sunvox_wrapper_is_cell_audible(int section, int col) {
     return 1;
 }
 
-// Create master effect modules and wire: samplers -> chain -> output.
+// Create master effect modules and wire: per-layer sums -> EQ -> output.
 // Call with slot locked. On failure returns -1 (caller should unlock and abort init).
 static int connect_master_effect_chain(void) {
     g_master_effect_module_count = 0;
@@ -112,43 +172,10 @@ static int connect_master_effect_chain(void) {
     }
     g_master_effect_modules[g_master_effect_module_count++] = eq_mod;
 
-    int reverb_mod = sv_new_module(SUNVOX_SLOT, "Reverb", "MasterReverb", 50, 50, 0);
-    if (reverb_mod < 0) {
-        prnt_err("❌ [SUNVOX] Failed to create master Reverb: %d", reverb_mod);
-        return -1;
-    }
-    if (g_master_effect_module_count >= MAX_MASTER_EFFECT_MODULES) {
-        prnt_err("❌ [SUNVOX] MAX_MASTER_EFFECT_MODULES too small");
-        return -1;
-    }
-    g_master_effect_modules[g_master_effect_module_count++] = reverb_mod;
-
-    // Link consecutive master effects
-    for (int k = 0; k < g_master_effect_module_count - 1; k++) {
-        int r = sv_connect_module(SUNVOX_SLOT, g_master_effect_modules[k],
-                                  g_master_effect_modules[k + 1]);
-        if (r < 0) {
-            prnt_err("❌ [SUNVOX] Failed to connect master FX %d -> %d: %d",
-                     g_master_effect_modules[k], g_master_effect_modules[k + 1], r);
-            return -1;
-        }
-    }
-    int tail = g_master_effect_modules[g_master_effect_module_count - 1];
-    int result = sv_connect_module(SUNVOX_SLOT, tail, SUNVOX_OUTPUT_MODULE);
+    int result = sv_connect_module(SUNVOX_SLOT, eq_mod, SUNVOX_OUTPUT_MODULE);
     if (result < 0) {
-        prnt_err("❌ [SUNVOX] Failed to connect master FX tail %d to output: %d", tail, result);
+        prnt_err("❌ [SUNVOX] Failed to connect master EQ %d to output: %d", eq_mod, result);
         return -1;
-    }
-
-    int head = g_master_effect_modules[0];
-    for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
-        int mod_id = g_sampler_modules[i];
-        result = sv_connect_module(SUNVOX_SLOT, mod_id, head);
-        if (result < 0) {
-            prnt_err("❌ [SUNVOX] Failed to connect sampler %d to master FX head %d: %d",
-                     i, head, result);
-            return -1;
-        }
     }
 
     // EQ: unity gain per band (psynths_eq.cpp: ctl 0–2, default 256).
@@ -156,10 +183,114 @@ static int connect_master_effect_chain(void) {
     sv_set_module_ctl_value(SUNVOX_SLOT, eq, 0, 256, 0);
     sv_set_module_ctl_value(SUNVOX_SLOT, eq, 1, 256, 0);
     sv_set_module_ctl_value(SUNVOX_SLOT, eq, 2, 256, 0);
+    return 0;
+}
 
-    // Default: dry-only (wet 0). UI maps 0..1 -> wet ctl.
-    sv_set_module_ctl_value(SUNVOX_SLOT, g_master_effect_modules[MASTER_FX_REVERB],
-                            SV_REVERB_CTL_WET, 0, 0);
+static int connect_layer_reverb_graph(void) {
+    const int master_eq = g_master_effect_modules[MASTER_FX_EQ];
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        char eq_name[24];
+        snprintf(eq_name, sizeof(eq_name), "L%dLayerEQ", layer);
+        int layer_eq = sv_new_module(SUNVOX_SLOT, "EQ", eq_name, 200, 120 + layer * 140, 0);
+        if (layer_eq < 0) {
+            prnt_err("❌ [SUNVOX] Failed to create layer EQ L%d: %d", layer, layer_eq);
+            return -1;
+        }
+        g_layer_eq_mod[layer] = layer_eq;
+        sv_set_module_ctl_value(SUNVOX_SLOT, layer_eq, 0, 256, 0);
+        sv_set_module_ctl_value(SUNVOX_SLOT, layer_eq, 1, 256, 0);
+        sv_set_module_ctl_value(SUNVOX_SLOT, layer_eq, 2, 256, 0);
+
+        char vol_name[24];
+        snprintf(vol_name, sizeof(vol_name), "L%dLayerVol", layer);
+        int layer_vol = sv_new_module(SUNVOX_SLOT, "Amplifier", vol_name, 220, 120 + layer * 140, 0);
+        if (layer_vol < 0) {
+            prnt_err("❌ [SUNVOX] Failed to create layer volume amp L%d: %d", layer, layer_vol);
+            return -1;
+        }
+        g_layer_post_eq_amp[layer] = layer_vol;
+        sv_set_module_ctl_value(SUNVOX_SLOT, layer_vol, SV_AMP_CTL_VOL, 255, 0);
+    }
+
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        g_layer_active_bank[layer] = 0;
+        for (int bank = 0; bank < REVERB_BANK_COUNT; bank++) {
+            char send_name[32];
+            char reverb_name[32];
+            char ret_name[32];
+            snprintf(send_name, sizeof(send_name), "L%dSend%c", layer, bank == 0 ? 'A' : 'B');
+            snprintf(reverb_name, sizeof(reverb_name), "L%dRev%c", layer, bank == 0 ? 'A' : 'B');
+            snprintf(ret_name, sizeof(ret_name), "L%dRet%c", layer, bank == 0 ? 'A' : 'B');
+
+            int send_amp = sv_new_module(SUNVOX_SLOT, "Amplifier", send_name, 300 + bank * 120, 120 + layer * 140, 0);
+            int rev_mod = sv_new_module(SUNVOX_SLOT, "Reverb", reverb_name, 380 + bank * 120, 120 + layer * 140, 0);
+            int ret_amp = sv_new_module(SUNVOX_SLOT, "Amplifier", ret_name, 460 + bank * 120, 120 + layer * 140, 0);
+            if (send_amp < 0 || rev_mod < 0 || ret_amp < 0) {
+                prnt_err("❌ [SUNVOX] Failed to create layer reverb graph L%d B%d (%d %d %d)",
+                         layer, bank, send_amp, rev_mod, ret_amp);
+                return -1;
+            }
+            g_layer_send_amp[layer][bank] = send_amp;
+            g_layer_reverb_mod[layer][bank] = rev_mod;
+            g_layer_return_amp[layer][bank] = ret_amp;
+
+            if (sv_connect_module(SUNVOX_SLOT, send_amp, rev_mod) < 0 ||
+                sv_connect_module(SUNVOX_SLOT, rev_mod, ret_amp) < 0 ||
+                sv_connect_module(SUNVOX_SLOT, ret_amp, master_eq) < 0) {
+                prnt_err("❌ [SUNVOX] Failed to connect layer reverb graph L%d B%d", layer, bank);
+                return -1;
+            }
+
+            // Bank A starts active by default; bank B muted.
+            const int send_vol = (bank == 0) ? 64 : 0;
+            sv_set_module_ctl_value(SUNVOX_SLOT, send_amp, SV_AMP_CTL_VOL, send_vol, 0);
+            // Small fixed trim on wet return to reduce apparent level jumps at high send.
+            sv_set_module_ctl_value(SUNVOX_SLOT, ret_amp, SV_AMP_CTL_VOL, SV_REVERB_RETURN_TRIM, 0);
+            // Wet-only return path: dry stays on direct layer bus to master EQ.
+            set_reverb_ctl_value_safe(rev_mod, SV_REVERB_CTL_DRY, 0);
+            set_reverb_ctl_value_safe(rev_mod, SV_REVERB_CTL_WET, 256);
+            set_reverb_ctl_value_safe(rev_mod, SV_REVERB_CTL_ROOM_SIZE, 128);
+            set_reverb_ctl_value_safe(rev_mod, SV_REVERB_CTL_DAMP, 128);
+        }
+
+        const int layer_eq = g_layer_eq_mod[layer];
+        if (layer_eq < 0) {
+            prnt_err("❌ [SUNVOX] Missing layer EQ module L%d", layer);
+            return -1;
+        }
+
+        for (int slot = 0; slot < MAX_SAMPLE_SLOTS; slot++) {
+            int sampler = g_sampler_modules[layer][slot];
+            if (sampler < 0) continue;
+
+            // All layer samplers feed the single per-layer EQ (unique source per link).
+            if (sv_connect_module(SUNVOX_SLOT, sampler, layer_eq) < 0) {
+                prnt_err("❌ [SUNVOX] Failed to connect sampler L%d slot=%d to layer EQ", layer, slot);
+                return -1;
+            }
+        }
+
+        const int layer_vol = g_layer_post_eq_amp[layer];
+        if (layer_vol < 0) {
+            prnt_err("❌ [SUNVOX] Missing layer volume amp L%d", layer);
+            return -1;
+        }
+
+        // Layer EQ → per-layer volume → master EQ and reverb sends (dry+wet scale together).
+        if (sv_connect_module(SUNVOX_SLOT, layer_eq, layer_vol) < 0) {
+            prnt_err("❌ [SUNVOX] Failed to connect layer EQ L%d to layer volume amp", layer);
+            return -1;
+        }
+        if (sv_connect_module(SUNVOX_SLOT, layer_vol, master_eq) < 0) {
+            prnt_err("❌ [SUNVOX] Failed to connect layer volume L%d to master EQ", layer);
+            return -1;
+        }
+        if (sv_connect_module(SUNVOX_SLOT, layer_vol, g_layer_send_amp[layer][0]) < 0 ||
+            sv_connect_module(SUNVOX_SLOT, layer_vol, g_layer_send_amp[layer][1]) < 0) {
+            prnt_err("❌ [SUNVOX] Failed to connect layer volume L%d to sends", layer);
+            return -1;
+        }
+    }
     return 0;
 }
 
@@ -257,37 +388,78 @@ int sunvox_wrapper_init(void) {
     }
     
     // Initialize arrays
+    for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
+        g_layer_active_bank[l] = 0;
+        for (int b = 0; b < REVERB_BANK_COUNT; b++) {
+            g_layer_send_amp[l][b] = -1;
+            g_layer_reverb_mod[l][b] = -1;
+            g_layer_return_amp[l][b] = -1;
+        }
+        g_layer_eq_mod[l] = -1;
+        g_layer_post_eq_amp[l] = -1;
+        for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
+            g_sampler_modules[l][i] = -1; // No module yet
+        }
+    }
     for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
-        g_sampler_modules[i] = -1; // No module yet
+        g_preview_dry_sampler_modules[i] = -1;
     }
     for (int i = 0; i < MAX_SECTIONS; i++) {
         g_section_patterns[i] = -1; // No pattern yet
     }
     
-    // Create sampler modules for each sample slot; they connect to the master FX chain, then output.
+    // Create per-layer sampler modules.
     sv_lock_slot(SUNVOX_SLOT);
     
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
+            int x = 100 + (i % 8) * 100;
+            int y = 100 + (i / 8) * 100 + layer * 360;
+
+            char name[40];
+            snprintf(name, sizeof(name), "L%dSampler%d", layer, i);
+
+            int mod_id = sv_new_module(SUNVOX_SLOT, "Sampler", name, x, y, 0);
+            if (mod_id < 0) {
+                prnt_err("❌ [SUNVOX] Failed to create sampler L%d S%d: %d", layer, i, mod_id);
+                sv_unlock_slot(SUNVOX_SLOT);
+                sunvox_wrapper_cleanup();
+                return -1;
+            }
+            g_sampler_modules[layer][i] = mod_id;
+        }
+    }
+
+    // Create dedicated dry samplers for slot preview and connect straight to output.
+    // These modules are not part of the layer/master FX graph.
     for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
-        // Create sampler module
-        // Position them in a grid for visual clarity (if we ever need to inspect)
         int x = 100 + (i % 8) * 100;
-        int y = 100 + (i / 8) * 100;
-        
-        char name[32];
-        snprintf(name, sizeof(name), "Sampler%d", i);
-        
+        int y = 100 + (i / 8) * 100 + MAX_LAYERS_PER_SECTION * 360 + 140;
+        char name[40];
+        snprintf(name, sizeof(name), "PreviewDryS%d", i);
+
         int mod_id = sv_new_module(SUNVOX_SLOT, "Sampler", name, x, y, 0);
         if (mod_id < 0) {
-            prnt_err("❌ [SUNVOX] Failed to create sampler %d: %d", i, mod_id);
+            prnt_err("❌ [SUNVOX] Failed to create dry preview sampler S%d: %d", i, mod_id);
             sv_unlock_slot(SUNVOX_SLOT);
             sunvox_wrapper_cleanup();
             return -1;
         }
-        
-        g_sampler_modules[i] = mod_id;
+        if (sv_connect_module(SUNVOX_SLOT, mod_id, SUNVOX_OUTPUT_MODULE) < 0) {
+            prnt_err("❌ [SUNVOX] Failed to connect dry preview sampler S%d to output", i);
+            sv_unlock_slot(SUNVOX_SLOT);
+            sunvox_wrapper_cleanup();
+            return -1;
+        }
+        g_preview_dry_sampler_modules[i] = mod_id;
     }
 
     if (connect_master_effect_chain() != 0) {
+        sv_unlock_slot(SUNVOX_SLOT);
+        sunvox_wrapper_cleanup();
+        return -1;
+    }
+    if (connect_layer_reverb_graph() != 0) {
         sv_unlock_slot(SUNVOX_SLOT);
         sunvox_wrapper_cleanup();
         return -1;
@@ -335,6 +507,22 @@ void sunvox_wrapper_cleanup(void) {
     for (int i = 0; i < MAX_SECTIONS; i++) {
         g_section_patterns[i] = -1;
     }
+    for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
+        g_layer_active_bank[l] = 0;
+        g_layer_eq_mod[l] = -1;
+        g_layer_post_eq_amp[l] = -1;
+        for (int b = 0; b < REVERB_BANK_COUNT; b++) {
+            g_layer_send_amp[l][b] = -1;
+            g_layer_reverb_mod[l][b] = -1;
+            g_layer_return_amp[l][b] = -1;
+        }
+        for (int s = 0; s < MAX_SAMPLE_SLOTS; s++) {
+            g_sampler_modules[l][s] = -1;
+        }
+    }
+    for (int s = 0; s < MAX_SAMPLE_SLOTS; s++) {
+        g_preview_dry_sampler_modules[s] = -1;
+    }
     
     prnt("✅ [SUNVOX] Cleanup complete");
 }
@@ -352,19 +540,124 @@ extern "C" void sunvox_wrapper_set_master_eq_band(int band, int gain_0_512) {
     sv_unlock_slot(SUNVOX_SLOT);
 }
 
-// Master reverb wet amount (0..1 -> SunVox wet ctl 0..256). Reverb module index: MASTER_FX_REVERB.
+// Compatibility shim: maps master reverb control to all active layer-bank sends.
 extern "C" void sunvox_wrapper_set_master_reverb(float wet01) {
     if (!g_sunvox_initialized) return;
-    if (g_master_effect_module_count <= MASTER_FX_REVERB) return;
     if (wet01 < 0.0f) wet01 = 0.0f;
     if (wet01 > 1.0f) wet01 = 1.0f;
     int wet256 = (int)(wet01 * 256.0f);
     if (wet256 < 0) wet256 = 0;
     if (wet256 > 256) wet256 = 256;
-    int reverb_mod = g_master_effect_modules[MASTER_FX_REVERB];
     sv_lock_slot(SUNVOX_SLOT);
-    sv_set_module_ctl_value(SUNVOX_SLOT, reverb_mod, SV_REVERB_CTL_WET, wet256, 0);
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        int bank = g_layer_active_bank[layer];
+        int send_amp = g_layer_send_amp[layer][bank];
+        if (send_amp >= 0) {
+            sv_set_module_ctl_value(SUNVOX_SLOT, send_amp, SV_AMP_CTL_VOL, wet256, 0);
+        }
+    }
     sv_unlock_slot(SUNVOX_SLOT);
+}
+
+static void apply_layer_bank_params_from_section(int section_index, int layer, int bank) {
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+    if (bank < 0 || bank >= REVERB_BANK_COUNT) return;
+    int reverb = g_layer_reverb_mod[layer][bank];
+    if (reverb < 0) return;
+
+    int room = table_get_section_layer_reverb_room(section_index, layer);
+    int damp = table_get_section_layer_reverb_damp(section_index, layer);
+    set_reverb_ctl_value_safe(reverb, SV_REVERB_CTL_ROOM_SIZE, map_room_u8_to_sunvox(room));
+    set_reverb_ctl_value_safe(reverb, SV_REVERB_CTL_DAMP, clamp_0_255(damp));
+}
+
+void sunvox_wrapper_apply_section_layer_reverb(int section_index, int force_reseed) {
+    if (!g_sunvox_initialized) return;
+    sv_lock_slot(SUNVOX_SLOT);
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        int active = g_layer_active_bank[layer];
+        int inactive = 1 - active;
+        if (force_reseed) {
+            apply_layer_bank_params_from_section(section_index, layer, active);
+        }
+        apply_layer_bank_params_from_section(section_index, layer, inactive);
+        int send_target = table_get_section_layer_reverb_send(section_index, layer);
+        int send_amp = g_layer_send_amp[layer][active];
+        if (send_amp >= 0) {
+            sv_set_module_ctl_value(SUNVOX_SLOT, send_amp, SV_AMP_CTL_VOL, clamp_0_255(send_target), 0);
+        }
+    }
+    sv_unlock_slot(SUNVOX_SLOT);
+}
+
+void sunvox_wrapper_apply_section_layer_eq(int section_index) {
+    if (!g_sunvox_initialized) return;
+    if (section_index < 0 || section_index >= MAX_SECTIONS) return;
+    sv_lock_slot(SUNVOX_SLOT);
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        int eq = g_layer_eq_mod[layer];
+        if (eq < 0) continue;
+        int low = table_get_section_layer_eq_band_db(section_index, layer, 0);
+        int mid = table_get_section_layer_eq_band_db(section_index, layer, 1);
+        int high = table_get_section_layer_eq_band_db(section_index, layer, 2);
+        sv_set_module_ctl_value(SUNVOX_SLOT, eq, 0, db_to_sunvox_eq_gain512(low), 0);
+        sv_set_module_ctl_value(SUNVOX_SLOT, eq, 1, db_to_sunvox_eq_gain512(mid), 0);
+        sv_set_module_ctl_value(SUNVOX_SLOT, eq, 2, db_to_sunvox_eq_gain512(high), 0);
+    }
+    sv_unlock_slot(SUNVOX_SLOT);
+}
+
+void sunvox_wrapper_apply_section_layer_volume(int section_index) {
+    if (!g_sunvox_initialized) return;
+    if (section_index < 0 || section_index >= MAX_SECTIONS) return;
+    sv_lock_slot(SUNVOX_SLOT);
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        int vol_amp = g_layer_post_eq_amp[layer];
+        if (vol_amp < 0) continue;
+        int level = table_get_section_layer_volume(section_index, layer);
+        sv_set_module_ctl_value(SUNVOX_SLOT, vol_amp, SV_AMP_CTL_VOL, clamp_0_255(level), 0);
+    }
+    sv_unlock_slot(SUNVOX_SLOT);
+}
+
+void sunvox_wrapper_on_section_switch(int prev_section, int next_section) {
+    if (!g_sunvox_initialized) return;
+    (void)prev_section;
+    // Ramp old active send down while ramping inactive up with next section params.
+    const int kRampSteps = 6;
+    const int kRampSleepUs = 20000; // 6 * 20ms = 120ms
+
+    sv_lock_slot(SUNVOX_SLOT);
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        int active = g_layer_active_bank[layer];
+        int inactive = 1 - active;
+        apply_layer_bank_params_from_section(next_section, layer, inactive);
+    }
+    sv_unlock_slot(SUNVOX_SLOT);
+
+    for (int step = 1; step <= kRampSteps; step++) {
+        sv_lock_slot(SUNVOX_SLOT);
+        for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+            int active = g_layer_active_bank[layer];
+            int inactive = 1 - active;
+            int old_amp = g_layer_send_amp[layer][active];
+            int new_amp = g_layer_send_amp[layer][inactive];
+            int target_send = table_get_section_layer_reverb_send(next_section, layer);
+            int down = ((kRampSteps - step) * 255) / kRampSteps;
+            int up = (step * target_send) / kRampSteps;
+            if (old_amp >= 0) sv_set_module_ctl_value(SUNVOX_SLOT, old_amp, SV_AMP_CTL_VOL, clamp_0_255(down), 0);
+            if (new_amp >= 0) sv_set_module_ctl_value(SUNVOX_SLOT, new_amp, SV_AMP_CTL_VOL, clamp_0_255(up), 0);
+        }
+        sv_unlock_slot(SUNVOX_SLOT);
+        usleep(kRampSleepUs);
+    }
+
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        g_layer_active_bank[layer] = 1 - g_layer_active_bank[layer];
+    }
+
+    sunvox_wrapper_apply_section_layer_eq(next_section);
+    sunvox_wrapper_apply_section_layer_volume(next_section);
 }
 
 // Load a sample into a SunVox sampler module
@@ -379,49 +672,60 @@ int sunvox_wrapper_load_sample(int sample_slot, const char* file_path) {
         return -1;
     }
     
-    int mod_id = g_sampler_modules[sample_slot];
-    if (mod_id < 0) {
-        prnt_err("❌ [SUNVOX] No sampler module for slot %d", sample_slot);
-        return -1;
-    }
-    
     prnt_debug("📂 [SUNVOX] Loading sample %d: %s", sample_slot, file_path);
     
     // Lock slot for sample loading
     sv_lock_slot(SUNVOX_SLOT);
-    
-    // Load sample into sampler (sample_slot -1 means replace entire sampler)
-    int result = sv_sampler_load(SUNVOX_SLOT, mod_id, file_path, -1);
-    if (result < 0) {
-        sv_unlock_slot(SUNVOX_SLOT);
-        prnt_err("❌ [SUNVOX] Failed to load sample into sampler %d: %d", sample_slot, result);
-        return -1;
+
+    for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+        int mod_id = get_sampler_module_for_layer_slot(layer, sample_slot);
+        if (mod_id < 0) {
+            sv_unlock_slot(SUNVOX_SLOT);
+            prnt_err("❌ [SUNVOX] No sampler module for layer=%d slot=%d", layer, sample_slot);
+            return -1;
+        }
+
+        // Load sample into each layer clone (sample_slot -1 means replace entire sampler)
+        int result = sv_sampler_load(SUNVOX_SLOT, mod_id, file_path, -1);
+        if (result < 0) {
+            sv_unlock_slot(SUNVOX_SLOT);
+            prnt_err("❌ [SUNVOX] Failed to load sample into sampler L%d S%d: %d", layer, sample_slot, result);
+            return -1;
+        }
+
+        // Force one-shot playback for imported loops.
+        const int kSamplerParLoopType = 2;
+        const int kMaxSamplesPerSamplerModule = 128;
+        for (int s = 0; s < kMaxSamplesPerSamplerModule; s++) {
+            sv_sampler_par(SUNVOX_SLOT, mod_id, s, kSamplerParLoopType, 0, 1);
+        }
+
+        sv_set_module_ctl_value(SUNVOX_SLOT, mod_id, 4, 256, 0);
     }
 
-    // WAV smpl / instrument loops are imported as sustain loops. Preview uses note-on without
-    // note-off; patterns use NO_NOTES_OFF at section wrap — both hold the note, so a looped
-    // sample sounds infinite. Sequencer pads should play as one-shots unless we add explicit
-    // loop UX later; clear loop type for every sample slot in this module (no-op if empty).
-    const int kSamplerParLoopType = 2; // sv_sampler_par: 0=loop begin, 1=len, 2=loop type (0=none)
-    const int kMaxSamplesPerSamplerModule = 128; // matches SunVox Sampler MAX_SAMPLES
-    for (int s = 0; s < kMaxSamplesPerSamplerModule; s++) {
-        sv_sampler_par(SUNVOX_SLOT, mod_id, s, kSamplerParLoopType, 0, 1);
+    // Mirror sample into dry preview sampler so slot preview bypasses all FX.
+    int dry_mod_id = get_preview_dry_sampler_for_slot(sample_slot);
+    if (dry_mod_id < 0) {
+        sv_unlock_slot(SUNVOX_SLOT);
+        prnt_err("❌ [SUNVOX] No dry preview sampler for slot=%d", sample_slot);
+        return -1;
     }
-    
-    // Verify the module flags
-    uint32_t flags = sv_get_module_flags(SUNVOX_SLOT, mod_id);
-    prnt_debug("🔍 [SUNVOX] Module %d flags: 0x%X (exists=%d, generator=%d)", 
-         mod_id, flags, (flags & SV_MODULE_FLAG_EXISTS) != 0, (flags & SV_MODULE_FLAG_GENERATOR) != 0);
-    
-    // Set sampler volume to maximum
-    int vol_ctl = sv_get_module_ctl_value(SUNVOX_SLOT, mod_id, 4, 0); // Controller 4 = Volume
-    prnt_debug("🔊 [SUNVOX] Module %d current volume: %d", mod_id, vol_ctl);
-    sv_set_module_ctl_value(SUNVOX_SLOT, mod_id, 4, 256, 0); // Set to max (256)
-    prnt_debug("🔊 [SUNVOX] Module %d volume set to 256", mod_id);
+    int dry_result = sv_sampler_load(SUNVOX_SLOT, dry_mod_id, file_path, -1);
+    if (dry_result < 0) {
+        sv_unlock_slot(SUNVOX_SLOT);
+        prnt_err("❌ [SUNVOX] Failed to load sample into dry preview sampler S%d: %d", sample_slot, dry_result);
+        return -1;
+    }
+    const int kSamplerParLoopType = 2;
+    const int kMaxSamplesPerSamplerModule = 128;
+    for (int s = 0; s < kMaxSamplesPerSamplerModule; s++) {
+        sv_sampler_par(SUNVOX_SLOT, dry_mod_id, s, kSamplerParLoopType, 0, 1);
+    }
+    sv_set_module_ctl_value(SUNVOX_SLOT, dry_mod_id, 4, 256, 0);
     
     sv_unlock_slot(SUNVOX_SLOT);
     
-    prnt("✅ [SUNVOX] Loaded sample %d into module %d", sample_slot, mod_id);
+    prnt("✅ [SUNVOX] Loaded sample %d into %d layer samplers", sample_slot, MAX_LAYERS_PER_SECTION);
     return 0;
 }
 
@@ -432,14 +736,10 @@ void sunvox_wrapper_unload_sample(int sample_slot) {
     if (sample_slot < 0 || sample_slot >= MAX_SAMPLE_SLOTS) {
         return;
     }
-    
-    int mod_id = g_sampler_modules[sample_slot];
-    if (mod_id < 0) return;
-    
-    prnt_debug("🗑️ [SUNVOX] Unloading sample %d (module %d)", sample_slot, mod_id);
-    
-    // Clear the sampler by loading an empty sample
-    // TODO: Find better way to clear sampler
+
+    // SunVox public API does not expose sampler sample-count/remove functions.
+    // Keep this as a lightweight logical unload; the next load replaces sampler content.
+    prnt_debug("🗑️ [SUNVOX] Logical unload for sample %d (content replaced on next load)", sample_slot);
 }
 
 // Sync single cell to SunVox pattern
@@ -472,7 +772,8 @@ void sunvox_wrapper_sync_cell(int step, int col) {
     const int should_mute = !sunvox_wrapper_is_cell_audible(section_index, col);
     if (!should_mute && cell->sample_slot >= 0 && cell->sample_slot < MAX_SAMPLE_SLOTS) {
         // Cell has a sample - write note event
-        int mod_id = g_sampler_modules[cell->sample_slot];
+        int layer = table_get_layer_for_col(section_index, col);
+        int mod_id = get_sampler_module_for_layer_slot(layer, cell->sample_slot);
         if (mod_id >= 0) {
             // Resolve volume from cell or sample settings
             float volume = cell->settings.volume;
@@ -578,7 +879,15 @@ void sunvox_wrapper_set_pattern_event_with_offset(
         return;
     }
     
-    int mod_id = g_sampler_modules[sample_slot];
+    int section_index = 0;
+    for (int s = 0; s < MAX_SECTIONS; s++) {
+        if (g_section_patterns[s] == pat_id) {
+            section_index = s;
+            break;
+        }
+    }
+    int layer = table_get_layer_for_col(section_index, track);
+    int mod_id = get_sampler_module_for_layer_slot(layer, sample_slot);
     if (mod_id < 0) {
         prnt_err("❌ [SUNVOX] No sampler module for slot %d", sample_slot);
         return;
@@ -871,7 +1180,8 @@ void sunvox_wrapper_sync_section(int section_index) {
                 empty_cells++;
             } else {
                 // Set note event
-                int mod_id = g_sampler_modules[cell->sample_slot];
+                int layer = table_get_layer_for_col(section_index, col);
+                int mod_id = get_sampler_module_for_layer_slot(layer, cell->sample_slot);
                 if (mod_id >= 0) {
                     synced_cells++;
                     float volume = (cell->settings.volume == DEFAULT_CELL_VOLUME) 
@@ -977,6 +1287,9 @@ void sunvox_wrapper_set_playback_mode(int song_mode, int current_section, int cu
             sv_set_autostop(SUNVOX_SLOT, 1);
             prnt("  ▶️ [SUNVOX] Starting song mode from pattern %d (section %d)", start_pat, current_section);
         }
+        sunvox_wrapper_apply_section_layer_reverb(current_section, 1);
+        sunvox_wrapper_apply_section_layer_eq(current_section);
+        sunvox_wrapper_apply_section_layer_volume(current_section);
     } else {
         // Loop mode: Enable infinite loop for current section
         prnt_debug("🔁 [SUNVOX] Entering LOOP MODE (section %d)", current_section);
@@ -1013,6 +1326,9 @@ void sunvox_wrapper_set_playback_mode(int song_mode, int current_section, int cu
             sv_set_autostop(SUNVOX_SLOT, 0);  // Infinite loop
             prnt("  🔁 [SUNVOX] Looping pattern %d infinitely", pat_id);
         }
+        sunvox_wrapper_apply_section_layer_reverb(current_section, 1);
+        sunvox_wrapper_apply_section_layer_eq(current_section);
+        sunvox_wrapper_apply_section_layer_volume(current_section);
     }
 }
 
@@ -1264,7 +1580,7 @@ int sunvox_wrapper_play(void) {
     
     // Debug: Check module volume and mute status
     for (int i = 0; i < 3; i++) {
-        int mod_id = g_sampler_modules[i];
+        int mod_id = get_sampler_module_for_layer_slot(0, i);
         if (mod_id >= 0) {
             uint32_t flags = sv_get_module_flags(SUNVOX_SLOT, mod_id);
             int muted = (flags & SV_MODULE_FLAG_MUTE) != 0;
@@ -1358,13 +1674,12 @@ void sunvox_wrapper_set_region(int start, int end) {
         
         int max_cols = table_get_max_cols();
         for (int track = 0; track < max_cols; track++) {
-            for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
-                int mod_id = g_sampler_modules[i];
-                if (mod_id >= 0) {
-                    // Send note-off event to this sampler on this track
-                    // sv_send_event(slot, track, note, vel, module, ctl, ctl_val)
-                    // note=128 (NOTE_OFF), module=sampler module ID + 1
-                    sv_send_event(SUNVOX_SLOT, track, 128, 0, mod_id + 1, 0, 0);
+            for (int layer = 0; layer < MAX_LAYERS_PER_SECTION; layer++) {
+                for (int i = 0; i < MAX_SAMPLE_SLOTS; i++) {
+                    int mod_id = get_sampler_module_for_layer_slot(layer, i);
+                    if (mod_id >= 0) {
+                        sv_send_event(SUNVOX_SLOT, track, 128, 0, mod_id + 1, 0, 0);
+                    }
                 }
             }
         }
@@ -1413,7 +1728,8 @@ void sunvox_wrapper_trigger_step(int step) {
 
         if (!sunvox_wrapper_is_cell_audible(section, col)) continue;
         
-        int mod_id = g_sampler_modules[cell->sample_slot];
+        int layer = table_get_layer_for_col(section, col);
+        int mod_id = get_sampler_module_for_layer_slot(layer, cell->sample_slot);
         if (mod_id < 0) {
             continue; // Sample not loaded
         }
@@ -1601,7 +1917,7 @@ extern "C" int sunvox_preview_slot(int slot, float pitch, float volume) {
         return 0;
     }
 
-    int mod_id = g_sampler_modules[slot];
+    int mod_id = get_preview_dry_sampler_for_slot(slot);
     if (mod_id < 0) return -1;
 
     // Stop previous preview (if any)
@@ -1647,7 +1963,9 @@ extern "C" int sunvox_preview_cell(int step, int column, float pitch, float volu
         resolved_pitch = (s && s->loaded) ? s->settings.pitch : 1.0f;
     }
 
-    int mod_id = g_sampler_modules[cell->sample_slot];
+    int section = table_get_section_at_step(step);
+    int layer = table_get_layer_for_col(section, column);
+    int mod_id = get_sampler_module_for_layer_slot(layer, cell->sample_slot);
     if (mod_id < 0) return -1;
 
     // Stop previous preview

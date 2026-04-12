@@ -71,6 +71,18 @@ static inline void table_set_cell_defaults(Cell* cell) {
     cell->is_processing = 0;
 }
 
+static inline uint8_t clamp_u8(int v) {
+    if (v < 0) return 0;
+    if (v > 255) return 255;
+    return (uint8_t)v;
+}
+
+static inline int8_t clamp_eq_db(int v) {
+    if (v < SECTION_LAYER_EQ_MIN_DB) return SECTION_LAYER_EQ_MIN_DB;
+    if (v > SECTION_LAYER_EQ_MAX_DB) return SECTION_LAYER_EQ_MAX_DB;
+    return (int8_t)v;
+}
+
 static inline void table_txn_reset_touched_sections() {
     memset(g_edit_txn_touched_sections, 0, sizeof(g_edit_txn_touched_sections));
 }
@@ -133,6 +145,13 @@ void table_init(void) {
     for (int s = 0; s < MAX_SECTIONS; s++) {
         for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
             g_table_state.layers[s][l].len = MAX_COLS_PER_LAYER;
+            g_table_state.section_layer_reverb[s][l].send = 0;
+            g_table_state.section_layer_reverb[s][l].room = 128;
+            g_table_state.section_layer_reverb[s][l].damp = 128;
+            g_table_state.section_layer_eq[s][l].low_db = 0;
+            g_table_state.section_layer_eq[s][l].mid_db = 0;
+            g_table_state.section_layer_eq[s][l].high_db = 0;
+            g_table_state.section_layer_volume[s][l] = 255;
         }
     }
 
@@ -503,6 +522,22 @@ void table_append_section(int steps, int copy_from_section, int undo_record) {
     // Initialize layers for new section to default lengths
     for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
         g_table_state.layers[new_index][l].len = MAX_COLS_PER_LAYER;
+        g_table_state.section_layer_reverb[new_index][l].send = 0;
+        g_table_state.section_layer_reverb[new_index][l].room = 128;
+        g_table_state.section_layer_reverb[new_index][l].damp = 128;
+        g_table_state.section_layer_eq[new_index][l].low_db = 0;
+        g_table_state.section_layer_eq[new_index][l].mid_db = 0;
+        g_table_state.section_layer_eq[new_index][l].high_db = 0;
+        g_table_state.section_layer_volume[new_index][l] = 255;
+    }
+
+    // Copy section-layer reverb from template section when requested.
+    if (copy_from_section >= 0 && copy_from_section < g_table_state.sections_count) {
+        for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
+            g_table_state.section_layer_reverb[new_index][l] = g_table_state.section_layer_reverb[copy_from_section][l];
+            g_table_state.section_layer_eq[new_index][l] = g_table_state.section_layer_eq[copy_from_section][l];
+            g_table_state.section_layer_volume[new_index][l] = g_table_state.section_layer_volume[copy_from_section][l];
+        }
     }
 
     // Copy cells if requested
@@ -597,6 +632,9 @@ void table_delete_section(int section_index, int undo_record) {
         // Shift layers row along with section metadata
         for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
             g_table_state.layers[i][l] = g_table_state.layers[i + 1][l];
+            g_table_state.section_layer_reverb[i][l] = g_table_state.section_layer_reverb[i + 1][l];
+            g_table_state.section_layer_eq[i][l] = g_table_state.section_layer_eq[i + 1][l];
+            g_table_state.section_layer_volume[i][l] = g_table_state.section_layer_volume[i + 1][l];
         }
     }
     g_table_state.sections_count--;
@@ -605,6 +643,13 @@ void table_delete_section(int section_index, int undo_record) {
     // Reset trailing layers row to defaults
     for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
         g_table_state.layers[g_table_state.sections_count][l].len = MAX_COLS_PER_LAYER;
+        g_table_state.section_layer_reverb[g_table_state.sections_count][l].send = 0;
+        g_table_state.section_layer_reverb[g_table_state.sections_count][l].room = 128;
+        g_table_state.section_layer_reverb[g_table_state.sections_count][l].damp = 128;
+        g_table_state.section_layer_eq[g_table_state.sections_count][l].low_db = 0;
+        g_table_state.section_layer_eq[g_table_state.sections_count][l].mid_db = 0;
+        g_table_state.section_layer_eq[g_table_state.sections_count][l].high_db = 0;
+        g_table_state.section_layer_volume[g_table_state.sections_count][l] = 255;
     }
 
     state_write_end();
@@ -646,8 +691,14 @@ void table_reorder_section(int from_index, int to_index, int undo_record) {
     // Save section metadata and layers for the moving section
     Section moving_section = g_table_state.sections[from_index];
     Layer moving_layers[MAX_LAYERS_PER_SECTION];
+    SectionLayerReverb moving_layer_reverb[MAX_LAYERS_PER_SECTION];
+    SectionLayerEq moving_layer_eq[MAX_LAYERS_PER_SECTION];
+    uint8_t moving_layer_volume[MAX_LAYERS_PER_SECTION];
     for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
         moving_layers[l] = g_table_state.layers[from_index][l];
+        moving_layer_reverb[l] = g_table_state.section_layer_reverb[from_index][l];
+        moving_layer_eq[l] = g_table_state.section_layer_eq[from_index][l];
+        moving_layer_volume[l] = g_table_state.section_layer_volume[from_index][l];
     }
 
     // Allocate temporary buffer for moving section's data
@@ -675,12 +726,18 @@ void table_reorder_section(int from_index, int to_index, int undo_record) {
             g_table_state.sections[i] = g_table_state.sections[i + 1];
             for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
                 g_table_state.layers[i][l] = g_table_state.layers[i + 1][l];
+                g_table_state.section_layer_reverb[i][l] = g_table_state.section_layer_reverb[i + 1][l];
+                g_table_state.section_layer_eq[i][l] = g_table_state.section_layer_eq[i + 1][l];
+                g_table_state.section_layer_volume[i][l] = g_table_state.section_layer_volume[i + 1][l];
             }
         }
         // Place moving section at to_index
         g_table_state.sections[to_index] = moving_section;
         for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
             g_table_state.layers[to_index][l] = moving_layers[l];
+            g_table_state.section_layer_reverb[to_index][l] = moving_layer_reverb[l];
+            g_table_state.section_layer_eq[to_index][l] = moving_layer_eq[l];
+            g_table_state.section_layer_volume[to_index][l] = moving_layer_volume[l];
         }
     } else {
         // Moving up: shift sections [to..from-1] down by one
@@ -688,12 +745,18 @@ void table_reorder_section(int from_index, int to_index, int undo_record) {
             g_table_state.sections[i] = g_table_state.sections[i - 1];
             for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
                 g_table_state.layers[i][l] = g_table_state.layers[i - 1][l];
+                g_table_state.section_layer_reverb[i][l] = g_table_state.section_layer_reverb[i - 1][l];
+                g_table_state.section_layer_eq[i][l] = g_table_state.section_layer_eq[i - 1][l];
+                g_table_state.section_layer_volume[i][l] = g_table_state.section_layer_volume[i - 1][l];
             }
         }
         // Place moving section at to_index
         g_table_state.sections[to_index] = moving_section;
         for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
             g_table_state.layers[to_index][l] = moving_layers[l];
+            g_table_state.section_layer_reverb[to_index][l] = moving_layer_reverb[l];
+            g_table_state.section_layer_eq[to_index][l] = moving_layer_eq[l];
+            g_table_state.section_layer_volume[to_index][l] = moving_layer_volume[l];
         }
     }
 
@@ -894,6 +957,103 @@ int table_get_col_in_layer(int section, int col) {
     return -1;
 }
 
+void table_set_section_layer_reverb(int section, int layer, int send, int room, int damp, int undo_record) {
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+
+    state_write_begin();
+    g_table_state.section_layer_reverb[section][layer].send = clamp_u8(send);
+    g_table_state.section_layer_reverb[section][layer].room = clamp_u8(room);
+    g_table_state.section_layer_reverb[section][layer].damp = clamp_u8(damp);
+    state_write_end();
+    table_mark_content_changed();
+
+    if (undo_record) {
+        UndoRedoManager_record();
+    }
+}
+
+int table_get_section_layer_reverb_send(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 0;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 0;
+    return g_table_state.section_layer_reverb[section][layer].send;
+}
+
+int table_get_section_layer_reverb_room(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 128;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 128;
+    return g_table_state.section_layer_reverb[section][layer].room;
+}
+
+int table_get_section_layer_reverb_damp(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 128;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 128;
+    return g_table_state.section_layer_reverb[section][layer].damp;
+}
+
+void table_set_section_layer_eq(int section, int layer, int low_db, int mid_db, int high_db, int undo_record) {
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+
+    state_write_begin();
+    g_table_state.section_layer_eq[section][layer].low_db = clamp_eq_db(low_db);
+    g_table_state.section_layer_eq[section][layer].mid_db = clamp_eq_db(mid_db);
+    g_table_state.section_layer_eq[section][layer].high_db = clamp_eq_db(high_db);
+    state_write_end();
+    table_mark_content_changed();
+
+    if (undo_record) {
+        UndoRedoManager_record();
+    }
+}
+
+void table_set_section_layer_eq_band(int section, int layer, int band, int db, int undo_record) {
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+    if (band < 0 || band > 2) return;
+
+    state_write_begin();
+    int8_t c = clamp_eq_db(db);
+    if (band == 0) g_table_state.section_layer_eq[section][layer].low_db = c;
+    else if (band == 1) g_table_state.section_layer_eq[section][layer].mid_db = c;
+    else g_table_state.section_layer_eq[section][layer].high_db = c;
+    state_write_end();
+    table_mark_content_changed();
+
+    if (undo_record) {
+        UndoRedoManager_record();
+    }
+}
+
+int table_get_section_layer_eq_band_db(int section, int layer, int band) {
+    if (section < 0 || section >= MAX_SECTIONS) return 0;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 0;
+    if (band < 0 || band > 2) return 0;
+    if (band == 0) return g_table_state.section_layer_eq[section][layer].low_db;
+    if (band == 1) return g_table_state.section_layer_eq[section][layer].mid_db;
+    return g_table_state.section_layer_eq[section][layer].high_db;
+}
+
+void table_set_section_layer_volume(int section, int layer, int level, int undo_record) {
+    if (section < 0 || section >= MAX_SECTIONS) return;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return;
+
+    state_write_begin();
+    g_table_state.section_layer_volume[section][layer] = (uint8_t)clamp_u8(level);
+    state_write_end();
+    table_mark_content_changed();
+
+    if (undo_record) {
+        UndoRedoManager_record();
+    }
+}
+
+int table_get_section_layer_volume(int section, int layer) {
+    if (section < 0 || section >= MAX_SECTIONS) return 255;
+    if (layer < 0 || layer >= MAX_LAYERS_PER_SECTION) return 255;
+    return (int)g_table_state.section_layer_volume[section][layer];
+}
+
 // Return pointer to unified state for Flutter FFI access
 const TableState* table_get_state_ptr(void) { return &g_table_state; }
 
@@ -967,6 +1127,9 @@ void table_apply_state(const TableState* snap) {
     for (int s = 0; s < MAX_SECTIONS; s++) {
         for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
             g_table_state.layers[s][l] = snap->layers[s][l];
+            g_table_state.section_layer_reverb[s][l] = snap->section_layer_reverb[s][l];
+            g_table_state.section_layer_eq[s][l] = snap->section_layer_eq[s][l];
+            g_table_state.section_layer_volume[s][l] = snap->section_layer_volume[s][l];
         }
     }
 

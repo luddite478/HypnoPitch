@@ -5,13 +5,15 @@ This document describes the audio preview system used to play standalone samples
 ### Goals
 
 - Trigger quick, low-latency previews without disturbing sequencer playback state
-- Use the same SunVox-based preview path as the rest of the engine (pitch via `sunvox_preview_*`)
+- Use SunVox-based preview APIs (`sunvox_preview_*`) while keeping sample-browser slot preview dry
 - Keep the audio callback predictable; preview work is routed through the SunVox wrapper
 
 ### Architecture Overview
 
 - Native module: `app/native/preview.h` and `app/native/preview.mm`
   - Preview is implemented on top of the SunVox engine (`sunvox_wrapper.h`): slot/cell previews call into `sunvox_preview_slot` / `sunvox_preview_cell` with pitch and volume.
+  - `sunvox_preview_slot` uses dedicated dry sampler modules wired directly to output (no layer FX, no master FX).
+  - `sunvox_preview_cell` uses regular layer samplers and keeps track/layer FX behavior.
   - File-path preview (`preview_sample_path`) is a minimal stub for API compatibility (volume `0` stops preview; otherwise no separate file-path graph).
 
 - Lifecycle:
@@ -71,6 +73,9 @@ Bindings are exposed in `app/lib/ffi/playback_bindings.dart`:
 - Cell preview (`preview_cell`) resolves overrides first:
   - If cell volume is default, it inherits sample-bank volume
   - If cell pitch is default, it inherits sample-bank pitch
+- FX behavior:
+  - Slot preview is fully dry (bypasses layer EQ/reverb and master FX).
+  - Cell preview follows normal sequencer routing for the resolved layer.
 
 ### Simplified Approach
 
@@ -97,7 +102,8 @@ Bindings are exposed in `app/lib/ffi/playback_bindings.dart`:
 
 ### Performance Notes
 
-- Preview uses the same node graph and mixes alongside sequencer nodes
+- Slot preview uses dedicated dry samplers mixed directly to output
+- Cell preview uses the sequencer sampler graph and mixes alongside sequencer nodes
 - No smoothing is applied for preview; volume is applied immediately on the output bus
 - Pitch method selection and preprocessing/cache are reused via `pitch_ds_create(...)`
 

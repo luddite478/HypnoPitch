@@ -106,7 +106,7 @@ class SoundSettingsWidget extends StatefulWidget {
     return const SoundSettingsWidget(
       type: SettingsType.master,
       title: 'Master Settings',
-      headerButtons: ['VOL', 'RVB', 'EQ', 'BPM'],
+      headerButtons: ['VOL', 'BPM', 'EQ', 'RVB'],
       closeAction: _noop,
       noDataMessage: 'Master controls not available',
       noDataIcon: Icons.settings,

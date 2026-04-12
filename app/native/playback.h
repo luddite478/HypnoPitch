@@ -148,6 +148,40 @@ void playback_set_section_loops_num(int section, int loops);
 __attribute__((visibility("default"))) __attribute__((used))
 void switch_to_section(int section_index);
 
+// Explicit switch modes
+__attribute__((visibility("default"))) __attribute__((used))
+void switch_to_section_immediate(int section_index);
+
+__attribute__((visibility("default"))) __attribute__((used))
+void switch_to_section_seamless_song_mode(int section_index);
+
+// Per-section, per-layer reverb controls (0.0..1.0 normalized).
+__attribute__((visibility("default"))) __attribute__((used))
+void playback_set_section_layer_reverb(int section, int layer, float send01, float room01, float damp01);
+
+__attribute__((visibility("default"))) __attribute__((used))
+float playback_get_section_layer_reverb_send(int section, int layer);
+
+__attribute__((visibility("default"))) __attribute__((used))
+float playback_get_section_layer_reverb_room(int section, int layer);
+
+__attribute__((visibility("default"))) __attribute__((used))
+float playback_get_section_layer_reverb_damp(int section, int layer);
+
+// Per-section, per-layer EQ: band 0=Low, 1=Mid, 2=High; db in [-12, +6] (same range as master EQ UI).
+__attribute__((visibility("default"))) __attribute__((used))
+void playback_set_section_layer_eq_band(int section, int layer, int band, int db);
+
+__attribute__((visibility("default"))) __attribute__((used))
+int playback_get_section_layer_eq_band_db(int section, int layer, int band);
+
+// Per-section, per-layer output volume (0.0..1.0), after layer EQ.
+__attribute__((visibility("default"))) __attribute__((used))
+void playback_set_section_layer_volume(int section, int layer, float volume01);
+
+__attribute__((visibility("default"))) __attribute__((used))
+float playback_get_section_layer_volume(int section, int layer);
+
 // Master volume control (0.0 .. 1.0)
 __attribute__((visibility("default"))) __attribute__((used))
 void playback_set_master_volume(float volume01);

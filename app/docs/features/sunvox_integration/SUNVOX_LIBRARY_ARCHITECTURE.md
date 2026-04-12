@@ -1226,6 +1226,8 @@ int value = sv_get_module_ctl_value(slot, mod_num, ctl_num, scaled);
 // ctl field in sunvox_note: (ctl_num+1) << 8 | effect
 ```
 
+Important integration note for host code: controller indices are module-specific and defined by each module's `psynth_register_ctl(...)` order in source (for example `psynths_reverb.cpp`). Do not assume a shared semantic layout across modules, and keep wrapper constants synchronized with the module's registration order.
+
 ### 7.6 Module Connections
 
 Modules are connected via **links**:

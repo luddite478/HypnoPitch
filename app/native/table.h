@@ -49,6 +49,23 @@ typedef struct {
     int len;                    // Number of columns in this layer (default MAX_COLS_PER_LAYER)
 } Layer;
 
+// Per-section, per-layer reverb parameters (0..255 normalized controls)
+typedef struct {
+    uint8_t send;
+    uint8_t room;
+    uint8_t damp;
+} SectionLayerReverb;
+
+// Per-section, per-layer 3-band EQ in dB (same range as master EQ in UI: -12..+6).
+typedef struct {
+    int8_t low_db;
+    int8_t mid_db;
+    int8_t high_db;
+} SectionLayerEq;
+
+#define SECTION_LAYER_EQ_MIN_DB (-12)
+#define SECTION_LAYER_EQ_MAX_DB   6
+
 // Single live table state (authoritative). The first fields are read by Flutter via FFI.
 // Keep these header fields at the top to allow Dart to map them as a prefix view.
 typedef struct {
@@ -72,6 +89,10 @@ typedef struct {
     Cell table[MAX_SEQUENCER_STEPS][MAX_SEQUENCER_COLS];
     Section sections[MAX_SECTIONS];
     Layer layers[MAX_SECTIONS][MAX_LAYERS_PER_SECTION];
+    SectionLayerReverb section_layer_reverb[MAX_SECTIONS][MAX_LAYERS_PER_SECTION];
+    SectionLayerEq section_layer_eq[MAX_SECTIONS][MAX_LAYERS_PER_SECTION];
+    // Per-section, per-layer output level after layer EQ (0..255; 255 = unity).
+    uint8_t section_layer_volume[MAX_SECTIONS][MAX_LAYERS_PER_SECTION];
 } TableState;
 
 // Table management functions
@@ -146,6 +167,35 @@ int table_get_layer_col_solo(int layer, int col_in_layer);
 __attribute__((visibility("default"))) __attribute__((used))
 int table_get_col_in_layer(int section, int col);
 
+// Section-layer reverb controls (0..255 values).
+__attribute__((visibility("default"))) __attribute__((used))
+void table_set_section_layer_reverb(int section, int layer, int send, int room, int damp, int undo_record);
+
+__attribute__((visibility("default"))) __attribute__((used))
+int table_get_section_layer_reverb_send(int section, int layer);
+
+__attribute__((visibility("default"))) __attribute__((used))
+int table_get_section_layer_reverb_room(int section, int layer);
+
+__attribute__((visibility("default"))) __attribute__((used))
+int table_get_section_layer_reverb_damp(int section, int layer);
+
+// Section-layer EQ (dB per band; band 0=Low, 1=Mid, 2=High).
+__attribute__((visibility("default"))) __attribute__((used))
+void table_set_section_layer_eq(int section, int layer, int low_db, int mid_db, int high_db, int undo_record);
+
+__attribute__((visibility("default"))) __attribute__((used))
+void table_set_section_layer_eq_band(int section, int layer, int band, int db, int undo_record);
+
+__attribute__((visibility("default"))) __attribute__((used))
+int table_get_section_layer_eq_band_db(int section, int layer, int band);
+
+// Section-layer output volume (0..255; 255 = unity).
+__attribute__((visibility("default"))) __attribute__((used))
+void table_set_section_layer_volume(int section, int layer, int level, int undo_record);
+
+__attribute__((visibility("default"))) __attribute__((used))
+int table_get_section_layer_volume(int section, int layer);
 
 // Getters for table dimensions
 __attribute__((visibility("default"))) __attribute__((used))

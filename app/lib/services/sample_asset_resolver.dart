@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -15,6 +16,7 @@ class SampleAssetResolver {
   static const MethodChannel _channel = MethodChannel('hypnopitch/pad');
 
   Map<String, dynamic>? _samplesManifestCache;
+  Map<String, BuiltInSampleResolution>? _builtInAliasesCache;
   String? _cachedAssetPackPath;
   String? _lastAvailabilityMessage;
   Set<String>? _flutterAssetKeySet;
@@ -37,16 +39,90 @@ class SampleAssetResolver {
 
     _samplesManifestCache =
         Map<String, dynamic>.from(fullManifest['samples'] as Map);
+    _builtInAliasesCache = null;
     return _samplesManifestCache!;
   }
 
-  Future<String?> resolveAssetPathFromSampleId(String sampleId) async {
+  Future<Map<String, BuiltInSampleResolution>> _buildBuiltInAliasMap() async {
+    if (_builtInAliasesCache != null) return _builtInAliasesCache!;
     final samplesMap = await loadSamplesManifest();
-    final entry = samplesMap[sampleId];
-    if (entry is Map && entry['path'] is String) {
-      return entry['path'] as String;
+    _builtInAliasesCache = buildBuiltInAliasMapFromManifest(samplesMap);
+    return _builtInAliasesCache!;
+  }
+
+  @visibleForTesting
+  static Map<String, BuiltInSampleResolution> buildBuiltInAliasMapFromManifest(
+    Map<String, dynamic> samplesMap,
+  ) {
+    final aliases = <String, BuiltInSampleResolution>{};
+    for (final entry in samplesMap.entries) {
+      final canonicalId = entry.key;
+      final raw = entry.value;
+      if (raw is! Map) continue;
+      final path = raw['path'];
+      if (path is! String || path.isEmpty) continue;
+      final assetKey =
+          raw['asset_key'] is String && (raw['asset_key'] as String).isNotEmpty
+              ? raw['asset_key'] as String
+              : path;
+      final displayName = raw['display_name'] is String &&
+              (raw['display_name'] as String).isNotEmpty
+          ? raw['display_name'] as String
+          : _fallbackDisplayNameFromPath(path);
+
+      void addAlias(String id, String source) {
+        if (id.isEmpty) return;
+        aliases[id] = BuiltInSampleResolution(
+          canonicalId: canonicalId,
+          assetPath: path,
+          assetKey: assetKey,
+          displayName: displayName,
+          aliasSource: source,
+        );
+      }
+
+      addAlias(canonicalId, 'canonical');
+
+      final legacyHash = raw['legacy_hash_12'];
+      if (legacyHash is String && legacyHash.isNotEmpty) {
+        addAlias(legacyHash, 'legacy_hash_12');
+      }
+
+      final aliasList = raw['aliases'];
+      if (aliasList is List) {
+        for (final value in aliasList) {
+          if (value is String && value.isNotEmpty) {
+            addAlias(value, 'aliases[]');
+          }
+        }
+      }
+
+      final legacyIds = raw['legacy_ids'];
+      if (legacyIds is List) {
+        for (final value in legacyIds) {
+          if (value is String && value.isNotEmpty) {
+            addAlias(value, 'legacy_ids[]');
+          }
+        }
+      }
     }
-    return null;
+    return aliases;
+  }
+
+  Future<BuiltInSampleResolution?> resolveBuiltInSample(
+      String sampleIdOrAlias) async {
+    final aliases = await _buildBuiltInAliasMap();
+    return aliases[sampleIdOrAlias];
+  }
+
+  Future<String?> resolveAssetPathFromSampleId(String sampleId) async {
+    final resolved = await resolveBuiltInSample(sampleId);
+    return resolved?.assetPathForLoad;
+  }
+
+  static String _fallbackDisplayNameFromPath(String path) {
+    final base = p.basenameWithoutExtension(path);
+    return base.trim().isEmpty ? p.basename(path) : base;
   }
 
   Future<bool> ensureBuiltInSamplesReady() async {
@@ -122,10 +198,7 @@ class SampleAssetResolver {
     }
 
     try {
-      Log.d(
-        '🔎 [SAMPLE_ASSET_RESOLVER] rootBundle.load("$assetPath") …',
-      );
-      final data = await rootBundle.load(assetPath);
+      final data = await _loadRootBundleBytesWithIosFallbacks(assetPath);
       Log.d(
         '🔎 [SAMPLE_ASSET_RESOLVER] rootBundle OK bytes=${data.lengthInBytes}',
       );
@@ -136,6 +209,46 @@ class SampleAssetResolver {
       await _logFlutterAssetBundleDiagnostics(assetPath);
       rethrow;
     }
+  }
+
+  /// iOS has seen cases where [AssetManifest] lists a key but the first
+  /// [rootBundle.load] fails (spaces / encoding). Try alternate keys.
+  Future<ByteData> _loadRootBundleBytesWithIosFallbacks(
+      String assetPath) async {
+    final keys = <String>{assetPath};
+    if (Platform.isIOS) {
+      final decoded = Uri.decodeFull(assetPath);
+      if (decoded != assetPath) {
+        keys.add(decoded);
+      }
+      if (assetPath.contains(' ')) {
+        keys.add(assetPath.replaceAll(' ', '%20'));
+      }
+      final bySegment = assetPath.split('/').map(Uri.encodeComponent).join('/');
+      if (bySegment != assetPath) {
+        keys.add(bySegment);
+      }
+      final bySegmentDecoded = Uri.decodeFull(bySegment);
+      if (bySegmentDecoded != bySegment) {
+        keys.add(bySegmentDecoded);
+      }
+    }
+
+    Object? lastError;
+    StackTrace? lastStack;
+    for (final key in keys) {
+      try {
+        Log.d('🔎 [SAMPLE_ASSET_RESOLVER] rootBundle.load("$key") …');
+        return await rootBundle.load(key);
+      } catch (e, st) {
+        lastError = e;
+        lastStack = st;
+        Log.d(
+          '🔎 [SAMPLE_ASSET_RESOLVER] rootBundle.load try failed key="$key": $e',
+        );
+      }
+    }
+    Error.throwWithStackTrace(lastError!, lastStack ?? StackTrace.empty);
   }
 
   Future<Uint8List?> _loadAudioBytesViaNativeAssetAccess(
@@ -270,4 +383,22 @@ class SampleAssetResolver {
       'with samples/ still listed in pubspec.yaml.',
     );
   }
+}
+
+class BuiltInSampleResolution {
+  final String canonicalId;
+  final String assetPath;
+  final String assetKey;
+  final String displayName;
+  final String aliasSource;
+
+  String get assetPathForLoad => Platform.isIOS ? assetKey : assetPath;
+
+  const BuiltInSampleResolution({
+    required this.canonicalId,
+    required this.assetPath,
+    required this.assetKey,
+    required this.displayName,
+    required this.aliasSource,
+  });
 }

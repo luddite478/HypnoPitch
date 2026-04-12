@@ -325,8 +325,109 @@ class PlaybackState extends ChangeNotifier {
   void switchToSection(int targetIndex) {
     if (!_initialized) return;
     if (targetIndex < 0) targetIndex = 0;
-    _playback_ffi.switchToSection(targetIndex);
+    if (_songMode && _isPlaying) {
+      _playback_ffi.switchToSectionSeamlessSongMode(targetIndex);
+    } else {
+      _playback_ffi.switchToSectionImmediate(targetIndex);
+    }
     debugPrint('🎯 [PLAYBACK_STATE] switchToSection → $targetIndex');
+  }
+
+  void setSectionLayerReverb(
+      {required int section,
+      required int layer,
+      required double send01,
+      double room01 = 0.5,
+      double damp01 = 0.5}) {
+    if (!_initialized) return;
+    _playback_ffi.playbackSetSectionLayerReverb(
+      section,
+      layer,
+      send01.clamp(0.0, 1.0),
+      room01.clamp(0.0, 1.0),
+      damp01.clamp(0.0, 1.0),
+    );
+  }
+
+  double getSectionLayerReverbSend(int section, int layer) {
+    if (!_initialized) return 0.0;
+    try {
+      return _playback_ffi
+          .playbackGetSectionLayerReverbSend(section, layer)
+          .clamp(0.0, 1.0);
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
+  double getSectionLayerReverbRoom(int section, int layer) {
+    if (!_initialized) return 0.5;
+    try {
+      return _playback_ffi
+          .playbackGetSectionLayerReverbRoom(section, layer)
+          .clamp(0.0, 1.0);
+    } catch (_) {
+      return 0.5;
+    }
+  }
+
+  double getSectionLayerReverbDamp(int section, int layer) {
+    if (!_initialized) return 0.5;
+    try {
+      return _playback_ffi
+          .playbackGetSectionLayerReverbDamp(section, layer)
+          .clamp(0.0, 1.0);
+    } catch (_) {
+      return 0.5;
+    }
+  }
+
+  /// band: 0 = Low, 1 = Mid, 2 = High; dB in [masterEqMinDb, masterEqMaxDb].
+  void setSectionLayerEqBandDb({
+    required int section,
+    required int layer,
+    required int band,
+    required int db,
+  }) {
+    if (!_initialized) return;
+    final v = db.clamp(masterEqMinDb, masterEqMaxDb);
+    _playback_ffi.playbackSetSectionLayerEqBand(section, layer, band, v);
+  }
+
+  int getSectionLayerEqBandDb(int section, int layer, int band) {
+    if (!_initialized) return 0;
+    try {
+      return _playback_ffi
+          .playbackGetSectionLayerEqBandDb(section, layer, band)
+          .clamp(masterEqMinDb, masterEqMaxDb);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Per-layer output level after layer EQ (0.0..1.0).
+  void setSectionLayerVolume({
+    required int section,
+    required int layer,
+    required double volume01,
+  }) {
+    if (!_initialized) return;
+    _playback_ffi.playbackSetSectionLayerVolume(
+      section,
+      layer,
+      volume01.clamp(0.0, 1.0),
+    );
+  }
+
+  double getSectionLayerVolume(int section, int layer) {
+    if (!_initialized) return 1.0;
+    try {
+      return _playback_ffi
+          .playbackGetSectionLayerVolume(section, layer)
+          .clamp(0.0, 1.0);
+    } catch (_) {
+      return 1.0;
+    }
   }
 
   void switchToPreviousSection() {
@@ -492,6 +593,8 @@ class PlaybackState extends ChangeNotifier {
   int get currentSectionLoopsNum => _currentSectionLoopsNum;
   bool get initialized => _initialized;
   bool get enhancedPlaybackLogging => _enhancedPlaybackLogging;
+  double get masterVolume => _masterVolume;
+  double get masterReverbWet => _masterReverbWet;
 
   /// Get loops count for all sections as a list (length = sectionsCount)
   List<int> getSectionsLoopsNum() {

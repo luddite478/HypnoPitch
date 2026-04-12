@@ -1,31 +1,38 @@
 description: HypnoPitch — pattern sequencer and audio app.
 environment:
   sdk: '>=3.4.4 <4.0.0'
-version: 1.0.5+18
+version: 1.1.2+30
+
 flutter:
   assets:
-    - samples/acoustic/
-    - samples/drums/
-    - samples/drums/electronic/
-    - samples/drums/electronic/hat/
-    - samples/drums/electronic/kick/
-    - samples/drums/electronic/snare/
-    - samples/drums/natural/
-    - samples/drums/natural/kick/
-    - samples/drums/natural/plates/
-    - samples/drums/natural/plates/China/
-    - samples/drums/natural/plates/Crash/
-    - samples/drums/natural/plates/Hi Hat/
-    - samples/drums/natural/plates/Ride Cymbal/
-    - samples/drums/natural/plates/Splash/
-    - samples/drums/natural/snare/
-    - samples/drums/natural/toms/
-    - samples/noise/
-    - samples/noise/clicks/
-    - samples/noise/other/
-    - samples/synth/
-    - samples/synth/Bass/
-    - samples/synth/Lead/
+    - samples/Acoustic/
+    - samples/Acoustic/Orchestral/
+    - samples/Drums/
+    - samples/Drums/Acoustic/
+    - samples/Drums/Acoustic/Kick/
+    - samples/Drums/Acoustic/Plates/
+    - samples/Drums/Acoustic/Plates/China/
+    - samples/Drums/Acoustic/Plates/Crash/
+    - samples/Drums/Acoustic/Plates/Hi Hat/
+    - samples/Drums/Acoustic/Plates/Ride Cymbal/
+    - samples/Drums/Acoustic/Plates/Splash/
+    - samples/Drums/Acoustic/Snare/
+    - samples/Drums/Acoustic/Toms/
+    - samples/Drums/Electronic/
+    - samples/Drums/Electronic/Kick/
+    - samples/Drums/Electronic/Plates/
+    - samples/Drums/Electronic/Plates/Hi-Hat/
+    - samples/Drums/Electronic/Snare/
+    - samples/Drums/Electronic/Toms/
+    - samples/Noise/
+    - samples/Noise/Clicks/
+    - samples/Noise/Other/
+    - samples/Synth/
+    - samples/Synth/Bass/
+    - samples/Synth/High/
+    - samples/Synth/High/Distorted/
+    - samples/Synth/High/Minimal/
+    - samples/Synth/High/Pads/
     - .env
     - icons/
     - samples_manifest.json
@@ -50,6 +57,7 @@ dependencies:
   uuid: ^4.5.1
   permission_handler: ^11.3.1
   url_launcher: ^6.3.2
+  archive: ^4.0.9
 name: hypnopitch
 publish_to: none
 dev_dependencies:

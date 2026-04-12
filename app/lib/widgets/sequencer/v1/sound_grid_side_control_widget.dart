@@ -358,9 +358,11 @@ class SoundGridSideControlWidget extends StatelessWidget {
 
 }
 
-// Stateful section control button with click feedback
+/// Section index + loop summary; tap opens section settings.
+/// Neutral chrome always (no persistent “active” fill when the panel is open).
+/// [InkWell] ripple like edit-bar text buttons, plus a short opacity blink on tap only.
 class _SectionControlButton extends StatefulWidget {
-  final double size; // square size
+  final double size; // square width
   final int sectionNumber;
   final VoidCallback onPressed;
 
@@ -375,138 +377,191 @@ class _SectionControlButton extends StatefulWidget {
   State<_SectionControlButton> createState() => _SectionControlButtonState();
 }
 
-class _SectionControlButtonState extends State<_SectionControlButton> {
-  bool _isPressed = false;
+class _SectionControlButtonState extends State<_SectionControlButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tapBlinkController;
+  late final Animation<double> _tapBlinkOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _tapBlinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+    _tapBlinkOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.38), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.38, end: 1.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.48), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.48, end: 1.0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _tapBlinkController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _tapBlinkController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final playbackState = context.watch<PlaybackState>();
-    
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() => _isPressed = true);
-      },
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onPressed();
-      },
-      onTapCancel: () {
-        setState(() => _isPressed = false);
-      },
-      child: Container(
-        width: widget.size,
-        height: double.infinity, // fills the Expanded slot height
-        decoration: BoxDecoration(
-          color: _isPressed
-              ? AppColors.sequencerPrimaryButton
-              : AppColors.sequencerSurfaceRaised,
+
+    return Container(
+      width: widget.size,
+      height: double.infinity, // fills the Expanded slot height
+      decoration: BoxDecoration(
+        color: AppColors.sequencerSurfaceRaised,
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 1.5,
+            offset: Offset(0, 1),
+          ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 0.5,
+            offset: Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            widget.onPressed();
+            _tapBlinkController.forward(from: 0);
+          },
           borderRadius: BorderRadius.circular(2),
-          border: Border.all(color: AppColors.sequencerBorder, width: 0.5),
-          boxShadow: [
-            BoxShadow(color: AppColors.sequencerShadow, blurRadius: 1.5, offset: const Offset(0, 1)),
-            BoxShadow(color: AppColors.sequencerSurfaceRaised, blurRadius: 0.5, offset: const Offset(0, -0.5)),
-          ],
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Account for 1px horizontal divider between the two halves
-            final halfH = (constraints.maxHeight - 1) / 2;
-            final topFontSize = (halfH * 0.52).clamp(10.0, 22.0);
-            final bottomFontInfinity = (halfH * 0.5).clamp(10.0, 22.0);
-            final bottomFontSong = (halfH * 0.38).clamp(7.0, 16.0);
-            final dividerColor = _isPressed
-                ? Colors.white.withOpacity(0.22)
-                : AppColors.sequencerBorder.withOpacity(0.55);
-            return Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: Text(
-                          '${widget.sectionNumber}',
-                          style: TextStyle(
-                            color: _isPressed
-                                ? Colors.white
-                                : AppColors.sequencerLightText,
-                            fontSize: topFontSize,
-                            fontWeight: FontWeight.w700,
-                            height: 1.0,
+          child: AnimatedBuilder(
+            animation: _tapBlinkController,
+            builder: (context, __) {
+              return Opacity(
+                opacity: _tapBlinkOpacity.value,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final halfH = (constraints.maxHeight - 1) / 2;
+                    final topFontSize = (halfH * 0.52).clamp(10.0, 22.0);
+                    final bottomFontInfinity =
+                        (halfH * 0.5).clamp(10.0, 22.0);
+                    final bottomFontSong =
+                        (halfH * 0.38).clamp(7.0, 16.0);
+                    final dividerColor =
+                        AppColors.sequencerBorder.withOpacity(0.55);
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 2),
+                                child: Text(
+                                  '${widget.sectionNumber}',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.visible,
+                                  style: TextStyle(
+                                    color: AppColors.sequencerLightText,
+                                    fontSize: topFontSize,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-                Container(height: 1, width: double.infinity, color: dividerColor),
-                Expanded(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: ValueListenableBuilder<bool>(
-                          valueListenable: playbackState.songModeNotifier,
-                          builder: (context, isSongMode, __) {
-                            if (!isSongMode) {
-                              final color = Color.lerp(
-                                AppColors.menuErrorColor,
-                                AppColors.sequencerLightText,
-                                0.5,
-                              )!;
-                              return Text(
-                                '∞',
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: bottomFontInfinity,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.0,
-                                ),
-                              );
-                            }
-                            return ValueListenableBuilder<int>(
-                              valueListenable:
-                                  playbackState.currentSectionLoopNotifier,
-                              builder: (context, currentLoopZeroBased, __) {
-                                return ValueListenableBuilder<int>(
-                                  valueListenable: playbackState
-                                      .currentSectionLoopsNumNotifier,
-                                  builder: (context, totalLoops, ___) {
-                                    final displayCurrent =
-                                        (currentLoopZeroBased + 1)
-                                            .clamp(1, totalLoops);
-                                    final label =
-                                        '$displayCurrent/$totalLoops';
-                                    final color = Color.lerp(
-                                      AppColors.menuErrorColor,
-                                      AppColors.sequencerLightText,
-                                      0.5,
-                                    )!;
-                                    return Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: color,
-                                        fontSize: bottomFontSong,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.0,
-                                        letterSpacing: 0.2,
-                                      ),
+                        Container(
+                          height: 1,
+                          width: double.infinity,
+                          color: dividerColor,
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 2),
+                                child: ValueListenableBuilder<bool>(
+                                  valueListenable:
+                                      playbackState.songModeNotifier,
+                                  builder: (context, isSongMode, __) {
+                                    if (!isSongMode) {
+                                      final color = Color.lerp(
+                                        AppColors.menuErrorColor,
+                                        AppColors.sequencerLightText,
+                                        0.5,
+                                      )!;
+                                      return Text(
+                                        '∞',
+                                        maxLines: 1,
+                                        softWrap: false,
+                                        overflow: TextOverflow.visible,
+                                        style: TextStyle(
+                                          color: color,
+                                          fontSize: bottomFontInfinity,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.0,
+                                        ),
+                                      );
+                                    }
+                                    return ValueListenableBuilder<int>(
+                                      valueListenable: playbackState
+                                          .currentSectionLoopNotifier,
+                                      builder:
+                                          (context, currentLoopZeroBased, __) {
+                                        return ValueListenableBuilder<int>(
+                                          valueListenable: playbackState
+                                              .currentSectionLoopsNumNotifier,
+                                          builder: (context, totalLoops, ___) {
+                                            final displayCurrent =
+                                                (currentLoopZeroBased + 1)
+                                                    .clamp(1, totalLoops);
+                                            final label =
+                                                '$displayCurrent/$totalLoops';
+                                            final color = Color.lerp(
+                                              AppColors.menuErrorColor,
+                                              AppColors.sequencerLightText,
+                                              0.5,
+                                            )!;
+                                            return Text(
+                                              label,
+                                              maxLines: 1,
+                                              softWrap: false,
+                                              overflow: TextOverflow.visible,
+                                              style: TextStyle(
+                                                color: color,
+                                                fontSize: bottomFontSong,
+                                                fontWeight: FontWeight.w600,
+                                                height: 1.0,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
                                     );
                                   },
-                                );
-                              },
-                            );
-                          },
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
+                      ],
+                    );
+                  },
                 ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

@@ -102,6 +102,19 @@ int sunvox_wrapper_is_initialized(void);
 // Master bus reverb wet (0..1). No-op if engine not ready.
 void sunvox_wrapper_set_master_reverb(float wet01);
 
+// Apply section-layer reverb params onto inactive banks and crossfade sends.
+void sunvox_wrapper_apply_section_layer_reverb(int section_index, int force_reseed);
+void sunvox_wrapper_apply_section_layer_eq(int section_index);
+void sunvox_wrapper_apply_section_layer_volume(int section_index);
+void sunvox_wrapper_on_section_switch(int prev_section, int next_section);
+
+// Playback bridge (Dart FFI): per-section layer output volume (0.0..1.0). Implemented in playback_sunvox.mm.
+__attribute__((visibility("default"))) __attribute__((used))
+void playback_set_section_layer_volume(int section, int layer, float volume01);
+
+__attribute__((visibility("default"))) __attribute__((used))
+float playback_get_section_layer_volume(int section, int layer);
+
 // Master 3-band EQ: band 0=Low, 1=Mid, 2=High; gain 0..512 (256 = unity).
 void sunvox_wrapper_set_master_eq_band(int band, int gain_0_512);
 

@@ -1,0 +1,47 @@
+platform :ios do
+  # app_store_connect_api_key is a Fastlane action — it must run from Fastfile, not Appfile.
+  api_key = nil
+
+  before_all do
+    key_path = ENV["APP_STORE_CONNECT_P8_PATH"]
+    key_content = ENV["APP_STORE_CONNECT_P8_CONTENT"]
+    key_id = ENV["APP_STORE_CONNECT_KEY_ID"]
+    issuer = ENV["APP_STORE_CONNECT_API_ISSUER"]
+
+    next unless key_id && !key_id.empty? && issuer && !issuer.empty?
+
+    if key_path && !key_path.empty?
+      api_key = app_store_connect_api_key(
+        key_id: key_id,
+        issuer_id: issuer,
+        key_filepath: File.expand_path(key_path),
+        duration: 1200,
+        in_house: false
+      )
+    elsif key_content && !key_content.empty?
+      api_key = app_store_connect_api_key(
+        key_id: key_id,
+        issuer_id: issuer,
+        key_content: key_content,
+        duration: 1200,
+        in_house: false
+      )
+    end
+  end
+
+  lane :release do
+    # Fastlane runs from app/ios, so paths here are relative to that directory.
+    v = flutter_version(pubspec_location: "../pubspec.yaml")
+
+    sh("cd .. && flutter build ipa --release --build-name=#{v['version_name']} --build-number=#{v['version_code']}")
+    ipa_path = File.expand_path("../../build/ios/ipa/*.ipa", __dir__)
+    ipa_files = Dir.glob(ipa_path)
+    UI.user_error!("No IPA found in app/build/ios/ipa") if ipa_files.empty?
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: ipa_files.first,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

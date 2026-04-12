@@ -26,20 +26,24 @@ import 'sequencer_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({Key? key}) : super(key: key);
-  
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+class _LibraryScreenState extends State<LibraryScreen>
+    with
+        TickerProviderStateMixin,
+        AutomaticKeepAliveClientMixin,
+        WidgetsBindingObserver {
   late TabController _tabController;
   bool _isCallbackActive = false;
   bool _isOpeningPattern = false;
   final Map<String, String> _builtInSampleTempPaths = {};
-  
+
   @override
   bool get wantKeepAlive => true;
-  
+
   @override
   void initState() {
     super.initState();
@@ -63,7 +67,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       appState.markLibraryLatestRecordingOpenAction();
     }
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
@@ -72,7 +76,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       _clearAudioPlayerCallback();
     }
   }
-  
+
   Future<void> _loadLibrary() async {
     final libraryState = context.read<LibraryState>();
     await libraryState.loadLibrary();
@@ -81,39 +85,39 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   Future<void> _loadLibrarySamples() async {
     await context.read<LibrarySamplesState>().initialize();
   }
-  
+
   void _setupAudioPlayerCallback() {
     if (_isCallbackActive) return;
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final audioPlayer = context.read<AudioPlayerState>();
-      
+
       audioPlayer.setTrackCompletionCallback(() {
         if (mounted && _isCallbackActive) {
           _playNextTrack(autoAdvance: true);
         }
       });
-      
+
       audioPlayer.setNextTrackCallback(() {
         if (mounted && _isCallbackActive) {
           _playNextTrack();
         }
       });
-      
+
       audioPlayer.setPreviousTrackCallback(() {
         if (mounted && _isCallbackActive) {
           _playPreviousTrack();
         }
       });
-      
+
       _isCallbackActive = true;
     });
   }
-  
+
   void _clearAudioPlayerCallback() {
     if (!_isCallbackActive) return;
-    
+
     try {
       final audioPlayer = context.read<AudioPlayerState>();
       audioPlayer.setTrackCompletionCallback(null);
@@ -122,29 +126,29 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       _isCallbackActive = false;
     } catch (_) {}
   }
-  
+
   void _playNextTrack({bool autoAdvance = false}) {
     final libraryState = context.read<LibraryState>();
     final audioPlayer = context.read<AudioPlayerState>();
     final library = libraryState.library;
-    
+
     if (library.isEmpty) return;
-    
+
     final currentItemId = audioPlayer.currentlyPlayingItemId;
     if (currentItemId == null) return;
-    
+
     final currentIndex = library.indexWhere((item) => item.id == currentItemId);
     if (currentIndex == -1) return;
-    
+
     int nextIndex;
-    
+
     if (audioPlayer.shuffleEnabled && library.length > 1) {
       do {
         nextIndex = (DateTime.now().millisecondsSinceEpoch % library.length);
       } while (nextIndex == currentIndex);
     } else {
       nextIndex = currentIndex + 1;
-      
+
       if (nextIndex >= library.length) {
         if (autoAdvance && audioPlayer.loopMode == LoopMode.playlist) {
           nextIndex = 0;
@@ -154,38 +158,38 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         }
       }
     }
-    
+
     final nextItem = library[nextIndex];
     _playLibraryItem(nextItem);
   }
-  
+
   void _playPreviousTrack() {
     final libraryState = context.read<LibraryState>();
     final audioPlayer = context.read<AudioPlayerState>();
     final library = libraryState.library;
-    
+
     if (library.isEmpty) return;
-    
+
     final currentItemId = audioPlayer.currentlyPlayingItemId;
     if (currentItemId == null) return;
-    
+
     final currentIndex = library.indexWhere((item) => item.id == currentItemId);
     if (currentIndex == -1) return;
-    
+
     if (audioPlayer.position.inSeconds > 3) {
       audioPlayer.seek(Duration.zero);
       return;
     }
-    
+
     int prevIndex;
-    
+
     if (audioPlayer.shuffleEnabled && library.length > 1) {
       do {
         prevIndex = (DateTime.now().millisecondsSinceEpoch % library.length);
       } while (prevIndex == currentIndex);
     } else {
       prevIndex = currentIndex - 1;
-      
+
       if (prevIndex < 0) {
         if (audioPlayer.loopMode == LoopMode.playlist) {
           prevIndex = library.length - 1;
@@ -195,11 +199,11 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         }
       }
     }
-    
+
     final prevItem = library[prevIndex];
     _playLibraryItem(prevItem);
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -213,7 +217,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
   Widget build(BuildContext context) {
     super.build(context);
     final appState = context.watch<AppState>();
-    
+
     return WillPopScope(
       onWillPop: () async {
         try {
@@ -244,7 +248,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                               children: [
                                 Expanded(
                                   child: Text(
-                                    appState.libraryLatestRecordingStepInstruction,
+                                    appState
+                                        .libraryLatestRecordingStepInstruction,
                                     style: TextStyle(
                                       color: AppColors.sequencerText,
                                       fontSize: 13,
@@ -252,8 +257,10 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                                     ),
                                   ),
                                 ),
-                                if (!appState.showLibraryLatestRecordingPointer &&
-                                    !appState.showLibraryLatestRecordingSharePointer)
+                                if (!appState
+                                        .showLibraryLatestRecordingPointer &&
+                                    !appState
+                                        .showLibraryLatestRecordingSharePointer)
                                   Padding(
                                     padding: const EdgeInsets.only(left: 10),
                                     child: ElevatedButton(
@@ -261,7 +268,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
                                             AppColors.sequencerSurfaceRaised,
-                                        foregroundColor: AppColors.sequencerText,
+                                        foregroundColor:
+                                            AppColors.sequencerText,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 10, vertical: 7),
                                         minimumSize: const Size(0, 0),
@@ -279,7 +287,6 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                               ],
                             ),
                           ),
-                        
                         Container(
                           decoration: BoxDecoration(
                             color: AppColors.sequencerSurfaceRaised,
@@ -298,10 +305,12 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                                     ? appState.libraryLatestRecordingTutorialKey
                                     : null,
                                 child: TutorialPulseWidget(
-                                  enabled: appState.showLibraryLatestRecordingPointer,
+                                  enabled: appState
+                                      .showLibraryLatestRecordingPointer,
                                   borderRadius: BorderRadius.circular(8),
                                   child: const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 8),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 8),
                                     child: Text('RECORDINGS'),
                                   ),
                                 ),
@@ -324,7 +333,6 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                             indicatorWeight: 2,
                           ),
                         ),
-                        
                         Expanded(
                           child: TabBarView(
                             controller: _tabController,
@@ -369,7 +377,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         if (libraryState.isLoading && !libraryState.hasLoaded) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (libraryState.library.isEmpty) {
           return Center(
             child: Column(
@@ -395,27 +403,26 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
             ),
           );
         }
-        
+
         return ListView.builder(
           padding: const EdgeInsets.only(top: 2),
           itemCount: libraryState.library.length,
           itemBuilder: (context, index) {
             final item = libraryState.library[index];
-            final isPlaying = audioPlayer.currentlyPlayingItemId == item.id && audioPlayer.isPlaying;
-            final isLatestRecordingStep =
-                appState.activeTutorialStep ==
+            final isPlaying = audioPlayer.currentlyPlayingItemId == item.id &&
+                audioPlayer.isPlaying;
+            final isLatestRecordingStep = appState.activeTutorialStep ==
                 TutorialStep.sequencerLibraryLatestRecordingHint;
             final isLatestItem = index == 0;
-            final showLatestRecordingSharePointer =
-                isLatestRecordingStep &&
+            final showLatestRecordingSharePointer = isLatestRecordingStep &&
                 isLatestItem &&
                 appState.showLibraryLatestRecordingSharePointer;
-        
+
             return Container(
               height: 60,
               margin: const EdgeInsets.only(bottom: 2),
               decoration: BoxDecoration(
-                color: isPlaying 
+                color: isPlaying
                     ? AppColors.sequencerAccent.withOpacity(0.1)
                     : AppColors.sequencerSurfaceRaised,
                 border: Border(
@@ -423,9 +430,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                     color: showLatestRecordingSharePointer
                         ? AppColors.sequencerAccent
                         : AppColors.sequencerBorder,
-                    width: showLatestRecordingSharePointer
-                        ? 1.2
-                        : 0.5,
+                    width: showLatestRecordingSharePointer ? 1.2 : 0.5,
                   ),
                 ),
               ),
@@ -435,7 +440,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                   onTap: () => _playLibraryItem(item),
                   onLongPress: () => _showRemoveDialog(item),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
                         Icon(
@@ -444,7 +450,6 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                           size: 22,
                         ),
                         const SizedBox(width: 10),
-                        
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,7 +477,6 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                             ],
                           ),
                         ),
-                        
                         const SizedBox(width: 8),
                         Builder(
                           builder: (buttonContext) => TutorialPulseWidget(
@@ -480,7 +484,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                             borderRadius: BorderRadius.circular(10),
                             child: IconButton(
                               key: showLatestRecordingSharePointer
-                                  ? appState.libraryLatestRecordingShareTutorialKey
+                                  ? appState
+                                      .libraryLatestRecordingShareTutorialKey
                                   : null,
                               icon: Icon(
                                 Icons.share,
@@ -491,7 +496,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
                               ),
                               onPressed: () {
                                 if (showLatestRecordingSharePointer) {
-                                  appState.markLibraryLatestRecordingShareAction();
+                                  appState
+                                      .markLibraryLatestRecordingShareAction();
                                 }
                                 _shareLibraryItem(item, buttonContext);
                               },
@@ -554,22 +560,22 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       },
     );
   }
-  
+
   String _formatDuration(double duration) {
     final minutes = (duration / 60).floor();
     final seconds = (duration % 60).floor();
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
-  
+
   Future<void> _playLibraryItem(LibraryItem item) async {
     final audioPlayer = context.read<AudioPlayerState>();
-    
+
     await audioPlayer.playFromPath(
       itemId: item.id,
       localPath: item.localPath,
     );
   }
-  
+
   void _showRemoveDialog(LibraryItem item) {
     showDialog(
       context: context,
@@ -623,23 +629,25 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
       },
     );
   }
-  
+
   Future<void> _removeFromLibrary(LibraryItem item) async {
     final libraryState = context.read<LibraryState>();
     final success = await libraryState.removeFromLibrary(item.id);
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? 'Removed from library' : 'Failed to remove'),
-          backgroundColor: success ? AppColors.sequencerAccent : Colors.red.shade900,
+          backgroundColor:
+              success ? AppColors.sequencerAccent : Colors.red.shade900,
           duration: const Duration(seconds: 1),
         ),
       );
     }
   }
 
-  Future<void> _shareLibraryItem(LibraryItem item, BuildContext buttonContext) async {
+  Future<void> _shareLibraryItem(
+      LibraryItem item, BuildContext buttonContext) async {
     await _shareAudioFile(
       localPath: item.localPath,
       title: item.name,
@@ -666,12 +674,12 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         }
         return;
       }
-      
+
       final box = buttonContext.findRenderObject() as RenderBox?;
       final Rect sharePositionOrigin = box == null
           ? Rect.fromLTWH(0, 0, 100, 100)
           : box.localToGlobal(Offset.zero) & box.size;
-      
+
       final xFile = XFile(resolved);
       await Share.shareXFiles(
         [xFile],
@@ -759,10 +767,10 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         );
         return;
       }
-      final itemId = LibrarySamplesState.customSampleIdFor(
-        folderName: folderName,
-        filePath: filePath,
-      );
+      final itemId = context.read<LibrarySamplesState>().sampleIdForCustomFile(
+            folderName,
+            filePath,
+          );
       await context.read<AudioPlayerState>().playFromPath(
             itemId: itemId,
             localPath: resolved,
@@ -854,7 +862,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         content: Text(
           success ? 'Custom sample deleted' : 'Failed to delete sample',
         ),
-        backgroundColor: success ? AppColors.sequencerAccent : Colors.red.shade900,
+        backgroundColor:
+            success ? AppColors.sequencerAccent : Colors.red.shade900,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -923,12 +932,13 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         content: Text(
           success ? 'Folder deleted' : 'Failed to delete folder',
         ),
-        backgroundColor: success ? AppColors.sequencerAccent : Colors.red.shade900,
+        backgroundColor:
+            success ? AppColors.sequencerAccent : Colors.red.shade900,
         duration: const Duration(seconds: 2),
       ),
     );
   }
-  
+
   Future<void> _openLinkedPattern(LibraryItem item) async {
     final sourcePatternId = item.sourcePatternId;
     if (sourcePatternId == null) {
@@ -955,7 +965,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
 
       await patternsState.loadPatterns();
 
-      final index = patternsState.patterns.indexWhere((p) => p.id == sourcePatternId);
+      final index =
+          patternsState.patterns.indexWhere((p) => p.id == sourcePatternId);
       if (index < 0) {
         if (!mounted) return;
         _showPatternNotFoundDialog();
@@ -1080,16 +1091,19 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
             GestureDetector(
               onTap: state.navigateBack,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.sequencerSurfaceBase,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.sequencerBorder, width: 1),
+                  border:
+                      Border.all(color: AppColors.sequencerBorder, width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.arrow_back, color: AppColors.sequencerText, size: 16),
+                    Icon(Icons.arrow_back,
+                        color: AppColors.sequencerText, size: 16),
                     const SizedBox(width: 4),
                     Text(
                       'BACK',
@@ -1233,7 +1247,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
           if (item.isFolder) {
             return _buildDefaultFolderListRow(
               title: item.name,
-              onTap: () => state.openDefaultFolder(item.name),
+              onTap: () => state.openDefaultFolder(item.folderKey ?? item.name),
             );
           }
           final sampleId = item.sampleId;
@@ -1260,11 +1274,13 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
 
     final files = state.currentCustomFiles;
     if (files.isEmpty) {
-      return _buildEmptySamplesMessage('This custom folder has no imported files.');
+      return _buildEmptySamplesMessage(
+          'This custom folder has no imported files.');
     }
     final folderName = state.currentCustomFolder;
     if (folderName == null) {
-      return _buildEmptySamplesMessage('This custom folder has no imported files.');
+      return _buildEmptySamplesMessage(
+          'This custom folder has no imported files.');
     }
 
     return ListView.builder(
@@ -1352,29 +1368,30 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     required String filePath,
     required String folderName,
   }) {
-    final fileName = filePath.split('/').last;
-    final itemId = LibrarySamplesState.customSampleIdFor(
-      folderName: folderName,
-      filePath: filePath,
-    );
+    final fileNameRaw = filePath.split('/').last;
+    final fileName = LibrarySamplesState.formatSampleLabel(fileNameRaw);
+    final itemId = context.read<LibrarySamplesState>().sampleIdForCustomFile(
+          folderName,
+          filePath,
+        );
 
     return Consumer<AudioPlayerState>(
       builder: (context, audioPlayer, _) {
-        final isPlaying =
-            audioPlayer.currentlyPlayingItemId == itemId && audioPlayer.isPlaying;
+        final isPlaying = audioPlayer.currentlyPlayingItemId == itemId &&
+            audioPlayer.isPlaying;
         return _LibraryCustomSampleRow(
           key: ValueKey(itemId),
           filePath: filePath,
           fileName: fileName,
           isPlaying: isPlaying,
           onTap: () => _playCustomSample(
-                folderName: folderName,
-                filePath: filePath,
-              ),
+            folderName: folderName,
+            filePath: filePath,
+          ),
           onDelete: () => _showRemoveCustomSampleDialog(
-                folderName: folderName,
-                filePath: filePath,
-              ),
+            folderName: folderName,
+            filePath: filePath,
+          ),
         );
       },
     );
@@ -1401,16 +1418,25 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     final picked = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: const ['wav', 'mp3', 'm4a', 'aif', 'aiff', 'flac', 'ogg'],
+      allowedExtensions: const [
+        'wav',
+        'mp3',
+        'm4a',
+        'aif',
+        'aiff',
+        'flac',
+        'ogg'
+      ],
     );
     if (!mounted || picked == null || picked.files.isEmpty) {
       return;
     }
 
-    final result = await context.read<LibrarySamplesState>().importFilesToCustomFolder(
-      folderName: folderName.trim(),
-      files: picked.files,
-    );
+    final result =
+        await context.read<LibrarySamplesState>().importFilesToCustomFolder(
+              folderName: folderName.trim(),
+              files: picked.files,
+            );
     if (!mounted) return;
 
     final isSuccess = result.importedCount > 0;
@@ -1421,7 +1447,8 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isSuccess ? AppColors.sequencerAccent : Colors.red.shade900,
+        backgroundColor:
+            isSuccess ? AppColors.sequencerAccent : Colors.red.shade900,
         duration: const Duration(seconds: 2),
       ),
     );

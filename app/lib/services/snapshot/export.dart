@@ -11,6 +11,8 @@ import 'snapshot_table_validator.dart';
 
 /// Snapshot export service for sequencer state
 class SnapshotExporter {
+  static const int schemaVersion = 3;
+
   final TableState _tableState;
   final PlaybackState _playbackState;
   final SampleBankState _sampleBankState;
@@ -51,6 +53,7 @@ class SnapshotExporter {
         maxSteps: _tableState.maxSteps,
         maxCols: _tableState.maxCols,
       );
+      final missingReferencedSlots = _findReferencedButUnloadedSlots(snapshot);
 
       if (exportedSectionsCount != nativeSectionsCount) {
         debugPrint(
@@ -58,6 +61,12 @@ class SnapshotExporter {
       } else if (!structurallyValid) {
         debugPrint(
             '⚠️ [SNAPSHOT_EXPORT] structural validation failed, attempt $attempt/$maxAttempts');
+      } else if (missingReferencedSlots.isNotEmpty) {
+        debugPrint(
+            '⚠️ [SNAPSHOT_EXPORT] sample bank mismatch, referenced but unloaded slots: $missingReferencedSlots');
+        throw StateError(
+          'Cannot export project: table references unloaded sample slots ${_formatSlotList(missingReferencedSlots)}.',
+        );
       } else {
         return JsonEncoder.withIndent('  ').convert(snapshot);
       }
@@ -79,7 +88,7 @@ class SnapshotExporter {
     SnapshotDebugger.printPlaybackState(_playbackState);
 
     return {
-      'schema_version': 1,
+      'schema_version': schemaVersion,
       'id': id ?? _generateSnapshotId(),
       'name': name,
       'description': description,
@@ -156,12 +165,71 @@ class SnapshotExporter {
       layerModes[layer.toString()] = mode.name;
     }
 
+    // Export mute/solo state (sparse bool maps; only true values are persisted)
+    final layerMuted = <String, bool>{};
+    final layerSoloed = <String, bool>{};
+    final layerColumnMuted = <String, bool>{};
+    final layerColumnSoloed = <String, bool>{};
+
+    for (int layer = 0; layer < TableState.maxLayersPerSection; layer++) {
+      if (_tableState.isLayerMuted(layer)) {
+        layerMuted[layer.toString()] = true;
+      }
+      if (_tableState.isLayerSoloed(layer)) {
+        layerSoloed[layer.toString()] = true;
+      }
+      for (int col = 0; col < TableState.maxColsPerLayer; col++) {
+        final key = '$layer:$col';
+        if (_tableState.isLayerColumnMuted(layer, col)) {
+          layerColumnMuted[key] = true;
+        }
+        if (_tableState.isLayerColumnSoloed(layer, col)) {
+          layerColumnSoloed[key] = true;
+        }
+      }
+    }
+
+    // Export per-section/per-layer FX as explicit normalized values.
+    final layerFx = <String, Map<String, dynamic>>{};
+    for (int section = 0; section < sectionsCount; section++) {
+      final sectionLayers = <String, dynamic>{};
+      for (int layer = 0; layer < TableState.maxLayersPerSection; layer++) {
+        sectionLayers[layer.toString()] = {
+          'volume01': _playbackState.getSectionLayerVolume(section, layer),
+          'reverb': {
+            'send01': _playbackState.getSectionLayerReverbSend(section, layer),
+            'room01': _playbackState.getSectionLayerReverbRoom(section, layer),
+            'damp01': _playbackState.getSectionLayerReverbDamp(section, layer),
+          },
+          'eq_db': {
+            'low': _playbackState.getSectionLayerEqBandDb(section, layer, 0),
+            'mid': _playbackState.getSectionLayerEqBandDb(section, layer, 1),
+            'high': _playbackState.getSectionLayerEqBandDb(section, layer, 2),
+          },
+        };
+      }
+      layerFx[section.toString()] = sectionLayers;
+    }
+
     return {
       'sections_count': sectionsCount,
       'sections': sections,
       'layers': layers,
       'table_cells': table_cells,
       'layer_modes': layerModes,
+      // Legacy top-level keys kept for backward compatibility.
+      'layer_muted': layerMuted,
+      'layer_soloed': layerSoloed,
+      'layer_column_muted': layerColumnMuted,
+      'layer_column_soloed': layerColumnSoloed,
+      // v2 extendable groups.
+      'mute_solo': {
+        'layer_muted': layerMuted,
+        'layer_soloed': layerSoloed,
+        'layer_column_muted': layerColumnMuted,
+        'layer_column_soloed': layerColumnSoloed,
+      },
+      'layer_fx': layerFx,
     };
   }
 
@@ -199,6 +267,22 @@ class SnapshotExporter {
           'current_section': playbackPtr.ref.current_section,
           'current_section_loop': playbackPtr.ref.current_section_loop,
           'sections_loops_num': sectionsLoopsNum,
+          // v2 extendable block: full master FX state.
+          'master_fx': {
+            'volume01': _playbackState.masterVolume,
+            'reverb_wet01': _playbackState.masterReverbWet,
+            'eq_db': {
+              'low': _playbackState.masterEqLowDbNotifier.value,
+              'mid': _playbackState.masterEqMidDbNotifier.value,
+              'high': _playbackState.masterEqHighDbNotifier.value,
+            },
+          },
+          // Legacy duplicated fields for easier fallback parsing.
+          'master_volume01': _playbackState.masterVolume,
+          'master_reverb_wet01': _playbackState.masterReverbWet,
+          'master_eq_low_db': _playbackState.masterEqLowDbNotifier.value,
+          'master_eq_mid_db': _playbackState.masterEqMidDbNotifier.value,
+          'master_eq_high_db': _playbackState.masterEqHighDbNotifier.value,
         };
       }
       if (++tries >= maxTries) {
@@ -217,6 +301,20 @@ class SnapshotExporter {
       'current_section': 0,
       'current_section_loop': 0,
       'sections_loops_num': List.filled(64, 4),
+      'master_fx': {
+        'volume01': 1.0,
+        'reverb_wet01': 0.0,
+        'eq_db': {
+          'low': 0,
+          'mid': 0,
+          'high': 0,
+        },
+      },
+      'master_volume01': 1.0,
+      'master_reverb_wet01': 0.0,
+      'master_eq_low_db': 0,
+      'master_eq_mid_db': 0,
+      'master_eq_high_db': 0,
     };
   }
 
@@ -298,6 +396,43 @@ class SnapshotExporter {
       'max_slots': 26,
       'samples': samples,
     };
+  }
+
+  List<int> _findReferencedButUnloadedSlots(Map<String, dynamic> snapshot) {
+    final source = snapshot['source'] as Map<String, dynamic>?;
+    final table = source?['table'] as Map<String, dynamic>?;
+    final sampleBank = source?['sample_bank'] as Map<String, dynamic>?;
+    final tableCells = table?['table_cells'] as List<dynamic>? ?? const [];
+    final samples = sampleBank?['samples'] as List<dynamic>? ?? const [];
+
+    final referencedSlots = <int>{};
+    for (final row in tableCells) {
+      if (row is! List<dynamic>) continue;
+      for (final cell in row) {
+        if (cell is! Map<String, dynamic>) continue;
+        final slot = (cell['sample_slot'] as num?)?.toInt() ?? -1;
+        if (slot >= 0 && slot < 26) {
+          referencedSlots.add(slot);
+        }
+      }
+    }
+
+    final missing = <int>[];
+    for (final slot in referencedSlots.toList()..sort()) {
+      final sampleData =
+          slot < samples.length ? samples[slot] as Map<String, dynamic>? : null;
+      final loaded = sampleData?['loaded'] == true;
+      if (!loaded) {
+        missing.add(slot);
+      }
+    }
+    return missing;
+  }
+
+  String _formatSlotList(List<int> slots) {
+    return slots
+        .map((slot) => '${String.fromCharCode(65 + slot)}($slot)')
+        .join(', ');
   }
   
   /// Convert Color to hex string (e.g., #FF5733)

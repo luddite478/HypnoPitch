@@ -127,3 +127,4 @@ nginx/certbot-webroot/*
 !nginx/certbot-webroot/.gitkeep
 
 test
+app/android/fastlane/samples_pack

@@ -136,21 +136,35 @@ class EditButtonsWidget extends StatelessWidget {
                         enabled: appState.activeTutorialStep ==
                                 TutorialStep.sequencerJumpValueTwoHint,
                         borderRadius: BorderRadius.circular(2),
-                        child: _JumpButtonWithFeedback(
+                        child: _JumpTextActionButton(
                           key: appState.jumpButtonTutorialKey,
                           label: 'JUMP ${editState.stepInsertSize}',
                           height: buttonHeight,
                           fontSize: textFontSize,
                           horizontalPadding: buttonHPad,
+                          enabled: appState.canInteractWithTutorialTarget(
+                            TutorialInteractionTarget.jumpButton,
+                          ),
                           onPressed: () {
                             if (!appState.canInteractWithTutorialTarget(
                                 TutorialInteractionTarget.jumpButton)) {
                               return;
                             }
-                            editState.toggleStepInsertMode();
-                            Provider.of<MultitaskPanelState>(context,
-                                    listen: false)
-                                .showStepInsertSettings();
+                            final multitaskPanel =
+                                Provider.of<MultitaskPanelState>(context,
+                                    listen: false);
+                            if (multitaskPanel.currentMode ==
+                                MultitaskPanelMode.stepInsertSettings) {
+                              multitaskPanel.showPlaceholder();
+                              if (editState.isStepInsertMode) {
+                                editState.toggleStepInsertMode();
+                              }
+                            } else {
+                              if (!editState.isStepInsertMode) {
+                                editState.toggleStepInsertMode();
+                              }
+                              multitaskPanel.showStepInsertSettings();
+                            }
                             appState.markJumpAction();
                           },
                         ),
@@ -579,11 +593,13 @@ class EditButtonsWidget extends StatelessWidget {
     final backgroundColor = !enabled
         ? AppColors.sequencerSurfacePressed
         : isActive
-            ? Colors.white.withOpacity(0.22)
+            ? AppColors.sequencerAccent
             : AppColors.sequencerSurfaceRaised;
-    final textColor = isActive
-        ? const Color(0xFFF5F5F5)
-        : (enabled ? AppColors.sequencerText : AppColors.sequencerLightText);
+    final textColor = !enabled
+        ? AppColors.sequencerLightText
+        : isActive
+            ? AppColors.sequencerPageBackground
+            : AppColors.sequencerText;
     return Container(
       key: key,
       height: height,
@@ -591,10 +607,8 @@ class EditButtonsWidget extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(3),
         border: Border.all(
-          color: isActive
-              ? Colors.white.withOpacity(0.75)
-              : AppColors.sequencerBorder,
-          width: isActive ? 1.0 : 0.5,
+          color: AppColors.sequencerBorder,
+          width: 0.5,
         ),
         boxShadow: enabled
             ? [
@@ -608,12 +622,6 @@ class EditButtonsWidget extends StatelessWidget {
                   blurRadius: 0.5,
                   offset: const Offset(0, -0.5),
                 ),
-                if (isActive)
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.22),
-                    blurRadius: 6,
-                    offset: const Offset(0, 0),
-                  ),
               ]
             : [
                 BoxShadow(
@@ -654,26 +662,27 @@ class EditButtonsWidget extends StatelessWidget {
   }
 }
 
-// Stateful JUMP button with click feedback (no active state)
-class _JumpButtonWithFeedback extends StatefulWidget {
+/// JUMP: neutral chrome always; [InkWell] ripple + short opacity blink on tap only.
+class _JumpTextActionButton extends StatefulWidget {
   final String label;
   final double height;
   final double fontSize;
   final double horizontalPadding;
+  final bool enabled;
   final VoidCallback onPressed;
 
-  const _JumpButtonWithFeedback({
+  const _JumpTextActionButton({
     super.key,
     required this.label,
     required this.height,
     required this.fontSize,
     required this.horizontalPadding,
+    required this.enabled,
     required this.onPressed,
   });
 
   @override
-  State<_JumpButtonWithFeedback> createState() =>
-      _JumpButtonWithFeedbackState();
+  State<_JumpTextActionButton> createState() => _JumpTextActionButtonState();
 }
 
 bool _absoluteCellsContainSamples(
@@ -704,66 +713,112 @@ bool _absoluteCellsAreEmpty(
   return true;
 }
 
-class _JumpButtonWithFeedbackState extends State<_JumpButtonWithFeedback> {
-  bool _isPressed = false;
+class _JumpTextActionButtonState extends State<_JumpTextActionButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tapBlinkController;
+  late final Animation<double> _tapBlinkOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _tapBlinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+    _tapBlinkOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.38), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.38, end: 1.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.48), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.48, end: 1.0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _tapBlinkController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _tapBlinkController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() => _isPressed = true);
-      },
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onPressed();
-      },
-      onTapCancel: () {
-        setState(() => _isPressed = false);
-      },
-      child: Container(
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: _isPressed
-              ? AppColors.sequencerAccent
-              : AppColors.sequencerSurfaceRaised,
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(
-            color: AppColors.sequencerBorder,
-            width: 0.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.sequencerShadow,
-              blurRadius: 1.5,
-              offset: const Offset(0, 1),
-            ),
-            BoxShadow(
-              color: AppColors.sequencerSurfaceRaised,
-              blurRadius: 0.5,
-              offset: const Offset(0, -0.5),
-            ),
-          ],
+    final backgroundColor = !widget.enabled
+        ? AppColors.sequencerSurfacePressed
+        : AppColors.sequencerSurfaceRaised;
+    final textColor = !widget.enabled
+        ? AppColors.sequencerLightText
+        : AppColors.sequencerText;
+
+    return Container(
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+          color: AppColors.sequencerBorder,
+          width: 0.5,
         ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                widget.label,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.visible,
-                style: TextStyle(
-                  fontSize: widget.fontSize,
-                  fontWeight: FontWeight.w700,
-                  color: _isPressed
-                      ? AppColors.sequencerPageBackground
-                      : AppColors.sequencerText,
-                  letterSpacing: 0.8,
+        boxShadow: widget.enabled
+            ? [
+                BoxShadow(
+                  color: AppColors.sequencerShadow,
+                  blurRadius: 1.5,
+                  offset: const Offset(0, 1),
                 ),
-              ),
-            ),
+                BoxShadow(
+                  color: AppColors.sequencerSurfaceRaised,
+                  blurRadius: 0.5,
+                  offset: const Offset(0, -0.5),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: AppColors.sequencerShadow,
+                  blurRadius: 1,
+                  offset: const Offset(0, 0.5),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.enabled
+              ? () {
+                  widget.onPressed();
+                  _tapBlinkController.forward(from: 0);
+                }
+              : null,
+          borderRadius: BorderRadius.circular(3),
+          child: AnimatedBuilder(
+            animation: _tapBlinkController,
+            builder: (context, __) {
+              return Opacity(
+                opacity: _tapBlinkOpacity.value,
+                child: Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        widget.label,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.visible,
+                        style: TextStyle(
+                          fontSize: widget.fontSize,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

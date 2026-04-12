@@ -1,0 +1,13 @@
+app_identifier("com.romansmirnov.audioapp1")
+
+fastlane_apple_id = ENV["FASTLANE_APPLE_ID"]
+fastlane_itc_team_id = ENV["FASTLANE_ITC_TEAM_ID"]
+fastlane_team_id = ENV["FASTLANE_TEAM_ID"]
+
+raise "Missing FASTLANE_APPLE_ID" if fastlane_apple_id.to_s.empty?
+raise "Missing FASTLANE_ITC_TEAM_ID" if fastlane_itc_team_id.to_s.empty?
+raise "Missing FASTLANE_TEAM_ID" if fastlane_team_id.to_s.empty?
+
+apple_id(fastlane_apple_id)
+itc_team_id(fastlane_itc_team_id)
+team_id(fastlane_team_id)

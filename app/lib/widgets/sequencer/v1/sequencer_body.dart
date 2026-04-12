@@ -155,6 +155,7 @@ class _SequencerBodyState extends State<SequencerBody> {
           },
           child: Consumer<EditState>(
             builder: (context, editState, _) => PageView.builder(
+              key: ValueKey<int>(tableState.sectionsCount),
               controller: _pageController,
               physics: editState.isInSelectionMode
                   ? const NeverScrollableScrollPhysics()
@@ -162,22 +163,15 @@ class _SequencerBodyState extends State<SequencerBody> {
               onPageChanged: (index) {
                 // Only change section when page is fully changed
                 if (index < tableState.sectionsCount) {
-                  // Switch both playback (sound) and UI (visuals) separately
-                  final currentIndex = tableState.uiSelectedSection;
-                  if (index > currentIndex) {
-                    // Moving forward - update both playback and UI
-                    for (int i = currentIndex; i < index; i++) {
-                      playbackState.switchToNextSection();
-                    }
-                  } else if (index < currentIndex) {
-                    // Moving backward - update both playback and UI
-                    for (int i = currentIndex; i > index; i--) {
-                      playbackState.switchToPreviousSection();
-                    }
-                  }
+                  // Jump straight to the settled page index. Stepping through
+                  // next/previous sections here can reuse stale playback state
+                  // while PageView is still reconciling after section inserts.
+                  playbackState.switchToSection(index);
                   // Update UI selection separately (use post-frame callback to avoid setState during build)
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    tableState.setUiSelectedSection(index);
+                    if (tableState.uiSelectedSection != index) {
+                      tableState.setUiSelectedSection(index);
+                    }
                   });
                 }
               },
