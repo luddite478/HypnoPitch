@@ -679,8 +679,11 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: issues.map((issue) {
-                      final slotLetter =
-                          String.fromCharCode(65 + issue.slot.clamp(0, 25));
+                      final clampedSlot = issue.slot
+                          .clamp(0, SampleBankState.maxSampleSlots - 1);
+                      final slotLabel = clampedSlot < 26
+                          ? String.fromCharCode(65 + clampedSlot)
+                          : '${clampedSlot + 1}';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(10),
@@ -692,7 +695,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Slot $slotLetter',
+                              'Slot $slotLabel',
                               style: TextStyle(
                                 color: AppColors.sequencerText,
                                 fontWeight: FontWeight.w700,

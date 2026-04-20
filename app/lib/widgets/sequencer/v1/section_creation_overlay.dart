@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
 import '../../../state/app_state.dart';
+import '../../../state/sequencer/section_settings.dart';
 import '../../../state/sequencer/table.dart';
 
 class SectionCreationOverlay extends StatelessWidget {
@@ -44,7 +45,10 @@ class SectionCreationOverlay extends StatelessWidget {
                   context,
                   tutorialKey: appState.sectionCreatePrimaryButtonTutorialKey,
                   text: 'Create new section',
-                  onPressed: () => tableState.appendSection(),
+                  onPressed: () {
+                    tableState.appendSection();
+                    context.read<SectionSettingsState>().closeSectionCreationOverlay();
+                  },
                 ),
                 SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                 Text(
@@ -66,7 +70,12 @@ class SectionCreationOverlay extends StatelessWidget {
                       return _buildCopyFromButton(
                         context,
                         sectionIndex: index,
-                        onPressed: () => tableState.appendSection(copyFrom: index),
+                        onPressed: () {
+                          tableState.appendSection(copyFrom: index);
+                          context
+                              .read<SectionSettingsState>()
+                              .closeSectionCreationOverlay();
+                        },
                       );
                     },
                   ),

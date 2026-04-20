@@ -973,25 +973,26 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   /// Extracts sample bank colors from snapshot data
   List<Color> _getSampleBankColors(Map<String, dynamic> snapshotData) {
     final List<Color> colors = [];
+    final userSlots = SampleBankState.previewSlot;
 
     try {
       final source = snapshotData['source'] as Map<String, dynamic>?;
       if (source == null) {
-        return List.generate(25, (i) => AppColors.sequencerCellEmpty);
+        return List.generate(userSlots, (i) => AppColors.sequencerCellEmpty);
       }
 
       final sampleBankData = source['sample_bank'] as Map<String, dynamic>?;
       if (sampleBankData == null) {
-        return List.generate(25, (i) => AppColors.sequencerCellEmpty);
+        return List.generate(userSlots, (i) => AppColors.sequencerCellEmpty);
       }
 
       final samples = sampleBankData['samples'] as List<dynamic>?;
       if (samples == null) {
-        return List.generate(25, (i) => AppColors.sequencerCellEmpty);
+        return List.generate(userSlots, (i) => AppColors.sequencerCellEmpty);
       }
 
-      // Process first 25 slots (A-Y)
-      final slotsToProcess = samples.length.clamp(0, 25);
+      // Process user slots only (preview slot is excluded from card colors).
+      final slotsToProcess = samples.length.clamp(0, userSlots);
 
       for (int i = 0; i < slotsToProcess; i++) {
         final sample = samples[i];
@@ -1023,12 +1024,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       }
 
       // Fill remaining slots
-      while (colors.length < 25) {
+      while (colors.length < userSlots) {
         colors.add(AppColors.sequencerCellEmpty);
       }
     } catch (e) {
       debugPrint('❌ [PROJECTS] Error parsing sample bank colors: $e');
-      return List.generate(25, (i) => AppColors.sequencerCellEmpty);
+      return List.generate(userSlots, (i) => AppColors.sequencerCellEmpty);
     }
 
     return colors;
@@ -1099,9 +1100,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           ),
         },
         'sample_bank': {
-          'max_slots': 26,
+          'max_slots': SampleBankState.maxSampleSlots,
           'samples': List.generate(
-              26,
+              SampleBankState.maxSampleSlots,
               (i) => {
                     'loaded': false,
                     'settings': {

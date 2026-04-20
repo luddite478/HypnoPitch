@@ -8,6 +8,7 @@ import '../services/local_pattern_service.dart';
 import '../services/local_checkpoint_service.dart';
 import '../services/cache/working_state_cache_service.dart';
 import '../utils/app_colors.dart';
+import 'sequencer/sample_bank.dart';
 
 /// Local-only state for managing patterns and checkpoints
 /// Replaces ThreadsState with simplified local storage
@@ -358,7 +359,7 @@ class PatternsState extends ChangeNotifier {
       (index) => _colorToHex(palette[index % palette.length]),
     );
 
-    final samples = List.generate(26, (index) {
+    final samples = List.generate(SampleBankState.maxSampleSlots, (index) {
       final isLoaded = index < sampleColors.length;
       return <String, dynamic>{
         'loaded': isLoaded,
@@ -404,7 +405,7 @@ class PatternsState extends ChangeNotifier {
           'sections_loops_num': List.filled(64, 4),
         },
         'sample_bank': {
-          'max_slots': 26,
+          'max_slots': SampleBankState.maxSampleSlots,
           'samples': samples,
         },
       },

@@ -31,9 +31,9 @@ class _NativeSampleBankState {
 /// and seqlock-based synchronization. Native holds all sample loading state,
 /// Flutter only maintains UI helpers and ValueNotifiers for reactive updates.
 class SampleBankState extends ChangeNotifier {
-  static const int maxSampleSlots = 26; // A-Z (0-25)
-  static const int _lastDedicatedUserSlot =
-      24; // Keep Z(25) for preview/recording paths
+  static const int maxSampleSlots = 101; // 100 user slots + preview slot
+  static const int previewSlot = maxSampleSlots - 1;
+  static const int _lastDedicatedUserSlot = previewSlot - 1;
 
   final SampleBankBindings _sample_bank_ffi;
   final SampleAssetResolver _sampleAssets = SampleAssetResolver.instance;
@@ -44,7 +44,7 @@ class SampleBankState extends ChangeNotifier {
   void Function()? _onStateChanged;
 
   // Private state fields (synced from native)
-  int _maxSlots = 26;
+  int _maxSlots = maxSampleSlots;
   int _loadedCount = 0;
   ffi.Pointer<Sample> _samplesPtr = ffi.nullptr;
   final List<bool> _slotsLoaded = List.filled(maxSampleSlots, false);
@@ -392,19 +392,28 @@ class SampleBankState extends ChangeNotifier {
     }
   }
 
-  /// Get slot letter (A-Z)
+  /// Get slot label.
+  /// Uses letters for first 26 slots to preserve old UI copy, then numbers.
   String getSlotLetter(int slot) {
     if (slot < 0 || slot >= maxSampleSlots) return '?';
-    return String.fromCharCode(65 + slot); // A=65
+    if (slot < 26) return String.fromCharCode(65 + slot); // A=65
+    return '${slot + 1}';
   }
 
   /// Get slot index from letter
   int getSlotFromLetter(String letter) {
-    if (letter.length != 1) return -1;
-    final code = letter.toUpperCase().codeUnitAt(0);
-    if (code >= 65 && code <= 90) {
-      // A-Z
-      return code - 65;
+    final normalized = letter.trim();
+    if (normalized.isEmpty) return -1;
+    if (normalized.length == 1) {
+      final code = normalized.toUpperCase().codeUnitAt(0);
+      if (code >= 65 && code <= 90) {
+        // A-Z
+        return code - 65;
+      }
+    }
+    final numeric = int.tryParse(normalized);
+    if (numeric != null && numeric >= 1 && numeric <= maxSampleSlots) {
+      return numeric - 1;
     }
     return -1;
   }
@@ -421,7 +430,7 @@ class SampleBankState extends ChangeNotifier {
 
   /// Simple dedicated-slot resolver for grid-cell sample selection.
   /// Reuses a slot if the same sample id is already loaded, otherwise loads
-  /// into the first free user slot (A-Y). Returns null when no slot is available.
+  /// into the first free user slot (preview slot excluded). Returns null when no slot is available.
   Future<int?> loadSampleForCell(String sampleId) async {
     // 1) Reuse already loaded sample id.
     for (int slot = 0; slot <= _lastDedicatedUserSlot; slot++) {
@@ -441,7 +450,7 @@ class SampleBankState extends ChangeNotifier {
     return null;
   }
 
-  /// True if at least one dedicated user slot (A–Y, indices `0.._lastDedicatedUserSlot`)
+  /// True if at least one dedicated user slot (`0.._lastDedicatedUserSlot`)
   /// is free for [loadSampleForCell].
   bool get hasFreeDedicatedSlot {
     for (int slot = 0; slot <= _lastDedicatedUserSlot; slot++) {
@@ -608,22 +617,18 @@ class SampleBankState extends ChangeNotifier {
   /// Assign random colors from the dark forest/berry palette to all sample slots
   ///
   /// This is called when creating a new project to give each project a unique
-  /// color scheme. The 26 palette colors are shuffled randomly and assigned
-  /// to slots A-Z, ensuring visual distinction between projects.
+  /// color scheme. Palette colors are shuffled and reused cyclically across slots.
   void assignRandomProjectColors() {
-    // Verify palette has exactly 26 unique colors
-    assert(AppColors.sampleBankPalette.length == maxSampleSlots,
-        'Palette must have exactly 26 colors for 26 sample slots');
-    assert(AppColors.sampleBankPalette.toSet().length == maxSampleSlots,
-        'All 26 palette colors must be unique (found ${AppColors.sampleBankPalette.toSet().length} unique colors)');
+    assert(AppColors.sampleBankPalette.isNotEmpty,
+        'Palette must define at least one sample color');
 
     // Create a copy of the palette and shuffle it
     final shuffledColors = List<Color>.from(AppColors.sampleBankPalette);
     shuffledColors.shuffle(math.Random());
 
-    // Assign shuffled colors to all 26 slots (one-to-one mapping, no duplicates)
+    // Assign shuffled colors to all slots, cycling palette if needed.
     for (int i = 0; i < maxSampleSlots; i++) {
-      _sampleColors[i] = shuffledColors[i];
+      _sampleColors[i] = shuffledColors[i % shuffledColors.length];
     }
 
     Log.d(

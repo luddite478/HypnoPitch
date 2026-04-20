@@ -8,6 +8,7 @@ import '../../ffi/playback_bindings.dart';
 import '../../conversion_library.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
+import 'sample_bank.dart';
 
 /// State management for recording functionality
 /// Handles audio recording controls and status
@@ -300,8 +301,8 @@ class RecordingState extends ChangeNotifier {
       return false;
     }
     
-    // Find available slot or use slot 25 (last slot, reserved for recordings)
-    targetSlot ??= 25;
+    // Use preview slot (last slot), reserved for preview/recording.
+    targetSlot ??= SampleBankState.previewSlot;
     
     // Calculate duration for memory warning
     final file = File(_currentRecordingPath!);
@@ -407,11 +408,13 @@ class RecordingState extends ChangeNotifier {
   Future<void> _autoLoadRecordedSample() async {
     try {
       debugPrint('🔄 [RECORDING] Auto-loading recorded audio as sample...');
-      final loaded = await loadRecordedAudioAsSample(targetSlot: 25);
+      final loaded =
+          await loadRecordedAudioAsSample(targetSlot: SampleBankState.previewSlot);
       
       if (loaded) {
         debugPrint('✅ [RECORDING] Successfully loaded as sample, generating pattern');
-        _generatePlaybackPattern(25, _recordingOffsetFrames);
+        _generatePlaybackPattern(
+            SampleBankState.previewSlot, _recordingOffsetFrames);
       } else {
         debugPrint('❌ [RECORDING] Failed to auto-load recorded audio');
       }

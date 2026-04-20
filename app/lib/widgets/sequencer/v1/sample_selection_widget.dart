@@ -41,7 +41,7 @@ Future<void> _selectSampleForCurrentTarget(
       if (!sampleBankState.hasFreeDedicatedSlot) {
         showSampleLimitDialog = true;
         Log.d(
-            '❌ Dedicated sample bank full (A–Y), cannot load sample id=$sampleId');
+            '❌ Dedicated sample bank full (1-${SampleBankState.previewSlot}), cannot load sample id=$sampleId');
       } else {
         Log.d('❌ Failed to load sample id=$sampleId (load error?)');
       }
@@ -87,6 +87,7 @@ Future<void> _selectSampleForCurrentTarget(
   if (context.mounted) Navigator.of(context).pop();
 
   if (showSampleLimitDialog && context.mounted) {
+    final userSlotsCount = SampleBankState.previewSlot;
     await showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -153,7 +154,8 @@ Future<void> _selectSampleForCurrentTarget(
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                     child: Text(
-                      'You can load at most 25 different samples (A–Y) in '
+                      'You can load at most $userSlotsCount different samples '
+                      '(slots 1-$userSlotsCount) in '
                       'this project. Remove a sample from the grid or unload '
                       'one from the bank to add a new sound.',
                       style: TextStyle(

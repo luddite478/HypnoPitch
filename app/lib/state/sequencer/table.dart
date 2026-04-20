@@ -868,12 +868,23 @@ class TableState extends ChangeNotifier {
   void appendSection({int? copyFrom, bool undoRecord = true}) {
     _table_ffi.tableAppendSection!(
         defaultSectionSteps, (copyFrom ?? -1), undoRecord ? 1 : 0);
-    final newIndex =
-        (_sectionsCount); // new section will be at current count index
-    _uiSelectedSection = newIndex;
+    // Native count updates immediately; Dart `_sectionsCount` otherwise stays
+    // stale until the next periodic sync, so the section PageView still used
+    // `sectionsCount + 1` pages with the last page = creation UI.
+    syncTableState();
+    if (_sectionsCount != _table_ffi.tableGetSectionsCount()) {
+      syncTableState();
+    }
+    _uiSelectedSection = _sectionsCount - 1;
+    // Keep native playback "current section" aligned with the UI section; otherwise
+    // playhead / engine state can stay on the previous section while the grid reads
+    // the newly selected range via uiSelectedSection.
+    if (_initialized) {
+      _playback_ffi.switchToSectionImmediate(_uiSelectedSection);
+    }
     notifyListeners();
     debugPrint(
-        '🆕 [TABLE_STATE] Appended section and selected index $newIndex');
+        '🆕 [TABLE_STATE] Appended section and selected index $_uiSelectedSection');
   }
 
   void deleteSection(int sectionIndex, {bool undoRecord = true}) {

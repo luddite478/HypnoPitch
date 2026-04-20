@@ -3,7 +3,6 @@ import 'dart:ffi' as ffi;
 import '../../state/sequencer/table.dart';
 import '../../state/sequencer/playback.dart';
 import '../../state/sequencer/sample_bank.dart';
-import '../../ffi/table_bindings.dart';
 
 /// Debug utility to print detailed snapshot state
 class SnapshotDebugger {
@@ -47,7 +46,7 @@ class SnapshotDebugger {
     debugPrint('=== SAMPLE BANK STATE DEBUG ===');
     debugPrint('Loaded count: ${sampleBankState.loadedCount}');
     
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < SampleBankState.maxSampleSlots; i++) {
       if (sampleBankState.isSlotLoaded(i)) {
         final data = sampleBankState.getSampleData(i);
         debugPrint('Slot $i (${sampleBankState.getSlotLetter(i)}): ${data.displayName}');

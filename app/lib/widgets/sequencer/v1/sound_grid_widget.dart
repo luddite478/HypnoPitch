@@ -87,6 +87,100 @@ class GridCellDragData {
 
 enum GestureMode { undetermined, scrolling, selecting }
 
+/// Row/cell geometry shared by [_SampleGridWidgetState._buildGridRow] and
+/// [_SampleGridWidgetState._positionToCellIndex]. Uses the grid viewport width
+/// from [LayoutBuilder] constraints only — not screen [MediaQuery] — and rounds
+/// down per `docs/dart_ui_guide/flutter_overflow_prevention_guide.md`.
+class _SoundGridRowLayoutMetrics {
+  const _SoundGridRowLayoutMetrics({
+    required this.actualRowHeight,
+    required this.actualRowSpacing,
+    required this.rowBlock,
+    required this.actualRowNumberColumnWidth,
+    required this.actualCellSpacing,
+    required this.actualCellWidth,
+    required this.cellBlock,
+  });
+
+  final double actualRowHeight;
+  final double actualRowSpacing;
+  final double rowBlock;
+  final double actualRowNumberColumnWidth;
+  final double actualCellSpacing;
+  final double actualCellWidth;
+  final double cellBlock;
+
+  /// [viewportWidth] must be [LayoutBuilder.constraints.maxWidth] for this grid.
+  static _SoundGridRowLayoutMetrics fromViewportWidth(
+    double viewportWidth,
+    int gridCols, {
+    required double cellWidthPercent,
+    required double cellHeightPercent,
+    required double cellSpacingPercent,
+    required double rowSpacingPercent,
+    required double rowNumberColumnWidthPercent,
+  }) {
+    const baseRowHeight = 50.0;
+    final actualRowHeight = baseRowHeight * (cellHeightPercent / 100.0);
+    final actualRowSpacing = baseRowHeight * (rowSpacingPercent / 100.0);
+    final rowBlock = actualRowHeight + actualRowSpacing;
+    if (rowBlock <= 0 || viewportWidth <= 0) {
+      return _SoundGridRowLayoutMetrics(
+        actualRowHeight: actualRowHeight,
+        actualRowSpacing: actualRowSpacing,
+        rowBlock: rowBlock,
+        actualRowNumberColumnWidth: 0,
+        actualCellSpacing: 0,
+        actualCellWidth: 0,
+        cellBlock: 0,
+      );
+    }
+
+    final w = viewportWidth;
+    // Round down (guide: avoid float overflow in Rows).
+    final actualRowNumberColumnWidth =
+        (w * (rowNumberColumnWidthPercent / 100.0)).floorToDouble();
+    final actualCellSpacing =
+        (w * (cellSpacingPercent / 100.0)).floorToDouble();
+    final availableWidthForGrid =
+        (w - actualRowNumberColumnWidth).clamp(0.0, w).floorToDouble();
+    final totalHorizontalSpacing = actualCellSpacing * (gridCols - 1);
+    var availableWidthForCells = availableWidthForGrid - totalHorizontalSpacing;
+    if (availableWidthForCells < 0) availableWidthForCells = 0;
+    final fullCellWidth = gridCols > 0
+        ? (availableWidthForCells / gridCols).floorToDouble()
+        : 0.0;
+    var actualCellWidth =
+        (fullCellWidth * (cellWidthPercent / 100.0)).floorToDouble();
+    if (gridCols > 0) {
+      var rowSum = gridCols * actualCellWidth + totalHorizontalSpacing;
+      if (rowSum > availableWidthForGrid) {
+        final over = rowSum - availableWidthForGrid;
+        actualCellWidth = ((gridCols * actualCellWidth - over) / gridCols)
+            .floorToDouble()
+            .clamp(0.0, double.infinity);
+      }
+    }
+    final cellBlock = actualCellWidth + actualCellSpacing;
+
+    assert(() {
+      if (gridCols <= 0) return true;
+      final rowSum = gridCols * actualCellWidth + totalHorizontalSpacing;
+      return rowSum <= availableWidthForGrid + 1.0;
+    }());
+
+    return _SoundGridRowLayoutMetrics(
+      actualRowHeight: actualRowHeight,
+      actualRowSpacing: actualRowSpacing,
+      rowBlock: rowBlock,
+      actualRowNumberColumnWidth: actualRowNumberColumnWidth,
+      actualCellSpacing: actualCellSpacing,
+      actualCellWidth: actualCellWidth,
+      cellBlock: cellBlock,
+    );
+  }
+}
+
 class _SampleGridWidgetState extends State<SampleGridWidget> {
   final ScrollController _scrollController = ScrollController();
   Timer? _autoScrollTimer;
@@ -101,6 +195,12 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   GestureMode _gestureMode = GestureMode.undetermined;
   static const double _gestureThreshold = 15.0;
   int _gridBuildCount = 0;
+
+  /// Last laid-out grid viewport from [LayoutBuilder.constraints] (same coordinate space as pan
+  /// [localPosition]). Cached for timers/updates between builds; do not use [MediaQuery] size
+  /// for grid math — see `docs/dart_ui_guide/flutter_overflow_prevention_guide.md`.
+  double? _gridViewportWidth;
+  double? _gridViewportHeight;
 
   // CONFIGURABLE GRID DIMENSIONS - Easy to control cell sizing
   static const double cellWidthPercent =
@@ -220,10 +320,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
         _scrollController.jumpTo(clampedOffset);
 
         final positionToUse = _currentPanPosition ?? initialPosition;
-        final renderBox = context.findRenderObject() as RenderBox?;
-        final width =
-            renderBox?.size.width ?? MediaQuery.of(context).size.width;
-        final cellIndex = _positionToCellIndex(positionToUse, width);
+        final cellIndex = _positionToCellIndex(positionToUse, _gridViewportWidth);
         if (cellIndex != null) {
           context.read<EditState>().selectCell(cellIndex, extend: true);
         }
@@ -266,40 +363,38 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   }
 
   void _handleSelectionGesture(Offset localPosition) {
-    final rb2 = context.findRenderObject() as RenderBox?;
-    final width = rb2?.size.width ?? MediaQuery.of(context).size.width;
-    final cellIndex = _positionToCellIndex(localPosition, width);
+    final cellIndex = _positionToCellIndex(localPosition, _gridViewportWidth);
 
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox != null) {
-      final containerHeight = renderBox.size.height;
-      final yPosition = localPosition.dy;
+    final viewportH = _gridViewportHeight;
+    final yPosition = localPosition.dy;
 
-      if (yPosition < _edgeThreshold &&
-          _scrollController.hasClients &&
-          _scrollController.offset > 0) {
-        _startAutoScroll(-1.0, localPosition);
-        if (cellIndex != null) {
-          context.read<UiSelectionState>().selectCells();
-          context.read<EditState>().selectCell(cellIndex, extend: true);
-          context.read<MultitaskPanelState>().showCellSettings();
-        }
-        return;
-      } else if (yPosition > containerHeight - _edgeThreshold &&
-          _scrollController.hasClients &&
-          _scrollController.offset <
-              _scrollController.position.maxScrollExtent) {
-        _startAutoScroll(1.0, localPosition);
-        if (cellIndex != null) {
-          context.read<UiSelectionState>().selectCells();
-          context.read<EditState>().selectCell(cellIndex, extend: true);
-          context.read<MultitaskPanelState>().showCellSettings();
-        }
-        return;
-      } else {
-        _stopAutoScroll();
+    if (viewportH != null &&
+        viewportH > 0 &&
+        yPosition < _edgeThreshold &&
+        _scrollController.hasClients &&
+        _scrollController.offset > 0) {
+      _startAutoScroll(-1.0, localPosition);
+      if (cellIndex != null) {
+        context.read<UiSelectionState>().selectCells();
+        context.read<EditState>().selectCell(cellIndex, extend: true);
+        context.read<MultitaskPanelState>().showCellSettings();
       }
+      return;
     }
+    if (viewportH != null &&
+        viewportH > 0 &&
+        yPosition > viewportH - _edgeThreshold &&
+        _scrollController.hasClients &&
+        _scrollController.offset < _scrollController.position.maxScrollExtent) {
+      _startAutoScroll(1.0, localPosition);
+      if (cellIndex != null) {
+        context.read<UiSelectionState>().selectCells();
+        context.read<EditState>().selectCell(cellIndex, extend: true);
+        context.read<MultitaskPanelState>().showCellSettings();
+      }
+      return;
+    }
+    _stopAutoScroll();
 
     if (cellIndex != null) {
       context.read<UiSelectionState>().selectCells();
@@ -308,35 +403,32 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     }
   }
 
-  int? _positionToCellIndex(Offset localPosition, double width) {
-    final baseRowHeight = 50.0;
-    final actualRowHeight = baseRowHeight * (cellHeightPercent / 100.0);
-    final actualRowSpacing = baseRowHeight * (rowSpacingPercent / 100.0);
-    final rowBlock = actualRowHeight + actualRowSpacing;
-    if (rowBlock <= 0) return null;
-    // Account for vertical scroll offset so row index corresponds to absolute row
-    final scrollOffset =
-        _scrollController.hasClients ? _scrollController.offset : 0.0;
-    final rowIndex = ((scrollOffset + localPosition.dy) / rowBlock).floor();
-    if (rowIndex < 0) return null;
+  /// [viewportWidth] must be the grid [LayoutBuilder] width (see [_gridViewportWidth]).
+  int? _positionToCellIndex(Offset localPosition, double? viewportWidth) {
+    if (viewportWidth == null || viewportWidth <= 0) return null;
 
     final gridCols = context.read<TableState>().getVisibleCols().length;
-    final actualRowNumberColumnWidth =
-        width * (rowNumberColumnWidthPercent / 100.0);
-    final xInGrid = localPosition.dx - actualRowNumberColumnWidth;
+    final m = _SoundGridRowLayoutMetrics.fromViewportWidth(
+      viewportWidth,
+      gridCols,
+      cellWidthPercent: cellWidthPercent,
+      cellHeightPercent: cellHeightPercent,
+      cellSpacingPercent: cellSpacingPercent,
+      rowSpacingPercent: rowSpacingPercent,
+      rowNumberColumnWidthPercent: rowNumberColumnWidthPercent,
+    );
+    if (m.rowBlock <= 0 || m.cellBlock <= 0) return null;
+
+    final scrollOffset =
+        _scrollController.hasClients ? _scrollController.offset : 0.0;
+    final rowIndex = ((scrollOffset + localPosition.dy) / m.rowBlock).floor();
+    if (rowIndex < 0) return null;
+
+    final xInGrid = localPosition.dx - m.actualRowNumberColumnWidth;
     if (xInGrid < 0) return null;
-    final actualCellSpacing = width * (cellSpacingPercent / 100.0);
-    final availableWidthForGrid = width - actualRowNumberColumnWidth;
-    final totalHorizontalSpacing = actualCellSpacing * (gridCols - 1);
-    final availableWidthForCells =
-        availableWidthForGrid - totalHorizontalSpacing;
-    final fullCellWidth = availableWidthForCells / gridCols;
-    final actualCellWidth = fullCellWidth * (cellWidthPercent / 100.0);
-    final cellBlock = actualCellWidth + actualCellSpacing;
-    if (cellBlock <= 0) return null;
     // Align hit testing with symmetric margins used in layout (s/2 on both sides)
-    final xAdjusted = xInGrid - (actualCellSpacing / 2);
-    int colIndex = (xAdjusted / cellBlock).floor();
+    final xAdjusted = xInGrid - (m.actualCellSpacing / 2);
+    int colIndex = (xAdjusted / m.cellBlock).floor();
     if (colIndex < 0) return null;
     if (colIndex >= gridCols) colIndex = gridCols - 1;
     return rowIndex * gridCols + colIndex;
@@ -1054,14 +1146,12 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                   if (viewMode == LayerMode.rec) {
                     return _buildLineMicContent(tableState);
                   }
-                  // Force grid rebuild when layer changes by using selectedLayer as key
-                  return KeyedSubtree(
-                    key: ValueKey<int>(selectedLayer),
-                    child: _buildGridContent(
-                      tableState,
-                      tutorialStep: tutorialStep,
-                      appState: appState,
-                    ),
+                  // Do not key by layer: same ScrollController must stay attached so
+                  // vertical position is preserved when switching layers in a section.
+                  return _buildGridContent(
+                    tableState,
+                    tutorialStep: tutorialStep,
+                    appState: appState,
                   );
                 },
               );
@@ -1281,36 +1371,29 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate dimensions based on percentages
         final availableWidth = constraints.maxWidth;
-        final baseRowHeight = 50.0; // Base height for percentage calculation
-        final actualRowHeight = baseRowHeight * (cellHeightPercent / 100.0);
-        final actualCellSpacing = availableWidth * (cellSpacingPercent / 100.0);
-        final actualRowSpacing = baseRowHeight * (rowSpacingPercent / 100.0);
-
-        // Calculate row number column width and grid area
-        final actualRowNumberColumnWidth =
-            availableWidth * (rowNumberColumnWidthPercent / 100.0);
-        final availableWidthForGrid =
-            availableWidth - actualRowNumberColumnWidth;
         final gridCols = tableState.getVisibleCols().length;
-        final totalHorizontalSpacing = actualCellSpacing * (gridCols - 1);
-        final availableWidthForCells =
-            availableWidthForGrid - totalHorizontalSpacing;
-        final fullCellWidth = availableWidthForCells / gridCols;
-        final actualCellWidth = fullCellWidth * (cellWidthPercent / 100.0);
+        final m = _SoundGridRowLayoutMetrics.fromViewportWidth(
+          availableWidth,
+          gridCols,
+          cellWidthPercent: cellWidthPercent,
+          cellHeightPercent: cellHeightPercent,
+          cellSpacingPercent: cellSpacingPercent,
+          rowSpacingPercent: rowSpacingPercent,
+          rowNumberColumnWidthPercent: rowNumberColumnWidthPercent,
+        );
 
         return Container(
           padding: EdgeInsets.symmetric(
             horizontal: 0,
-            vertical: actualRowSpacing / 2, // Use calculated row spacing
+            vertical: m.actualRowSpacing / 2, // Use calculated row spacing
           ),
           child: Row(
             children: [
               // Row number column on the left
               Container(
-                width: actualRowNumberColumnWidth,
-                height: actualRowHeight,
+                width: m.actualRowNumberColumnWidth,
+                height: m.actualRowHeight,
                 decoration: BoxDecoration(
                   color: rowNumberColumnColor,
                   borderRadius: BorderRadius.zero, // Sharp corners
@@ -1335,10 +1418,10 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                   children: List.generate(gridCols, (colIndex) {
                     final cellIndex = rowIndex * gridCols + colIndex;
                     return Container(
-                      width: actualCellWidth,
-                      height: actualRowHeight,
+                      width: m.actualCellWidth,
+                      height: m.actualRowHeight,
                       margin: EdgeInsets.symmetric(
-                        horizontal: actualCellSpacing /
+                        horizontal: m.actualCellSpacing /
                             2, // Use calculated cell spacing
                       ),
                       child: _buildGridCell(
@@ -1619,14 +1702,10 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                       if (viewMode == LayerMode.rec) {
                         return _buildLineMicContent(tableState);
                       }
-                      // Force grid rebuild when layer changes
-                      return KeyedSubtree(
-                        key: ValueKey<int>(selectedLayer),
-                        child: _buildGridContent(
-                          tableState,
-                          tutorialStep: tutorialStep,
-                          appState: appState,
-                        ),
+                      return _buildGridContent(
+                        tableState,
+                        tutorialStep: tutorialStep,
+                        appState: appState,
                       );
                     },
                   );
@@ -1657,7 +1736,13 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
           ? appState.sampleGridTutorialKey
           : null,
       color: gridBackgroundColor,
-      child: GestureDetector(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportW = constraints.maxWidth;
+          final viewportH = constraints.maxHeight;
+          _gridViewportWidth = viewportW;
+          _gridViewportHeight = viewportH;
+          return GestureDetector(
         onPanStart: (details) {
           if (!appState.canInteractWithTutorialTarget(
               TutorialInteractionTarget.sampleGrid)) {
@@ -1667,10 +1752,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
           _gestureMode = GestureMode.undetermined;
 
           if (context.read<EditState>().isInSelectionMode) {
-            final rb = context.findRenderObject() as RenderBox?;
-            final width = rb?.size.width ?? MediaQuery.of(context).size.width;
             final cellIndex =
-                _positionToCellIndex(details.localPosition, width);
+                _positionToCellIndex(details.localPosition, viewportW);
             if (cellIndex != null) {
               context.read<UiSelectionState>().selectCells();
               context.read<EditState>().beginDragSelectionAt(cellIndex);
@@ -1757,6 +1840,8 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
             );
           },
         ),
+      );
+        },
       ),
     );
   }

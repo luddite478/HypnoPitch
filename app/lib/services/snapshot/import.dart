@@ -96,7 +96,7 @@ class SnapshotImporter {
       // CRITICAL STEP 3: Clear sample bank
       onProgress?.call('Clearing samples...', 0.08);
       debugPrint('🧹 [SNAPSHOT_IMPORT] STEP 3: Clearing sample bank');
-      for (int i = 0; i < 26; i++) {
+      for (int i = 0; i < SampleBankState.maxSampleSlots; i++) {
         _sampleBankState.unloadSample(i);
       }
 
@@ -273,16 +273,19 @@ class SnapshotImporter {
     try {
       debugPrint('🎛️ [SNAPSHOT_IMPORT] Importing sample bank state');
 
-      final samples = sampleBankData['samples'] as List<dynamic>;
-      if (samples.length != 26) {
-        debugPrint(
-            '❌ [SNAPSHOT_IMPORT] Invalid sample count: ${samples.length}');
-        return false;
-      }
+      final maxSlots = SampleBankState.maxSampleSlots;
+      final samples =
+          (sampleBankData['samples'] as List<dynamic>? ?? const <dynamic>[]);
+      final snapshotSlots = samples.length.clamp(0, maxSlots);
+      final snapshotMaxSlots = ((sampleBankData['max_slots'] as num?)?.toInt() ??
+              samples.length)
+          .clamp(0, maxSlots);
+      debugPrint(
+          '🎛️ [SNAPSHOT_IMPORT] Sample slots in snapshot: list=${samples.length}, max_slots=$snapshotMaxSlots, importing up to $snapshotSlots');
 
       // Clear existing samples and colors first
       _sampleBankState.clearAllColors(); // Clear all project colors
-      for (int i = 0; i < 26; i++) {
+      for (int i = 0; i < maxSlots; i++) {
         _sampleBankState.unloadSample(i);
       }
 
@@ -290,7 +293,7 @@ class SnapshotImporter {
       int loadedCount = 0;
 
       // Import samples
-      for (int i = 0; i < samples.length; i++) {
+      for (int i = 0; i < snapshotSlots; i++) {
         final sampleData = samples[i] as Map<String, dynamic>;
         final loaded = sampleData['loaded'] as bool;
         final settings = sampleData['settings'] as Map<String, dynamic>?;
@@ -416,7 +419,7 @@ class SnapshotImporter {
           displayName: sampleData?['display_name'] as String?,
           reason: MissingSampleReason.loadFailed,
           details:
-              'Table references slot ${String.fromCharCode(65 + slot)}, but no sample is loaded there after import.',
+              'Table references slot ${slot < 26 ? String.fromCharCode(65 + slot) : slot + 1}, but no sample is loaded there after import.',
         ),
       );
     }

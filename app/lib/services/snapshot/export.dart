@@ -322,7 +322,8 @@ class SnapshotExporter {
     debugPrint('🎛️ [SNAPSHOT_EXPORT] Exporting sample bank state');
 
     final sampleBankPtr = _sampleBankState.getSampleBankStatePtr();
-    final uiColors = _sampleBankState.uiBankColors;  // Get UI colors
+    final uiColors = _sampleBankState.uiBankColors;
+    final maxSlots = SampleBankState.maxSampleSlots;
     int tries = 0;
     const maxTries = 3;
 
@@ -339,7 +340,7 @@ class SnapshotExporter {
 
       final samples = <Map<String, dynamic>>[];
       final samplesPtr = sampleBankPtr.ref.samples_ptr;
-      for (int i = 0; i < 26; i++) { // MAX_SAMPLE_SLOTS = 26
+      for (int i = 0; i < maxSlots; i++) {
         final samplePtr = samplesPtr + i;
         final sampleData = SampleData.fromPointer(samplePtr);
         
@@ -366,7 +367,7 @@ class SnapshotExporter {
       final v2 = sampleBankPtr.ref.version;
       if (v1 == v2) {
         return {
-          'max_slots': sampleBankPtr.ref.max_slots,
+          'max_slots': maxSlots,
           'samples': samples,
         };
       }
@@ -378,8 +379,9 @@ class SnapshotExporter {
   }
 
   Map<String, dynamic> _getDefaultSampleBankState() {
+    final maxSlots = SampleBankState.maxSampleSlots;
     final samples = <Map<String, dynamic>>[];
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < maxSlots; i++) {
       samples.add({
         'loaded': false,
         'settings': {
@@ -393,7 +395,7 @@ class SnapshotExporter {
       });
     }
     return {
-      'max_slots': 26,
+      'max_slots': maxSlots,
       'samples': samples,
     };
   }
@@ -405,13 +407,17 @@ class SnapshotExporter {
     final tableCells = table?['table_cells'] as List<dynamic>? ?? const [];
     final samples = sampleBank?['samples'] as List<dynamic>? ?? const [];
 
+    final maxSlots = ((sampleBank?['max_slots'] as num?)?.toInt() ??
+            SampleBankState.maxSampleSlots)
+        .clamp(1, SampleBankState.maxSampleSlots);
+
     final referencedSlots = <int>{};
     for (final row in tableCells) {
       if (row is! List<dynamic>) continue;
       for (final cell in row) {
         if (cell is! Map<String, dynamic>) continue;
         final slot = (cell['sample_slot'] as num?)?.toInt() ?? -1;
-        if (slot >= 0 && slot < 26) {
+        if (slot >= 0 && slot < maxSlots) {
           referencedSlots.add(slot);
         }
       }
@@ -431,7 +437,10 @@ class SnapshotExporter {
 
   String _formatSlotList(List<int> slots) {
     return slots
-        .map((slot) => '${String.fromCharCode(65 + slot)}($slot)')
+        .map((slot) {
+          final label = slot < 26 ? String.fromCharCode(65 + slot) : '${slot + 1}';
+          return '$label($slot)';
+        })
         .join(', ');
   }
   

@@ -211,8 +211,8 @@ class SampleBrowserState extends ChangeNotifier {
     initialize();
   }
 
-  // Preview slot constant - use slot 25 (Z) as dedicated preview slot
-  static const int _previewSlot = 25;
+  // Dedicated preview slot is always the last slot.
+  static const int _previewSlot = SampleBankState.previewSlot;
 
   // Current preview sample ID (if any)
   String? _previewSampleId;

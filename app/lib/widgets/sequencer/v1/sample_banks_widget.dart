@@ -47,18 +47,21 @@ class _SampleBanksWidgetState extends State<SampleBanksWidget> {
             final totalArrowMargins = leftArrowMarginLeft + leftArrowMarginRight + rightArrowMarginLeft + rightArrowMarginRight;
             final availableRowWidth = baseButtonsWidth - (arrowWidth * 2) - totalArrowMargins;
             final preferredTileWithMargins = preferredButtonWidth + 2 * sampleMarginH;
-            // Show up to 25 user-accessible slots (indices 0–24; slot 25 is preview)
+            // Show up to all user-accessible slots; the last slot is preview-only.
+            final maxUserSlots = SampleBankState.previewSlot;
             int visibleCount = availableRowWidth > 0
-                ? (availableRowWidth / preferredTileWithMargins).floor().clamp(1, 25)
+                ? (availableRowWidth / preferredTileWithMargins)
+                    .floor()
+                    .clamp(1, maxUserSlots)
                 : 1;
             if (visibleCount < 1) visibleCount = 1;
             final totalInterTileMargins = (visibleCount - 1) * (2 * sampleMarginH);
             final buttonWidth = ((availableRowWidth - totalInterTileMargins) / visibleCount).floorToDouble();
 
-            // Indices 0–24 are user slots; index 25 is preview-only
-            final maxStart = (25 - visibleCount).clamp(0, 25);
+            // User slot indices are 0..maxUserSlots-1; preview slot is hidden from this row.
+            final maxStart = (maxUserSlots - visibleCount).clamp(0, maxUserSlots);
             final startIndex = _startIndex.clamp(0, maxStart);
-            final endIndex = (startIndex + visibleCount).clamp(0, 25);
+            final endIndex = (startIndex + visibleCount).clamp(0, maxUserSlots);
             final effectiveCount = (endIndex - startIndex).clamp(0, visibleCount);
 
             void goLeft() {

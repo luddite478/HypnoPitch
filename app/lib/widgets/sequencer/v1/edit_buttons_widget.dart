@@ -114,16 +114,30 @@ class EditButtonsWidget extends StatelessWidget {
                             editState.toggleSelectionMode();
                             multitaskPanel.showPlaceholder();
                           } else {
-                            // Keep custom rectangle select as default behavior,
-                            // and open the Select settings panel.
+                            // Single tap: enter selection mode only (no panel).
                             editState.toggleSelectionMode();
-                            multitaskPanel.showSelectSettings();
                           }
                           appState.completeSelectModeInfoStep();
                           if (wasInSelectionMode &&
                               !editState.isInSelectionMode) {
                             appState.verifyDisableSelectModeStep();
                           }
+                        },
+                        onLongPressed: () {
+                          if (!appState.canInteractWithTutorialTarget(
+                              TutorialInteractionTarget.selectModeButton)) {
+                            return;
+                          }
+                          final multitaskPanel =
+                              Provider.of<MultitaskPanelState>(context,
+                                  listen: false);
+                          if (editState.isInSelectionMode) {
+                            multitaskPanel.showSelectSettings();
+                          } else {
+                            editState.toggleSelectionMode();
+                            multitaskPanel.showSelectSettings();
+                          }
+                          appState.completeSelectModeInfoStep();
                         },
                         isActive: editState.isInSelectionMode,
                         horizontalPadding: buttonHPad,
@@ -587,6 +601,7 @@ class EditButtonsWidget extends StatelessWidget {
     required double fontSize,
     required bool enabled,
     required VoidCallback? onPressed,
+    VoidCallback? onLongPressed,
     required bool isActive,
     required double horizontalPadding,
   }) {
@@ -635,6 +650,7 @@ class EditButtonsWidget extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: enabled ? onPressed : null,
+          onLongPress: enabled && onLongPressed != null ? onLongPressed : null,
           borderRadius: BorderRadius.circular(3),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),

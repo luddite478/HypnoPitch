@@ -212,7 +212,7 @@ class SampleAssetResolver {
   }
 
   /// iOS has seen cases where [AssetManifest] lists a key but the first
-  /// [rootBundle.load] fails (spaces / encoding). Try alternate keys.
+  /// [rootBundle.load] fails (spaces / encoding). Try aletrnate keys.
   Future<ByteData> _loadRootBundleBytesWithIosFallbacks(
       String assetPath) async {
     final keys = <String>{assetPath};

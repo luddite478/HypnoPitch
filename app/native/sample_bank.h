@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 // Constants
-#define MAX_SAMPLE_SLOTS 26  // A-Z sample slots
+#define MAX_SAMPLE_SLOTS 101  // 100 user slots + 1 preview slot
 #define SAMPLE_MAX_PATH 512
 #define SAMPLE_MAX_NAME 128
 #define SAMPLE_MAX_ID   128

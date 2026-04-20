@@ -611,7 +611,7 @@ class _SimplifiedSoundGridState extends State<SimplifiedSoundGrid> {
   // Load sample by manifest id into the first available bank slot
   Future<int> _loadSampleIntoBankById(
       SampleBankState sampleBank, String sampleId) async {
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < SampleBankState.previewSlot; i++) {
       if (!sampleBank.isSlotLoaded(i)) {
         final success = await sampleBank.loadSample(i, sampleId);
         return success ? i : -1;

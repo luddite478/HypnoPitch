@@ -42,6 +42,11 @@ class _SequencerBodyState extends State<SequencerBody> {
   late final PageController _pageController;
   bool _isUserScrolling = false;
 
+  late final TableState _tableState;
+  late final SectionSettingsState _sectionSettingsState;
+  int _prevSectionsCount = -1;
+  int _prevUiSelectedSection = -1;
+
   @override
   void initState() {
     super.initState();
@@ -52,53 +57,72 @@ class _SequencerBodyState extends State<SequencerBody> {
       initialPage: initialPage,
       viewportFraction: 1.0,
     );
+    _tableState = table;
+    _sectionSettingsState = context.read<SectionSettingsState>();
+    _prevSectionsCount = _tableState.sectionsCount;
+    _prevUiSelectedSection = _tableState.uiSelectedSection;
+    _tableState.addListener(_onTableChangedForPageSync);
+    _sectionSettingsState.addListener(_onSectionSettingsChangedForPageSync);
+  }
+
+  void _onSectionSettingsChangedForPageSync() {
+    _schedulePageSyncToUiSection();
+  }
+
+  void _onTableChangedForPageSync() {
+    final table = _tableState;
+    if (table.sectionsCount == _prevSectionsCount &&
+        table.uiSelectedSection == _prevUiSelectedSection) {
+      return;
+    }
+    _prevSectionsCount = table.sectionsCount;
+    _prevUiSelectedSection = table.uiSelectedSection;
+    _schedulePageSyncToUiSection();
+  }
+
+  void _schedulePageSyncToUiSection() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncPageControllerToUiSection();
+    });
+  }
+
+  /// [jumpToPage] during [build] is unreliable; keep the visible page aligned
+  /// with [TableState.uiSelectedSection] after programmatic section changes
+  /// (e.g. append) and when section-creation closes.
+  void _syncPageControllerToUiSection() {
+    if (!_pageController.hasClients) return;
+    final tableState = _tableState;
+    final sectionSettings = _sectionSettingsState;
+    if (tableState.sectionsCount <= 0) return;
+
+    final page = _pageController.page;
+    final maxPage = tableState.sectionsCount - 1;
+    final target =
+        tableState.uiSelectedSection.clamp(0, maxPage);
+    final lastSectionIndex = maxPage;
+    final swipingTowardCreation = page != null &&
+        page > (lastSectionIndex + 0.01) &&
+        page < tableState.sectionsCount;
+    if (_isUserScrolling) return;
+    if (sectionSettings.isSectionCreationOpen) return;
+    if (swipingTowardCreation) return;
+    if (page == null || page.round() != target) {
+      _pageController.jumpToPage(target);
+    }
   }
 
   @override
   void dispose() {
+    _tableState.removeListener(_onTableChangedForPageSync);
+    _sectionSettingsState.removeListener(_onSectionSettingsChangedForPageSync);
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Selector<
-        TableState,
-        ({
-          bool isSectionControlOpen,
-          bool isSectionCreationOpen,
-          int numSections,
-          int currentIndex
-        })>(
-      selector: (context, tableState) => (
-        isSectionControlOpen: false, // Moved to SectionSettingsState
-        isSectionCreationOpen: false, // Moved to SectionSettingsState
-        numSections: tableState.sectionsCount,
-        currentIndex: tableState.uiSelectedSection,
-      ),
-      builder: (context, data, child) {
-        final sectionSettings = context.watch<SectionSettingsState>();
-        // Keep PageView in sync with current section during song mode auto-advance
-        if (_pageController.hasClients) {
-          final double? page = _pageController.page;
-          final bool atTarget =
-              page != null ? page.round() == data.currentIndex : false;
-          final lastSectionIndex = data.numSections - 1;
-          final bool swipingTowardCreation = page != null &&
-              page > (lastSectionIndex + 0.01) &&
-              page < data.numSections;
-          final bool creationOpen = sectionSettings.isSectionCreationOpen;
-
-          if (!atTarget &&
-              !_isUserScrolling &&
-              !creationOpen &&
-              !swipingTowardCreation) {
-            _pageController.jumpToPage(data.currentIndex);
-          }
-        }
-
-        // Always render base stack and conditionally layer overlay menus so left panel remains visible
-        return Stack(
+    return Stack(
           children: [
             // Horizontal scrollable content (sound grids + gutters)
             RepaintBoundary(
@@ -128,8 +152,6 @@ class _SequencerBodyState extends State<SequencerBody> {
 
             // Value control overlay handled at screen level (to optionally include edit buttons)
           ],
-        );
-      },
     );
   }
 

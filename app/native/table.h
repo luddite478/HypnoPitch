@@ -10,7 +10,7 @@ extern "C" {
 // Constants
 #define MAX_SEQUENCER_STEPS 2048
 #define MAX_SEQUENCER_COLS 20  // 5 layers × 4 cols/layer
-#define MAX_SAMPLE_SLOTS 26
+#define MAX_SAMPLE_SLOTS 101
 #define MAX_SECTIONS 64
 #define DEFAULT_SECTION_STEPS 16
 // Layers (per section)
@@ -33,7 +33,7 @@ typedef struct {
 
 // Core cell data structure
 typedef struct {
-    int sample_slot;            // -1 = empty, 0-25 = sample index (A-Z)
+    int sample_slot;            // -1 = empty, 0..MAX_SAMPLE_SLOTS-1 = sample index
     CellSettings settings;      // audio settings
     int is_processing;          // 1 while preprocessing is queued for resolved pitch for this cell
 } Cell;
