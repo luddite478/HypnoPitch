@@ -5,67 +5,22 @@
     
     
       
-      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000555">
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000289">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="01: mkdir -p samples_pack/src/main/assets" time="0.014158">
+      <testcase classname="fastlane.lanes" name="1: cd /Users/romansmirnov/projects/HypnoPitch/app &amp;&amp; /Users/romansmirnov/projects/HypnoPitch/app/build-android-pad-release.sh" time="125.147053">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="02: rm -rf samples_pack/src/main/assets/samples" time="0.132307">
+      <testcase classname="fastlane.lanes" name="2: flutter_version" time="0.011887">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="03: rsync -a --delete ../../samples/ samples_pack/src/main/assets/samples/" time="5.544668">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="04: find samples_pack/src/main/assets/samples -name &apos;.DS_Store&apos; -type f -delete" time="0.031006">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="05: cp ../../pubspec.yaml ../../.pubspec.yaml.pad.backup" time="0.009816">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="06: cd ../.. &amp;&amp; flutter pub get" time="8.03824">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="07: cd ../.. &amp;&amp; rm -rf .dart_tool/flutter_build" time="0.106107">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="08: flutter_version" time="0.004658">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="09: cd ../.. &amp;&amp; flutter build appbundle --flavor prod --release --build-name=1.1.2 --build-number=30" time="86.504297">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="10: upload_to_play_store" time="599.91481">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="11: mv ../../.pubspec.yaml.pad.backup ../../pubspec.yaml" time="0.019874">
-        
-      </testcase>
-    
-      
-      <testcase classname="fastlane.lanes" name="12: cd ../.. &amp;&amp; flutter pub get" time="10.745849">
+      <testcase classname="fastlane.lanes" name="3: upload_to_play_store" time="446.218024">
         
       </testcase>
     

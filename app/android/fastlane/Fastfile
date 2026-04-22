@@ -1,53 +1,25 @@
+require "shellwords"
+
 default_platform(:android)
 
 platform :android do
   desc "Replicated Legacy Build Logic with Asset Packing"
   lane :build_prod do
-    # Version / build number: bump once in deploy_stores.sh (pubspec). flutter_version plugin only reads pubspec.
+    app_dir = File.expand_path("../..", __dir__)
+    pad_build_script = File.join(app_dir, "build-android-pad-release.sh")
+    pubspec_path = File.join(app_dir, "pubspec.yaml")
+    aab_path = File.join(app_dir, "build/app/outputs/bundle/prodRelease/app-prod-release.aab")
 
-    # 1. Sync Assets (Replaces rsync + python .DS_Store cleanup)
-    sh("mkdir -p samples_pack/src/main/assets")
-    sh("rm -rf samples_pack/src/main/assets/samples")
-    sh("rsync -a --delete ../../samples/ samples_pack/src/main/assets/samples/")
-    sh("find samples_pack/src/main/assets/samples -name '.DS_Store' -type f -delete")
+    # Version / build number is controlled in pubspec.yaml. The PAD build script
+    # handles syncing samples into the asset pack and temporarily removing
+    # bundled samples/ entries from the Flutter asset list so base stays small.
+    sh("cd #{app_dir.shellescape} && #{pad_build_script.shellescape}")
+    v = flutter_version(pubspec_location: pubspec_path)
 
-    # 3. Create Pubspec Backup & Strip lines (Replaces Python logic)
-    pubspec_path = "../../pubspec.yaml"
-    backup_path = "../../.pubspec.yaml.pad.backup"
-    
-    begin
-      sh("cp #{pubspec_path} #{backup_path}")
-      
-      # Read and filter the file
-      lines = File.readlines(pubspec_path, encoding: "UTF-8")
-      filtered_lines = lines.reject { |line| line.strip.start_with?("- samples/") }
-      
-      File.open(pubspec_path, "w:UTF-8") do |f|
-        filtered_lines.each { |line| f.puts(line) }
-      end
-
-      # 4. Flutter Pub Get & Clear Cache
-      sh("cd ../.. && flutter pub get")
-      sh("cd ../.. && rm -rf .dart_tool/flutter_build")
-      v = flutter_version(pubspec_location: "../pubspec.yaml")
-
-      # 5. Build AAB
-      sh("cd ../.. && flutter build appbundle --flavor prod --release --build-name=#{v['version_name']} --build-number=#{v['version_code']}")
-
-      # 6. Upload to Play Store
-      upload_to_play_store(
-        track: 'internal',
-        version_name: v["version_name"],
-        aab: '../build/app/outputs/bundle/prodRelease/app-prod-release.aab'
-      )
-
-    ensure
-      # 6. Cleanup (The 'trap' equivalent)
-      if File.exist?(backup_path)
-        sh("mv #{backup_path} #{pubspec_path}")
-        sh("cd ../.. && flutter pub get")
-        UI.success("Pubspec restored successfully.")
-      end
-    end
+    upload_to_play_store(
+      track: 'internal',
+      version_name: v["version_name"],
+      aab: aab_path
+    )
   end
 end

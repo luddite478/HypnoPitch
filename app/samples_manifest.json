@@ -1,7 +1,7 @@
 {
   "schema_version": 4,
-  "scan_timestamp": 1776291701,
-  "total_files": 291,
+  "scan_timestamp": 1776861795,
+  "total_files": 326,
   "samples": {
     "builtin.acoustic.orchestral.cbass_pizzi_35": {
       "path": "samples/Acoustic/Orchestral/CBass Pizzi 35.wav",
@@ -2096,6 +2096,32 @@
       "display_path": "Drums/Electronic/Toms",
       "source_file_name": "BP-909_TL_tape.wav"
     },
+    "builtin.drums.electronic.plates.kick.dry_k____sharp___05": {
+      "path": "samples/Drums/Electronic/Plates/Kick/DRY.K #05.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Kick/DRY.K%20%2305.wav",
+      "built_in": true,
+      "sha256": "b95502985544b76d91e0914b4d3a6f9f1917a4d2fa4ee097adeb169dc685b097",
+      "legacy_hash_12": "b95502985544",
+      "aliases": [
+        "b95502985544"
+      ],
+      "display_name": "DRY.K #05",
+      "display_path": "Drums/Electronic/Plates/Kick",
+      "source_file_name": "DRY.K #05.wav"
+    },
+    "builtin.drums.electronic.plates.kick.elk_k____sharp___09": {
+      "path": "samples/Drums/Electronic/Plates/Kick/ELK.K #09.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Kick/ELK.K%20%2309.wav",
+      "built_in": true,
+      "sha256": "7b6bb3c44eb715b3de517a41dcf43365feb6aeb5dd220719d848ff85dc086f35",
+      "legacy_hash_12": "7b6bb3c44eb7",
+      "aliases": [
+        "7b6bb3c44eb7"
+      ],
+      "display_name": "ELK.K #09",
+      "display_path": "Drums/Electronic/Plates/Kick",
+      "source_file_name": "ELK.K #09.wav"
+    },
     "builtin.drums.electronic.plates.hi_hat.17_hat_01_sp": {
       "path": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_01_SP.wav",
       "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/17_Hat_01_SP.wav",
@@ -2589,6 +2615,266 @@
       "display_name": "BP-909 OH",
       "display_path": "Drums/Electronic/Plates/Hi-Hat",
       "source_file_name": "BP-909_OH.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.dry_hat_2": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/DRY.HAT 2.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/DRY.HAT%202.wav",
+      "built_in": true,
+      "sha256": "10e8531837f5c335bd664c04fa152b6a83e1697817a2d08a5c8032756327ded3",
+      "legacy_hash_12": "10e8531837f5",
+      "aliases": [
+        "10e8531837f5"
+      ],
+      "display_name": "DRY.HAT 2",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "DRY.HAT 2.wav"
+    },
+    "builtin.drums.electronic.plates.hi_hat.elk_oh____sharp___1": {
+      "path": "samples/Drums/Electronic/Plates/Hi-Hat/ELK.OH #1.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Hi-Hat/ELK.OH%20%231.wav",
+      "built_in": true,
+      "sha256": "36d6e06e0548a3ab70b68b65f139daa238e326934254093a87184addb7f73ffd",
+      "legacy_hash_12": "36d6e06e0548",
+      "aliases": [
+        "36d6e06e0548"
+      ],
+      "display_name": "ELK.OH #1",
+      "display_path": "Drums/Electronic/Plates/Hi-Hat",
+      "source_file_name": "ELK.OH #1.wav"
+    },
+    "builtin.drums.electronic.plates.snare.elk_p_clap2": {
+      "path": "samples/Drums/Electronic/Plates/Snare/ELK.P CLAP2.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/ELK.P%20CLAP2.wav",
+      "built_in": true,
+      "sha256": "7f0f6554f8799eeed90456d5cae06e7bd48f1a1407837ff419d59df4a0f891c4",
+      "legacy_hash_12": "7f0f6554f879",
+      "aliases": [
+        "7f0f6554f879"
+      ],
+      "display_name": "ELK.P CLAP2",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "ELK.P CLAP2.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_0016": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_0016.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_0016.wav",
+      "built_in": true,
+      "sha256": "45dfe2a8f7f83a71d5d2a5238ff9c8981cbe6b333df2d095a599f5abc5254cf9",
+      "legacy_hash_12": "45dfe2a8f7f8",
+      "aliases": [
+        "45dfe2a8f7f8"
+      ],
+      "display_name": "SNARE 0016",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_0016.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_0300": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_0300.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_0300.wav",
+      "built_in": true,
+      "sha256": "949d3f8575041e7e6501dc4bbee1bec367a8b3d818c5d5ec213565b19ca9707b",
+      "legacy_hash_12": "949d3f857504",
+      "aliases": [
+        "949d3f857504"
+      ],
+      "display_name": "SNARE 0300",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_0300.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_0304": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_0304.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_0304.wav",
+      "built_in": true,
+      "sha256": "cdd7983921e85df742dccc76dd818befdb7964072c1d1dae33e994b2f7870626",
+      "legacy_hash_12": "cdd7983921e8",
+      "aliases": [
+        "cdd7983921e8"
+      ],
+      "display_name": "SNARE 0304",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_0304.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_0331": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_0331.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_0331.wav",
+      "built_in": true,
+      "sha256": "afb6ead752a621dc22a13afdb294ce60c3310285a0c4fa7c6bc57a97bbe78cf9",
+      "legacy_hash_12": "afb6ead752a6",
+      "aliases": [
+        "afb6ead752a6"
+      ],
+      "display_name": "SNARE 0331",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_0331.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1441": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1441.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1441.wav",
+      "built_in": true,
+      "sha256": "d1fd64486813e4197bd3092c0d3bc22b3d4b3de7c484796cc0c497688c84e130",
+      "legacy_hash_12": "d1fd64486813",
+      "aliases": [
+        "d1fd64486813"
+      ],
+      "display_name": "SNARE 1441",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1441.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1447": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1447.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1447.wav",
+      "built_in": true,
+      "sha256": "ee7983a4cb9aac916b90ff33e3c2b88b78d60beb1211c1e6809ed6a5d2f603f1",
+      "legacy_hash_12": "ee7983a4cb9a",
+      "aliases": [
+        "ee7983a4cb9a"
+      ],
+      "display_name": "SNARE 1447",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1447.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1466": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1466.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1466.wav",
+      "built_in": true,
+      "sha256": "45ef5fa31019b57ca3c5e364cb877fb8eedc9a48d4df95d13f9ebaada9f803c9",
+      "legacy_hash_12": "45ef5fa31019",
+      "aliases": [
+        "45ef5fa31019"
+      ],
+      "display_name": "SNARE 1466",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1466.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1468": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1468.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1468.wav",
+      "built_in": true,
+      "sha256": "d43a903cbc0d7eec4093ebfbfb1da0e3b5acaae6c1d3dd8e3e3c0daabf8f94ad",
+      "legacy_hash_12": "d43a903cbc0d",
+      "aliases": [
+        "d43a903cbc0d"
+      ],
+      "display_name": "SNARE 1468",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1468.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1506": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1506.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1506.wav",
+      "built_in": true,
+      "sha256": "6d0008c57d1748d3b6b6079d38b16fe0f7b34ada2480adb77fd763514dabf4ff",
+      "legacy_hash_12": "6d0008c57d17",
+      "aliases": [
+        "6d0008c57d17"
+      ],
+      "display_name": "SNARE 1506",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1506.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1515": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1515.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1515.wav",
+      "built_in": true,
+      "sha256": "a28037ad2b49cfc65e4ce50dadf52a6001c45565c74cc52617305d29db27b975",
+      "legacy_hash_12": "a28037ad2b49",
+      "aliases": [
+        "a28037ad2b49"
+      ],
+      "display_name": "SNARE 1515",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1515.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1516": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1516.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1516.wav",
+      "built_in": true,
+      "sha256": "74b3d568b37cfb87f8000d1037d487accabb563bf4e2404c859d0724e3ab8f1b",
+      "legacy_hash_12": "74b3d568b37c",
+      "aliases": [
+        "74b3d568b37c"
+      ],
+      "display_name": "SNARE 1516",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1516.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1703": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1703.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1703.wav",
+      "built_in": true,
+      "sha256": "bb00991598db1f41cfea6c426c6cfb3fccd9cca63747828ff2deea9309d1f801",
+      "legacy_hash_12": "bb00991598db",
+      "aliases": [
+        "bb00991598db"
+      ],
+      "display_name": "SNARE 1703",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1703.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1705": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1705.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1705.wav",
+      "built_in": true,
+      "sha256": "fdc8414e48a99a1a734b3f5442fd5a8917d40a9537c07fce13164df0b2a1ecc8",
+      "legacy_hash_12": "fdc8414e48a9",
+      "aliases": [
+        "fdc8414e48a9"
+      ],
+      "display_name": "SNARE 1705",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1705.wav"
+    },
+    "builtin.drums.electronic.plates.snare.snare_1747": {
+      "path": "samples/Drums/Electronic/Plates/Snare/SNARE_1747.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Snare/SNARE_1747.wav",
+      "built_in": true,
+      "sha256": "4964961a8204c822c98e116c0fc03a59fa62ad96e34ea94ab9d8624830f2312c",
+      "legacy_hash_12": "4964961a8204",
+      "aliases": [
+        "4964961a8204"
+      ],
+      "display_name": "SNARE 1747",
+      "display_path": "Drums/Electronic/Plates/Snare",
+      "source_file_name": "SNARE_1747.wav"
+    },
+    "builtin.drums.electronic.plates.crash.crash_cym": {
+      "path": "samples/Drums/Electronic/Plates/Crash/CRASH CYM.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Crash/CRASH%20CYM.wav",
+      "built_in": true,
+      "sha256": "c54a91fa6024a59086df80721f3f13b56454ba8032a1ab67901e7b068d21e067",
+      "legacy_hash_12": "c54a91fa6024",
+      "aliases": [
+        "c54a91fa6024"
+      ],
+      "display_name": "CRASH CYM",
+      "display_path": "Drums/Electronic/Plates/Crash",
+      "source_file_name": "CRASH CYM.wav"
+    },
+    "builtin.drums.electronic.plates.crash.mpc4_crash": {
+      "path": "samples/Drums/Electronic/Plates/Crash/MPC4 CRASH.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Crash/MPC4%20CRASH.wav",
+      "built_in": true,
+      "sha256": "09826f0fcde674793a06b08cac691e6820a1b0bd9f0aaf3055282ec236f3b18e",
+      "legacy_hash_12": "09826f0fcde6",
+      "aliases": [
+        "09826f0fcde6"
+      ],
+      "display_name": "MPC4 CRASH",
+      "display_path": "Drums/Electronic/Plates/Crash",
+      "source_file_name": "MPC4 CRASH.wav"
+    },
+    "builtin.drums.electronic.plates.cymbal.elk_oh____sharp___3": {
+      "path": "samples/Drums/Electronic/Plates/Cymbal/ELK.OH #3.wav",
+      "asset_key": "samples/Drums/Electronic/Plates/Cymbal/ELK.OH%20%233.wav",
+      "built_in": true,
+      "sha256": "e308110b8af80a7a51fd1c65e632200523bd6577a5c5236250d364d92770d8f7",
+      "legacy_hash_12": "e308110b8af8",
+      "aliases": [
+        "e308110b8af8"
+      ],
+      "display_name": "ELK.OH #3",
+      "display_path": "Drums/Electronic/Plates/Cymbal",
+      "source_file_name": "ELK.OH #3.wav"
     },
     "builtin.synth.high.distorted.castles_burning_d_4": {
       "path": "samples/Synth/High/Distorted/Castles Burning dsharp4.wav",
@@ -3637,6 +3923,150 @@
       "display_path": "Synth/Bass",
       "source_file_name": "TubeBass c1.wav"
     },
+    "builtin.synth.sub.bdsub808_short_e1": {
+      "path": "samples/Synth/Sub/BDsub808_Short_E1.wav",
+      "asset_key": "samples/Synth/Sub/BDsub808_Short_E1.wav",
+      "built_in": true,
+      "sha256": "a8bffd508cee4b8d0f9e8d6d8f9a41b019697f0c4eb8c5bffad1d4787cc0a68a",
+      "legacy_hash_12": "a8bffd508cee",
+      "aliases": [
+        "a8bffd508cee"
+      ],
+      "display_name": "BDsub808 Short E1",
+      "display_path": "Synth/Sub",
+      "source_file_name": "BDsub808_Short_E1.wav"
+    },
+    "builtin.synth.sub.bdsub909_long": {
+      "path": "samples/Synth/Sub/BDsub909_Long.wav",
+      "asset_key": "samples/Synth/Sub/BDsub909_Long.wav",
+      "built_in": true,
+      "sha256": "582ad43aab2a9315bfa7c16076a04bc34b09fad7fc5bfcebb5c5fd4f9bea3ae9",
+      "legacy_hash_12": "582ad43aab2a",
+      "aliases": [
+        "582ad43aab2a"
+      ],
+      "display_name": "BDsub909 Long",
+      "display_path": "Synth/Sub",
+      "source_file_name": "BDsub909_Long.wav"
+    },
+    "builtin.synth.sub.bdsub909_med": {
+      "path": "samples/Synth/Sub/BDsub909_Med.wav",
+      "asset_key": "samples/Synth/Sub/BDsub909_Med.wav",
+      "built_in": true,
+      "sha256": "487b500f803c9eb98f7c4615ae26a2864e43ca839d075280f193ef88cac5272b",
+      "legacy_hash_12": "487b500f803c",
+      "aliases": [
+        "487b500f803c"
+      ],
+      "display_name": "BDsub909 Med",
+      "display_path": "Synth/Sub",
+      "source_file_name": "BDsub909_Med.wav"
+    },
+    "builtin.synth.sub.bdsub_digipunch1": {
+      "path": "samples/Synth/Sub/BDsub_DigiPunch1.wav",
+      "asset_key": "samples/Synth/Sub/BDsub_DigiPunch1.wav",
+      "built_in": true,
+      "sha256": "12b20cd749a1c4aeca27f44650d8b767315fe052626d5a0fad621532f6c87c5a",
+      "legacy_hash_12": "12b20cd749a1",
+      "aliases": [
+        "12b20cd749a1"
+      ],
+      "display_name": "BDsub DigiPunch1",
+      "display_path": "Synth/Sub",
+      "source_file_name": "BDsub_DigiPunch1.wav"
+    },
+    "builtin.synth.sub.bdsub_digipunch2": {
+      "path": "samples/Synth/Sub/BDsub_DigiPunch2.wav",
+      "asset_key": "samples/Synth/Sub/BDsub_DigiPunch2.wav",
+      "built_in": true,
+      "sha256": "d8e94b1e43aa586e131c690afb9422966c06aa99d1e1c4a71b13fa99eba3eabd",
+      "legacy_hash_12": "d8e94b1e43aa",
+      "aliases": [
+        "d8e94b1e43aa"
+      ],
+      "display_name": "BDsub DigiPunch2",
+      "display_path": "Synth/Sub",
+      "source_file_name": "BDsub_DigiPunch2.wav"
+    },
+    "builtin.synth.sub.cleansine_digital_g1": {
+      "path": "samples/Synth/Sub/CleanSine_Digital_G1.wav",
+      "asset_key": "samples/Synth/Sub/CleanSine_Digital_G1.wav",
+      "built_in": true,
+      "sha256": "8ebce051a8e4428fe55ea4373398bd40573916bd2525026bd15dbd929675de9c",
+      "legacy_hash_12": "8ebce051a8e4",
+      "aliases": [
+        "8ebce051a8e4"
+      ],
+      "display_name": "CleanSine Digital G1",
+      "display_path": "Synth/Sub",
+      "source_file_name": "CleanSine_Digital_G1.wav"
+    },
+    "builtin.synth.sub.subdrop_vinylanalog1_st": {
+      "path": "samples/Synth/Sub/SubDrop_VinylAnalog1_ST.wav",
+      "asset_key": "samples/Synth/Sub/SubDrop_VinylAnalog1_ST.wav",
+      "built_in": true,
+      "sha256": "9ffc7203abfb7acc214064723d9114f86748f3cf266e630beb3b28ef6b694236",
+      "legacy_hash_12": "9ffc7203abfb",
+      "aliases": [
+        "9ffc7203abfb"
+      ],
+      "display_name": "SubDrop VinylAnalog1 ST",
+      "display_path": "Synth/Sub",
+      "source_file_name": "SubDrop_VinylAnalog1_ST.wav"
+    },
+    "builtin.synth.sub_euro": {
+      "path": "samples/Synth/Sub/Sub_Euro.wav",
+      "asset_key": "samples/Synth/Sub/Sub_Euro.wav",
+      "built_in": true,
+      "sha256": "9b8ff6830e516754779c3ca268ee75a729adcfa9e466a7a72b500d13194b0a15",
+      "legacy_hash_12": "9b8ff6830e51",
+      "aliases": [
+        "9b8ff6830e51",
+        "builtin.synth.sub.sub_euro"
+      ],
+      "display_name": "Sub Euro",
+      "display_path": "Synth/Sub",
+      "source_file_name": "Sub_Euro.wav"
+    },
+    "builtin.synth.sub.sub_sister_st": {
+      "path": "samples/Synth/Sub/Sub_Sister_ST.wav",
+      "asset_key": "samples/Synth/Sub/Sub_Sister_ST.wav",
+      "built_in": true,
+      "sha256": "2cd6904b12eb12b59634cf3ece511565e3c10330b595f6fc8f5aca23cb1f6ca5",
+      "legacy_hash_12": "2cd6904b12eb",
+      "aliases": [
+        "2cd6904b12eb"
+      ],
+      "display_name": "Sub Sister ST",
+      "display_path": "Synth/Sub",
+      "source_file_name": "Sub_Sister_ST.wav"
+    },
+    "builtin.synth.sub.sub_softpunch_st": {
+      "path": "samples/Synth/Sub/Sub_SoftPunch_ST.wav",
+      "asset_key": "samples/Synth/Sub/Sub_SoftPunch_ST.wav",
+      "built_in": true,
+      "sha256": "a6e54358f49e728fab5d75726b9f4b5ac2e7ef7cc17c7c0ebf87645613823bbe",
+      "legacy_hash_12": "a6e54358f49e",
+      "aliases": [
+        "a6e54358f49e"
+      ],
+      "display_name": "Sub SoftPunch ST",
+      "display_path": "Synth/Sub",
+      "source_file_name": "Sub_SoftPunch_ST.wav"
+    },
+    "builtin.synth.sub.vinylanalog_c1_st": {
+      "path": "samples/Synth/Sub/VinylAnalog_C1_ST.wav",
+      "asset_key": "samples/Synth/Sub/VinylAnalog_C1_ST.wav",
+      "built_in": true,
+      "sha256": "f3bac685ead0ba8c87c4107ed330ca3ffb86c4c9685eab566a45db606cf52dac",
+      "legacy_hash_12": "f3bac685ead0",
+      "aliases": [
+        "f3bac685ead0"
+      ],
+      "display_name": "VinylAnalog C1 ST",
+      "display_path": "Synth/Sub",
+      "source_file_name": "VinylAnalog_C1_ST.wav"
+    },
     "builtin.noise.other.air_factory": {
       "path": "samples/Noise/Other/Air Factory.wav",
       "asset_key": "samples/Noise/Other/Air%20Factory.wav",
@@ -3662,6 +4092,32 @@
       "display_name": "Bells EvilPhone",
       "display_path": "Noise/Other",
       "source_file_name": "Bells EvilPhone.wav"
+    },
+    "builtin.noise.other.svc350_aalto011": {
+      "path": "samples/Noise/Other/SVC350_Aalto011.wav",
+      "asset_key": "samples/Noise/Other/SVC350_Aalto011.wav",
+      "built_in": true,
+      "sha256": "84b1774be612dcef524c44da81a1eff3b4406d92f81a3943edf56a9488239548",
+      "legacy_hash_12": "84b1774be612",
+      "aliases": [
+        "84b1774be612"
+      ],
+      "display_name": "SVC350 Aalto011",
+      "display_path": "Noise/Other",
+      "source_file_name": "SVC350_Aalto011.wav"
+    },
+    "builtin.noise.other.vinyl_halo_008": {
+      "path": "samples/Noise/Other/Vinyl_Halo_008.wav",
+      "asset_key": "samples/Noise/Other/Vinyl_Halo_008.wav",
+      "built_in": true,
+      "sha256": "afdc7ed98c6479ab7605801c31a637f232537b13caf2b60d5c8d955fcdda4189",
+      "legacy_hash_12": "afdc7ed98c64",
+      "aliases": [
+        "afdc7ed98c64"
+      ],
+      "display_name": "Vinyl Halo 008",
+      "display_path": "Noise/Other",
+      "source_file_name": "Vinyl_Halo_008.wav"
     },
     "builtin.noise.clicks.clave_p12valve_g5": {
       "path": "samples/Noise/Clicks/Clave P12Valve G5.wav",

@@ -614,7 +614,7 @@ void switch_to_section_seamless_song_mode(int section_index) {
         sv_set_position(SUNVOX_SLOT, timeline_start_line);
         sunvox_wrapper_on_section_switch(prev_section, section_index);
     } else {
-        sunvox_wrapper_apply_section_layer_reverb(section_index, 1);
+        sunvox_wrapper_apply_section_layer_reverb(section_index);
         sunvox_wrapper_apply_section_layer_eq(section_index);
         sunvox_wrapper_apply_section_layer_volume(section_index);
     }
@@ -774,7 +774,7 @@ void playback_set_section_layer_reverb(int section, int layer, float send01, flo
 
     // Apply immediately for currently audible section.
     if (section == g_playback_state.current_section) {
-        sunvox_wrapper_apply_section_layer_reverb(section, 0);
+        sunvox_wrapper_apply_section_layer_reverb(section);
     }
 }
 

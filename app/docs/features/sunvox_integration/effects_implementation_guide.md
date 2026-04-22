@@ -3,7 +3,7 @@
 This document has two parts:
 
 - **[Part I: Theory and design options](#part-i-theory-and-design-options)** — How SunVox separates pattern effects vs module controllers, trade-offs (presets vs column chains), and recommendations. Written as product-agnostic design material; examples refer to the original “Rehorsed” planning name where the text predates the current app.
-- **[Part II: Current implementation in HypnoPitch](#part-ii-current-implementation-in-hypnopitch)** — What HypnoPitch implements today: master-bus EQ, **per-layer send/return reverb** (dual A/B banks for section handover), master “reverb” as a send-level shim, native wiring, FFI, Dart state, and UI entry points.
+- **[Part II: Current implementation in HypnoPitch](#part-ii-current-implementation-in-hypnopitch)** — What HypnoPitch implements today: master-bus EQ, **single master reverb with per-layer send amps** (per-layer wet amount, no per-section reverb-module rewrites), master “reverb” as a send-level shim, native wiring, FFI, Dart state, and UI entry points.
 
 ---
 
@@ -25,16 +25,18 @@ This document has two parts:
 ### Part II: Current implementation in HypnoPitch
 
 1. [What is implemented vs not](#what-is-implemented-vs-not)
-2. [Master + per-layer signal chain (summary)](#master-per-layer-signal-chain-summary)
-3. [Per-layer reverb: data model and native API](#per-layer-reverb-data-model-and-native-api)
-4. [Per-layer EQ: data model and native API](#per-layer-eq-data-model-and-native-api)
-5. [Per-layer EQ: graph wiring and implementation notes](#per-layer-eq-graph-wiring-and-implementation-notes)
-6. [Native layer (HypnoPitch) — key symbols](#native-layer-hypnopitch-key-symbols)
-7. [Playback bridge (C API)](#playback-bridge-c-api)
-8. [Dart: FFI and PlaybackState](#dart-ffi-and-playbackstate)
-9. [UI (master vs layer)](#ui-master-vs-layer)
-10. [Mapping notes (EQ dB vs SunVox)](#mapping-notes-eq-db-vs-sunvox)
-11. [Relation to Part I](#relation-to-part-i)
+2. [Reverb design history (what changed and why)](#reverb-design-history-what-changed-and-why)
+3. [Master + per-layer signal chain (summary)](#master-per-layer-signal-chain-summary)
+4. [Per-layer reverb: data model and native API](#per-layer-reverb-data-model-and-native-api)
+5. [Per-layer EQ: data model and native API](#per-layer-eq-data-model-and-native-api)
+6. [Per-layer volume: data model and native API](#per-layer-volume-data-model-and-native-api)
+7. [Per-layer EQ: graph wiring and implementation notes](#per-layer-eq-graph-wiring-and-implementation-notes)
+8. [Native layer (HypnoPitch) — key symbols](#native-layer-hypnopitch-key-symbols)
+9. [Playback bridge (C API)](#playback-bridge-c-api)
+10. [Dart: FFI and PlaybackState](#dart-ffi-and-playbackstate)
+11. [UI (master vs layer)](#ui-master-vs-layer)
+12. [Mapping notes (EQ dB vs SunVox)](#mapping-notes-eq-db-vs-sunvox)
+13. [Relation to Part I](#relation-to-part-i)
 
 ---
 
@@ -1125,7 +1127,10 @@ For **audible** tails across section or mix changes:
 2. **Do not** use **Reverb wet → 0** as the primary “mute FX for the next section” — it **mutes the return** and kills the tail.
 3. If you need **two** independent decaying spaces (e.g. old vs new section color), plan **two** reverb instances or an explicit **crossfade/overlap** — one Reverb has **one** internal state.
 
-HypnoPitch **Part II** now implements **per-layer send/return reverb** (see below): each layer has its own **dual A/B reverb banks** with **Amplifier** send and return stages, summed into **master EQ → output**. The earlier “single shared insert Reverb after EQ” layout is **no longer** the shipping graph; the investigation notes above still apply to **wet vs send** and **tail preservation**.
+HypnoPitch **Part II** ships a **single master Reverb** shared by all layers, with a **per-layer send amp** so each layer can still have its own section-scoped wet amount. Two hard rules fall out of the SunVox Reverb behavior above:
+
+1. **Master Reverb controllers are written once at init and never again.** Any controller write flags `filters_reinit_request`, which recomputes comb delay lengths on the next render. The tail in those buffers is preserved but the filter topology changes mid-ring, producing an audible break. Section switches therefore do **not** touch any Reverb ctl — per-section `room` / `damp` values are kept in the table schema (`SectionLayerReverb`) and on the `playback_set_section_layer_reverb` FFI (so stored snapshots and UI shape don't break) but are **no-ops at runtime**. Only the per-layer **send amp** is section-scoped. A runtime-controlled master room/damp (ramped independently, driven from the Master RVB widget) is the natural next step if global reverb tone control is needed.
+2. **Section handover snaps per-layer send / volume / EQ from the table; no ramp.** With the master Reverb untouched, the tail is already continuous — amplitude smoothing of send or volume is unnecessary. Ramping was actively harmful: when the next section raises a previously muted layer's volume from 0 → target, a fade-in is audible as the layer's notes "starting late," which is exactly the symptom that must not happen at a section boundary. `sunvox_wrapper_on_section_switch` simply calls `apply_section_layer_reverb`, `apply_section_layer_volume`, and `apply_section_layer_eq` in sequence — the same transport timing as the pre-reverb implementation, with the shared Reverb tail layered on top.
 
 ---
 
@@ -1139,47 +1144,65 @@ This section describes the **live codebase** (paths relative to the app package:
 |------|----------------------|
 | **Master volume** | Implemented: SunVox slot volume via `sv_volume` (0…256). |
 | **Master bus EQ** | Implemented: SunVox **EQ** module, three bands (Low / Mid / High), gain 0…512 per band. EQ is the **only** module in `g_master_effect_modules[]`; it connects **directly** to SunVox output module `0`. |
-| **Master “reverb” (UI: Master RVB)** | Implemented as a **compatibility shim**: `sunvox_wrapper_set_master_reverb(wet01)` does **not** drive a dedicated master Reverb module. It sets **Amplifier volume (send)** on each layer’s **currently active** A/B bank to **0…256** (mapped from UI 0…1). This scales **how much** of each layer’s signal feeds that layer’s active reverb path. |
-| **Per-layer reverb** | Implemented: For each of `MAX_LAYERS_PER_SECTION` (5) layers: **two** parallel chains **Send amp → Reverb → Return amp → master EQ**, with **A/B banks** so section switches can crossfade **sends** while old tails decay in the inactive bank. Per-**section**, per-**layer** parameters (**send**, **room**, **damp** as 0…255) live in `TableState` (`section_layer_reverb` in [`app/native/table.h`](../../../native/table.h)). |
-| **Per-layer EQ** | Implemented: **One** SunVox **EQ** module per layer (`g_layer_eq_mod[]`), inserted **after** layer samplers and **before** the per-layer volume amp, master EQ, and reverb sends. Per-**section**, per-**layer** three-band dB values (**−12…+6**, same range as master EQ UI) live in `TableState` (`section_layer_eq` in [`app/native/table.h`](../../../native/table.h)). No A/B banks (no tail). Applied on section switch via `sunvox_wrapper_apply_section_layer_eq`. |
-| **Per-layer volume** | Implemented: **One** SunVox **Amplifier** per layer (`g_layer_post_eq_amp[]`) **after** layer EQ, **before** master EQ and both reverb sends—scales dry and wet together. Per-**section**, per-**layer** level **0…255** in `TableState` (`section_layer_volume` in [`app/native/table.h`](../../../native/table.h)); UI/Dart **0…1**. Applied via `sunvox_wrapper_apply_section_layer_volume` alongside layer EQ on section switch and when editing the current section. |
+| **Master “reverb” (UI: Master RVB)** | Implemented as a **compatibility shim**: `sunvox_wrapper_set_master_reverb(wet01)` does **not** drive the master Reverb's Wet ctl; it sets the **send level** on every layer's send amp to **0…256** (mapped from UI 0…1), which scales how much of each layer's signal reaches the shared master Reverb. |
+| **Per-layer reverb** | Shared master Reverb + per-layer send amps. One `Reverb` module + one return Amplifier wired into master EQ; each of `MAX_LAYERS_PER_SECTION` (5) layers has its own send Amplifier (`g_layer_send_amp[layer]`) that taps the layer-volume output and feeds the shared Reverb. The per-section, per-layer **send** (0…255) lives in `TableState` (`section_layer_reverb.send` in [`app/native/table.h`](../../../native/table.h)); `room` and `damp` are kept in the schema for forward compatibility but are **no-ops at runtime** (see the two hard rules above). |
+| **Per-layer EQ** | One SunVox **EQ** module per layer (`g_layer_eq_mod[]`), inserted **after** layer samplers and **before** the per-layer volume amp. Per-**section**, per-**layer** three-band dB values (**−12…+6**, same range as master EQ UI) in `TableState` (`section_layer_eq`). |
+| **Per-layer volume** | One SunVox **Amplifier** per layer (`g_layer_post_eq_amp[]`) **after** layer EQ, **before** master EQ and the reverb send — scales dry and wet together. Per-**section**, per-**layer** level **0…255** in `TableState` (`section_layer_volume`); UI/Dart **0…1**. |
 | **Sampler routing** | Implemented: **One Sampler module per (layer, sample slot)** — `g_sampler_modules[layer][slot]`. Pattern events target the sampler for the cell’s **layer** (`table_get_layer_for_col`). This allows the same sample slot to sound with different layer FX. |
-| **Section switch (song mode, tails)** | Implemented: `switch_to_section_seamless_song_mode` + `sunvox_wrapper_on_section_switch` ramp send levels between banks; automatic section changes in song mode also trigger handover from the playback poll path. Hard stop path remains `switch_to_section_immediate`. |
+| **Section switch (song mode, tails)** | `switch_to_section_seamless_song_mode` + `sunvox_wrapper_on_section_switch` snap per-layer send, volume, and EQ from the next section's table values. No Reverb ctl writes occur, so the shared master Reverb's tail rings through the switch unchanged and the new section's first line starts on time. Hard stop path remains `switch_to_section_immediate`. |
 | **Per-cell pattern effects** (vibrato, slide, one effect per cell in pattern data) | Not implemented in the product flow described here; Part I still applies if we add them. |
 | **Per-column** separate FX chains | Not implemented; reverb is **per layer**, not per column. |
 | **Column-based effect chains** (Part I full “one chain per column”) | Not implemented; see per-layer reverb above instead. |
+
+### Reverb design history (what changed and why)
+
+The reverb architecture has gone through three iterations. Each failure mode was directly caused by writing to a SunVox Reverb controller while a tail was ringing — the root finding from the investigation notes above. The final design removes every such write from the runtime path.
+
+| Iteration | Architecture | Runtime writes at section switch | Observed failure |
+|-----------|--------------|----------------------------------|------------------|
+| v1 | Per-layer Reverb with **A / B banks** (two Reverb modules per layer, alternated per section) | Switched which bank received the signal; set up the idle bank's room/damp from the new section's table | Loud click / "explosion" at section boundaries; caused by reading a hardcoded `255` into the ramp start and by repeated room/damp writes flagging `filters_reinit_request` on the idle bank's comb filters |
+| v2 | Single per-layer Reverb, ramped send + layer volume over ~120 ms on the poll thread, with room/damp also rewritten at the switch | ~60 ctl writes per switch (send, volume, room, damp per layer over 6 ramp steps) | "Explosions" were tamed but a softer but still audible **break** remained; every room/damp write reshaped comb delay lengths mid-tail. A secondary bug: `sv_get_module_ctl_value(..., scaled=0)` returns the internal `0..0x8000` value, not the user-unit setter input, so the ramp start was silently reading ~32000 and clamping to `255` on step 1 (the v1 symptom under a different disguise) |
+| v3 (current) | **One shared master Reverb**, per-layer send amps, `room` / `damp` written only at init | Three controller writes per layer (send, volume, EQ bands) — all on Amplifier / EQ modules, never on the Reverb | No click, no break, tail continuous across every switch |
+
+Side consequences of v3 that are visible in the code:
+
+- The **shadow-state arrays** that v2 added (to work around the getter/setter asymmetry) were deleted when the ramp was removed; they had no other readers.
+- `SectionLayerReverb.room` and `SectionLayerReverb.damp` remain in the table schema and on the `playback_set_section_layer_reverb` FFI for snapshot / UI compatibility, but the engine ignores them at runtime. Reintroducing runtime room/damp control requires wiring it outside of `sunvox_wrapper_on_section_switch` (e.g. from a master-level widget) and must be ramped + ideally guarded to skip when the tail is silent, or the click returns.
+- The **120 ms ramp** in `sunvox_wrapper_on_section_switch` was also removed. With the Reverb untouched it bought nothing, and it was actively harmful: when the next section raised a previously muted layer's volume from 0 to target, the fade-in was audible as the layer's notes "starting late" — the exact symptom a section switch must not produce. `on_section_switch` now just calls the three per-section apply functions in sequence.
 
 ### Master + per-layer signal chain (summary)
 
 Conceptually, for **each layer** \(L\):
 
-- **Dry**: each layer’s samplers → **Layer EQ** → **Layer volume** (Amplifier) → **Master EQ** → **Output** (via the master EQ module).
-- **Wet (per layer)**: same **Layer volume** output → **Send** (Amplifier) → **Reverb** → **Return** (Amplifier) → **same Master EQ** → **Output**.
+- **Dry**: each layer's samplers → **Layer EQ** → **Layer volume** (Amplifier) → **Master EQ** → **Output**.
+- **Wet**: same **Layer volume** output → **Send L** (Amplifier) → **Master Reverb** (shared) → **Master Return** (Amplifier) → **Master EQ** → **Output**.
 
-Each layer has **two** such wet paths (**bank A** and **bank B**). Only one bank is “active” for new send at a time; section handover ramps sends between banks while the previous bank’s reverb can still decay. Wiring is built in `connect_master_effect_chain()` (master EQ only) and `connect_layer_reverb_graph()` in [`app/native/sunvox_wrapper.mm`](../../../native/sunvox_wrapper.mm).
+Every layer shares the **same** master Reverb + return amp; only the per-layer **Send** amplifier is layer-specific. Wiring is built in `connect_master_effect_chain()` (master EQ only) and `connect_layer_reverb_graph()` (shared master reverb + per-layer taps) in [`app/native/sunvox_wrapper.mm`](../../../native/sunvox_wrapper.mm).
 
 ```
-Per layer L (repeated for L = 0..4):
-
-  [L Sampler slot 0] ──► [ Layer EQ L ] ──► [ Layer Vol L ] ──┬──► [ Master EQ ] ──► [ Output 0 ]
-  [L Sampler slot …] ──► [ Layer EQ L ] ──► [ Layer Vol L ] ──┤         ▲
-                                                             │         │
-                    ┌────────────────────────────────────────┴─────────┘
-                    ├──► [Send L_A] ─►[Rev L_A]─►[Ret L_A]──┘
-                    └──► [Send L_B] ─►[Rev L_B]─►[Ret L_B]──┘
+                                                                 ┌──► [ Master EQ ] ──► [ Output 0 ]
+  [L Sampler slot 0] ──► [ Layer EQ L ] ──► [ Layer Vol L ] ─────┤         ▲
+  [L Sampler slot …] ──► [ Layer EQ L ] ──► [ Layer Vol L ] ─────┤         │
+                                                                 │         │
+                                                                 └──► [ Send L ] ──┐
+                                                                                   │
+          (repeated for L = 0..4, all five Send L amps feed the same Master Reverb)
+                                                                                   ▼
+                                                                ┌─► [ Master Reverb ] ──► [ Master Ret ] ──► [ Master EQ ]
+                                                                └─ shared across all layers
 ```
 
-- Reverb modules run as a **wet-only return** in the shipping graph: Reverb **Dry=0**, **Wet=256**; direct signal remains on the dry path (`layer EQ → layer volume → master EQ`). **Send** level is the primary per-layer “amount” control (aligned with **Non–tail-cutting direction (routing)** above: prefer send/return, not muting reverb wet to silence).
-- Return Amplifier uses a small fixed trim (`SV_REVERB_RETURN_TRIM=240`) to keep high-send reverb from reading as an abrupt loudness lift while preserving tail character.
-- Controller mapping in [`sunvox_wrapper.mm`](../../../native/sunvox_wrapper.mm) follows `psynths_reverb.cpp` `psynth_register_ctl` order: **Dry=0**, **Wet=1**, **Feedback=2**, **Damp=3**, **Room size=8**. This avoids accidental writes to the wrong parameter.
-- `SectionLayerReverb.room` is stored as `0..255` in table state and mapped to SunVox Reverb room-size range `0..128` before applying; `damp` stays in `0..255`.
+- Master Reverb runs as a **wet-only return**: `Dry=0`, `Wet=256`; the direct signal stays on `layer EQ → layer volume → master EQ`. The per-layer **send** level is the only "reverb amount" control (aligned with **Non–tail-cutting direction (routing)** above: prefer send/return over muting reverb wet).
+- Master Return Amplifier uses a fixed trim (`SV_REVERB_RETURN_TRIM = 240`) to keep high sends from reading as an abrupt loudness lift while preserving tail character.
+- Master Reverb `room` / `damp` are initialized once to `SV_REVERB_ROOM_DEFAULT = 64` and `SV_REVERB_DAMP_DEFAULT = 128` (SunVox internal ranges) and never rewritten at runtime. A future runtime controller driving them must do so outside of the section switch path and guard against writing while the tail is ringing.
+- Reverb controller indices (`SV_REVERB_CTL_DRY = 0`, `WET = 1`, `DAMP = 3`, `ROOM_SIZE = 8`) follow `psynths_reverb.cpp` `psynth_register_ctl` order.
 
 ### Per-layer reverb: data model and native API
 
-- **Storage**: `SectionLayerReverb` in [`app/native/table.h`](../../../native/table.h) — `send`, `room`, `damp` (uint8 0…255) per `[section][layer]`.
+- **Storage**: `SectionLayerReverb` in [`app/native/table.h`](../../../native/table.h) — `send`, `room`, `damp` (uint8 0…255) per `[section][layer]`. **Only `send` is applied at runtime**; `room` and `damp` are kept in memory and in snapshots for forward compatibility only.
 - **Setters**: `table_set_section_layer_reverb(...)`, getters `table_get_section_layer_reverb_send/room/damp(...)`.
-- **Playback**: `playback_set_section_layer_reverb(section, layer, send01, room01, damp01)` and getters `playback_get_section_layer_reverb_send/room/damp(section, layer)` in [`app/native/playback.h`](../../../native/playback.h) / [`app/native/playback_sunvox.mm`](../../../native/playback_sunvox.mm).
-- **Engine**: `sunvox_wrapper_apply_section_layer_reverb(section_index, force_reseed)` and `sunvox_wrapper_on_section_switch(prev, next)` in [`app/native/sunvox_wrapper.h`](../../../native/sunvox_wrapper.h).
+- **Playback**: `playback_set_section_layer_reverb(section, layer, send01, room01, damp01)` and getters `playback_get_section_layer_reverb_send/room/damp(...)` in [`app/native/playback.h`](../../../native/playback.h) / [`app/native/playback_sunvox.mm`](../../../native/playback_sunvox.mm). `room01` / `damp01` round-trip through the table but do not affect audio.
+- **Engine**: `sunvox_wrapper_apply_section_layer_reverb(section)` writes the per-layer send from the table; `sunvox_wrapper_on_section_switch(prev, next)` calls it plus the volume and EQ apply functions. Neither writes any Reverb controller.
 
 ### Per-layer EQ: data model and native API
 
@@ -1199,15 +1222,16 @@ Per layer L (repeated for L = 0..4):
 
 Built in [`connect_layer_reverb_graph()`](../../../native/sunvox_wrapper.mm) after [`connect_master_effect_chain()`](../../../native/sunvox_wrapper.mm) (master EQ must exist first).
 
-1. **Create** one SunVox `"EQ"` per layer → `g_layer_eq_mod[layer]`; set bands to **256** (unity), matching master EQ init.
-2. **Create** one SunVox `"Amplifier"` per layer → `g_layer_post_eq_amp[layer]` (per-layer volume); initial **volume** ctl **255** (unity).
-3. **Create** per-layer A/B reverb chains (unchanged): Send → Reverb → Return → **master EQ**.
-4. **Per layer**, **per sample slot**: `sv_connect_module(sampler, layer_eq)` only. Each sampler is a **distinct** source, so this link is unique (26 links into one layer EQ, analogous to 26 samplers feeding the master bus before layer EQ existed).
-5. **Per layer**, **after** the sampler loop: connect **`layer_eq → layer_vol_amp`**, then **`layer_vol_amp → master_eq`** and **`layer_vol_amp → send_amp[0]`**, **`layer_vol_amp → send_amp[1]`** exactly **once**.
+1. **Create** one shared `"Reverb"` and one shared return `"Amplifier"` at the bus level (`g_master_reverb_mod`, `g_master_return_amp`); connect `master_reverb → master_return → master_eq`. Init Reverb `Dry=0`, `Wet=256`, `Room=SV_REVERB_ROOM_DEFAULT`, `Damp=SV_REVERB_DAMP_DEFAULT`. Return Amplifier volume = `SV_REVERB_RETURN_TRIM`. These four writes to the Reverb are the only ones that ever happen — see rule (1) above.
+2. **Create** one SunVox `"EQ"` per layer → `g_layer_eq_mod[layer]`; set bands to **256** (unity), matching master EQ init.
+3. **Create** one SunVox `"Amplifier"` per layer → `g_layer_post_eq_amp[layer]` (per-layer volume); initial **volume** ctl **255** (unity).
+4. **Create** one SunVox `"Amplifier"` per layer → `g_layer_send_amp[layer]` (per-layer reverb send); initial volume **0** (real send comes from section table on first apply).
+5. **Per layer**, **per sample slot**: `sv_connect_module(sampler, layer_eq)` only. Each sampler is a **distinct** source, so this link is unique.
+6. **Per layer**, **after** the sampler loop: connect **`layer_eq → layer_vol_amp`**, then **`layer_vol_amp → master_eq`** (dry), **`layer_vol_amp → send_amp`** (wet tap), and **`send_amp → master_reverb`** exactly **once**.
 
-**Why step 5 must not run inside the slot loop:** `sv_connect_module` maps to `psynth_make_link`. If the same source→destination pair is already linked, SunVox **removes** that link and **does not** re-add it (toggle behavior). Repeating `layer_vol_amp → master_eq` for every slot would disconnect the bus after the first sampler, resulting in **silence**. Only **unique** `(source, destination)` pairs may be connected repeatedly without toggling off.
+**Why step 6 must not run inside the slot loop:** `sv_connect_module` maps to `psynth_make_link`. If the same source→destination pair is already linked, SunVox **removes** that link and **does not** re-add it (toggle behavior). Repeating `layer_vol_amp → master_eq` for every slot would disconnect the bus after the first sampler, resulting in **silence**. Only **unique** `(source, destination)` pairs may be connected repeatedly without toggling off.
 
-**Section-scoped tone:** Table state holds EQ per `[section][layer]`. Editing calls `playback_set_section_layer_eq_band` when the section is current; on song-mode section advance, `sunvox_wrapper_apply_section_layer_eq(next_section)` runs after the reverb send ramp (`sunvox_wrapper_on_section_switch`).
+**Section-scoped tone:** Table state holds EQ per `[section][layer]`. Editing calls `playback_set_section_layer_eq_band` when the section is current; on song-mode section advance, `sunvox_wrapper_apply_section_layer_eq(next_section)` runs from inside `sunvox_wrapper_on_section_switch`.
 
 **UI:** In [`layer_settings_widget.dart`](../../../lib/widgets/sequencer/v1/layer_settings_widget.dart), the layers strip **VOL**, **EQ**, and **RVB** header buttons use the same `_buildMasterStyleHeaderButton` styling as the master row in [`sound_settings.dart`](../../../lib/widgets/sequencer/v1/sound_settings.dart) (`_buildSettingsButton`: fixed width 80, accent fill when selected). The EQ panel reuses the master pattern: **LOW / MID / HIGH** chevrons + [`WheelSelectWidget`](../../../lib/widgets/sequencer/v1/wheel_select_widget.dart) bound to `getSectionLayerEqBandDb` / `setSectionLayerEqBandDb` for `uiSelectedSection` and `uiSelectedLayer`. The **VOL** panel uses [`GenericSlider`](../../../lib/widgets/sequencer/v1/generic_slider.dart) (`SliderType.volume`) bound to `getSectionLayerVolume` / `setSectionLayerVolume`.
 
@@ -1227,16 +1251,18 @@ Legacy top-level mute/solo keys remain accepted by importer for compatibility.
 |-----------------|------|
 | `g_master_effect_modules[]`, `MASTER_FX_EQ` | Master **EQ** only (index 0). Connects to output module `0`. |
 | `g_sampler_modules[layer][slot]` | Sampler module ids per layer and sample slot. |
-| `g_layer_eq_mod[]` | Per-layer **EQ** module (insert between samplers and layer volume / master EQ / reverb sends). |
+| `g_layer_eq_mod[]` | Per-layer **EQ** module (insert between samplers and layer volume / master EQ / reverb send). |
 | `g_layer_post_eq_amp[]` | Per-layer **Amplifier** after layer EQ (dry + wet gain). |
-| `g_layer_send_amp`, `g_layer_reverb_mod`, `g_layer_return_amp`, `g_layer_active_bank` | Per-layer A/B send/reverb/return modules and which bank is active after a handover. |
+| `g_layer_send_amp[layer]` | Per-layer reverb **send** Amplifier (one per layer). Feeds the shared `g_master_reverb_mod`. |
+| `g_master_reverb_mod`, `g_master_return_amp` | Shared master Reverb module and its return Amplifier (one of each total). Initialized once in `connect_layer_reverb_graph()` and never written again. |
 | `connect_master_effect_chain()` | Creates master EQ, connects EQ → output, sets unity EQ bands. |
-| `connect_layer_reverb_graph()` | Creates per-layer EQ + per-layer volume amp + A/B reverb chains; connects samplers → layer EQ → layer volume → master EQ (dry) and layer volume → both sends (wet). |
+| `connect_layer_reverb_graph()` | Creates the shared master reverb + return, all per-layer EQs / volume amps / send amps, and wires: samplers → layer EQ → layer volume → master EQ (dry) and layer volume → send → master reverb → master return → master EQ (wet). |
 | `sunvox_wrapper_set_master_eq_band(band, gain_0_512)` | EQ bands 0…2 on the master EQ module. |
-| `sunvox_wrapper_set_master_reverb(wet01)` | **Shim**: sets **send Amplifier** ctl (volume) on each layer’s **active** bank to 0…256. |
-| `sunvox_wrapper_apply_section_layer_reverb` / `sunvox_wrapper_on_section_switch` | Apply table params and perform A/B send crossfade on section change. |
-| `sunvox_wrapper_apply_section_layer_eq` | Apply per-layer EQ from table for a section (no ramp). |
-| `sunvox_wrapper_apply_section_layer_volume` | Apply per-layer output volume (Amplifier after layer EQ) from table for a section. |
+| `sunvox_wrapper_set_master_reverb(wet01)` | Shim: writes the same 0…256 value to every layer's send amp. Does not touch the master Reverb wet ctl. |
+| `sunvox_wrapper_apply_section_layer_reverb(section)` | Writes per-layer send from the table. Room/damp are ignored. |
+| `sunvox_wrapper_apply_section_layer_volume(section)` | Writes per-layer volume amp from the table. |
+| `sunvox_wrapper_apply_section_layer_eq(section)` | Writes per-layer EQ bands from the table (dB → 0…512). |
+| `sunvox_wrapper_on_section_switch(prev, next)` | Calls the three apply functions above in sequence. No Reverb ctl writes; no ramp. |
 
 Declared for other translation units in [`app/native/sunvox_wrapper.h`](../../../native/sunvox_wrapper.h).
 
@@ -1275,7 +1301,7 @@ Implementations: [`app/native/playback_sunvox.mm`](../../../native/playback_sunv
 [`app/lib/widgets/sequencer/v1/sound_settings.dart`](../../../lib/widgets/sequencer/v1/sound_settings.dart) (master panel):
 
 - Master header includes **VOL**, **RVB**, **EQ**, **BPM** (and related wiring).
-- **RVB**: slider bound to `masterReverbWetNotifier` / `setMasterReverbWet` (global **send-level** shim on each layer’s active bank).
+- **RVB**: slider bound to `masterReverbWetNotifier` / `setMasterReverbWet` (global **send-level** shim that writes the same value to every layer's single send amp).
 - EQ: band label **LOW / MID / HIGH** with chevrons to cycle band; [`WheelSelectWidget`](../../../lib/widgets/sequencer/v1/wheel_select_widget.dart) shows dB for the active band and calls `setMasterEqBandDb`.
 
 [`app/lib/widgets/sequencer/v1/layer_settings_widget.dart`](../../../lib/widgets/sequencer/v1/layer_settings_widget.dart) (layers panel):
@@ -1292,6 +1318,6 @@ Implementations: [`app/native/playback_sunvox.mm`](../../../native/playback_sunv
 
 ### Relation to Part I
 
-- **Part I** explains why per-note “studio” FX often need **either** pattern events **or** separate modules / routing; it argues for **column chains** or **preset** strategies when you need **different** reverb/delay/filter per cell.
-- **[HypnoPitch scaling and reverb tails: investigation notes](#hypnopitch-scaling-and-reverb-tails-investigation-notes)** summarizes **section/layer/column** scaling, **verified** SunVox Reverb tail behavior from `psynths_reverb.cpp`, and **send/return** vs **wet** as a mute.
-- **Part II (current)** ships **master EQ**, **per-layer EQ** (one insert EQ per layer before master bus and reverb sends; section-scoped dB in table state), **per-layer send/return reverb** (A/B banks, section-scoped params in table state), and a **master RVB** control that scales **active send** per layer (shim). **Per-column** distinct FX chains are still **not** implemented; adding them should follow Part I constraints (pattern effect slot limit, module controller bleed-over) and extend routing explicitly in `sunvox_wrapper` / playback.
+- **Part I** explains why per-note "studio" FX (reverb / delay / filter amounts that differ cell by cell) cannot ride a single shared module: module controllers are global to that module, so changing the knob mid-playback affects every note still ringing through it. Column chains and preset-per-combination strategies are the two escape hatches it discusses.
+- The **[HypnoPitch investigation notes](#hypnopitch-scaling-and-reverb-tails-investigation-notes)** bridge theory to this codebase: SunVox Reverb tail behavior verified from `psynths_reverb.cpp`, the send/return vs wet-mute rule, and the two hard rules that the current design obeys.
+- **Part II (current)** sidesteps the combinatorial problem by not offering per-cell reverb/delay/filter at all. Reverb is per-*layer* × per-*section* as a send into one shared master Reverb — a product choice that keeps the graph small (one Reverb module, five sends) and avoids any runtime writes to Reverb controllers. Per-column FX chains would re-open the Part I design space and would extend `connect_layer_reverb_graph` plus the playback path explicitly.

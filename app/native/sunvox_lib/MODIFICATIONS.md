@@ -2,7 +2,7 @@
 
 **Original Version:** 2.1.2b  
 **Purpose:** Add seamless pattern looping, pattern loop counting, sequencing, and independent microphone monitoring  
-**Date Modified:** October 10-15, 2025; January 12, 2026
+**Date Modified:** October 10-15, 2025; January 12, 2026; April 22, 2026
 
 ---
 
@@ -32,6 +32,7 @@ This document lists **only the modifications made to the original SunVox library
 - Fixed loop counter preservation at sequence end (Oct 15)
 - Fixed loop counter preservation during pattern resize (Oct 22)
 - Fixed iOS build script for ARM64 device-only builds (Jan 12, 2026)
+- Added Android linker flag in `lib_sundog/sundog_makefile.inc` for 16 KB page-size compatible `.so` builds (Apr 22, 2026)
 
 ---
 
@@ -457,6 +458,10 @@ bash MAKE_ANDROID
 ```
 
 Output: `.so` files for each architecture in `../android/`
+
+Note: `lib_sundog/sundog_makefile.inc` was updated to add `-Wl,-z,max-page-size=16384`
+for Android builds so generated `sunvox.so` / `libsunvox.so` are compatible with
+16 KB memory page sizes required by newer Android / Google Play checks.
 
 ---
 

@@ -53,8 +53,13 @@ PY
 echo "Running flutter pub get for temporary pubspec..."
 flutter pub get
 
-# Strip flutter_build cache so kernel depfiles match this pubspec (no bundled samples/).
-# Reusing incremental artifacts after swapping assets causes empty/invalid kernel_snapshot_program.d warnings.
+# Force a clean Android/Flutter asset build. Incremental outputs can leave
+# stale samples/ files under base/flutter_assets even after pubspec removes
+# them, which makes the Play base module exceed the 200 MB compressed limit.
+flutter clean
+flutter pub get
+
+# Also strip any remaining incremental Flutter build cache for this pubspec.
 rm -rf .dart_tool/flutter_build
 
 echo "Building Android AAB with PAD (flavor=prod, release)..."

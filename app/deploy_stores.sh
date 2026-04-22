@@ -45,6 +45,12 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
+# CocoaPods on macOS can fail under non-UTF-8 locales during flutter build ipa.
+# Default to a UTF-8 locale so both direct script usage and Fastlane child
+# processes see a stable environment.
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
 # Fastlane treats APP_STORE_CONNECT_API_KEY_PATH as a JSON API key file path.
 # Our setup uses a raw .p8 key, so remap legacy names to neutral ones before invoking Fastlane.
 export APP_STORE_CONNECT_P8_PATH="${APP_STORE_CONNECT_P8_PATH:-${APP_STORE_CONNECT_API_KEY_PATH:-}}"

@@ -47,6 +47,12 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         minSdk = 26
+
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+            }
+        }
         
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "x86_64"))

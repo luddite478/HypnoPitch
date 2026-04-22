@@ -137,6 +137,7 @@ endif
 	-I$(SYSROOT)/usr/include \
 	-I$(ANDROID_NDK)/sources/android/native_app_glue \
 	-Wno-gnu-inline-cpp-without-extern
+    LDFLAGS2 += -Wl,-z,max-page-size=16384
     DEFAULT_LIBS = -llog -landroid -lOpenSLES -lm -ldl
 ifeq ($(SUNDOG_VER),)
     CFLAGS2 += -DGL_GLEXT_PROTOTYPES=1

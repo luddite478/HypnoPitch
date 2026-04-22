@@ -102,8 +102,11 @@ int sunvox_wrapper_is_initialized(void);
 // Master bus reverb wet (0..1). No-op if engine not ready.
 void sunvox_wrapper_set_master_reverb(float wet01);
 
-// Apply section-layer reverb params onto inactive banks and crossfade sends.
-void sunvox_wrapper_apply_section_layer_reverb(int section_index, int force_reseed);
+// Apply section-layer reverb params (room/damp) and set send level from the
+// table. Used for stopped/initial state changes; section switches during
+// playback should go through sunvox_wrapper_on_section_switch instead so the
+// send + layer volume are crossfaded from their real current values.
+void sunvox_wrapper_apply_section_layer_reverb(int section_index);
 void sunvox_wrapper_apply_section_layer_eq(int section_index);
 void sunvox_wrapper_apply_section_layer_volume(int section_index);
 void sunvox_wrapper_on_section_switch(int prev_section, int next_section);

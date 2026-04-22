@@ -107,6 +107,12 @@ include_directories(sunvox_lib/sunvox_lib/headers)
 # Create sequencer library (includes both sequencer and conversion functionality)
 add_library(sequencer SHARED ${SEQUENCER_SOURCES})
 
+if(ANDROID)
+  # Build the app's native library with 16 KB-compatible ELF alignment for
+  # Android 15+ devices while remaining compatible with 4 KB page sizes.
+  target_link_options(sequencer PRIVATE "-Wl,-z,max-page-size=16384")
+endif()
+
 # Link SunVox static library
 if(ANDROID)
   # Android: link prebuilt SunVox shared library for the active ABI.

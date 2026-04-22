@@ -33,7 +33,7 @@ platform :ios do
     # Fastlane runs from app/ios, so paths here are relative to that directory.
     v = flutter_version(pubspec_location: "../pubspec.yaml")
 
-    sh("cd .. && flutter build ipa --release --build-name=#{v['version_name']} --build-number=#{v['version_code']}")
+    sh("cd .. && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 flutter build ipa --release --build-name=#{v['version_name']} --build-number=#{v['version_code']}")
     ipa_path = File.expand_path("../../build/ios/ipa/*.ipa", __dir__)
     ipa_files = Dir.glob(ipa_path)
     UI.user_error!("No IPA found in app/build/ios/ipa") if ipa_files.empty?

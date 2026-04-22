@@ -588,10 +588,12 @@ class TutorialService extends ChangeNotifier {
 
     if (!hasLaunchedBefore) {
       await TutorialPrefsService.setBool(hasLaunchedBeforeKey, true);
-      _showTutorialPromptThisSession = true;
+      if (!_tutorialPromptDeclinedEver) {
+        _showTutorialPromptThisSession = true;
+      }
     } else {
       _showTutorialPromptThisSession = false;
-      if (!tutorialCompleted) {
+      if (!tutorialCompleted && !_tutorialPromptDeclinedEver) {
         final savedName = await TutorialPrefsService.getString(
           quickTutorialSavedStepKey,
           defaultValue: '',
@@ -636,8 +638,12 @@ class TutorialService extends ChangeNotifier {
     if (!_showTutorialPromptThisSession) return;
     _showTutorialPromptThisSession = false;
     _tutorialPromptDeclinedEver = true;
+    _savedStepToResume = null;
     unawaited(
-      TutorialPrefsService.setBool(tutorialPromptDeclinedKey, true),
+      (() async {
+        await TutorialPrefsService.setBool(tutorialPromptDeclinedKey, true);
+        await TutorialPrefsService.setString(quickTutorialSavedStepKey, '');
+      })(),
     );
     notifyListeners();
   }
@@ -674,6 +680,10 @@ class TutorialService extends ChangeNotifier {
     _tutorialEntryPromptIsResume = false;
     _savedStepToResume = null;
     _autoStartTutorialOnNextProjectCreate = false;
+    _tutorialPromptDeclinedEver = false;
+    unawaited(
+      TutorialPrefsService.setBool(tutorialPromptDeclinedKey, false),
+    );
     dismissProjectsCreatePatternFabHint();
     _setActiveStep(TutorialStep.sequencerFirstCellHint);
   }
@@ -686,6 +696,10 @@ class TutorialService extends ChangeNotifier {
     _tutorialEntryPromptIsResume = false;
     _savedStepToResume = null;
     _autoStartTutorialOnNextProjectCreate = false;
+    _tutorialPromptDeclinedEver = false;
+    unawaited(
+      TutorialPrefsService.setBool(tutorialPromptDeclinedKey, false),
+    );
     dismissProjectsCreatePatternFabHint();
     _setActiveStep(step);
   }
