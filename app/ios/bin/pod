@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Shim so Flutter's `pod` check uses the same Ruby/Bundler as Fastlane (app/ios/Gemfile).
+set -euo pipefail
+IOS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+cd "$IOS_DIR"
+exec bundle exec pod "$@"

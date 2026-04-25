@@ -1,5 +1,8 @@
 source "https://rubygems.org"
 
 gem "fastlane"
+# Same Ruby as Fastlane so `pod` works when Flutter runs `pod --version` / `pod install`
+# (avoids broken system/Homebrew pod + mismatched Ruby).
+gem "cocoapods", "~> 1.16"
 plugins_path = File.join(File.dirname(__FILE__), "fastlane", "Pluginfile")
 eval_gemfile(plugins_path) if File.exist?(plugins_path)

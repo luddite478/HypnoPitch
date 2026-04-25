@@ -286,13 +286,14 @@ class PlaybackState extends ChangeNotifier {
       {required int step,
       required int colAbs,
       required double pitchRatio,
-      required double volume01}) {
+      required double volume01,
+      double pan01 = -1.0}) {
     if (!_initialized) return;
     if (volume01 <= 0.0) {
       _playback_ffi.previewStopCell();
       return;
     }
-    _playback_ffi.previewCell(step, colAbs, pitchRatio, volume01);
+    _playback_ffi.previewCell(step, colAbs, pitchRatio, volume01, pan01);
   }
 
   void stopPreview() {

@@ -399,7 +399,10 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
         width: 80,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: onTap,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
           child: Container(
             height: height,
             decoration: BoxDecoration(
@@ -534,6 +537,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
           // SEQUENCE button (left side)
           GestureDetector(
             onTap: () {
+              HapticFeedback.lightImpact();
               tableState.setLayerMode(layerIndex, LayerMode.sequence);
             },
             child: Container(
@@ -567,6 +571,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
           // REC button (right side)
           GestureDetector(
             onTap: () {
+              HapticFeedback.lightImpact();
               if (!micState.isMicEnabled) {
                 micState.enableMicrophone();
               }
@@ -626,7 +631,12 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
         : appState.canInteractWithTutorialTarget(tutorialTarget);
     return GestureDetector(
       key: key,
-      onTap: canTap ? onTap : null,
+      onTap: canTap && onTap != null
+          ? () {
+              HapticFeedback.lightImpact();
+              onTap();
+            }
+          : null,
       child: Container(
         height: height,
         decoration: BoxDecoration(
@@ -726,7 +736,7 @@ class _LayerSettingsWidgetState extends State<LayerSettingsWidget>
     setState(() {
       _layerEqBand = (_layerEqBand + delta + 3) % 3;
     });
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
   }
 
   Widget _buildLayerEqArrowButton({

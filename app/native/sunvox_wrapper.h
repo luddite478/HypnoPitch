@@ -121,6 +121,10 @@ float playback_get_section_layer_volume(int section, int layer);
 // Master 3-band EQ: band 0=Low, 1=Mid, 2=High; gain 0..512 (256 = unity).
 void sunvox_wrapper_set_master_eq_band(int band, int gain_0_512);
 
+// Tail gain at the end of master chain (0..1), after all FX and EQ.
+// Used for click-free transport stop fades.
+void sunvox_wrapper_set_final_output_gain(float gain01);
+
 // Debug: Dump all pattern information
 void sunvox_wrapper_debug_dump_patterns(const char* context);
 
@@ -129,7 +133,7 @@ int sunvox_wrapper_get_pattern_current_loop(int section_index);
 // Live preview (SunVox-based)
 // Play/stop preview for a sample slot or specific cell without altering patterns
 int sunvox_preview_slot(int slot, float pitch, float volume);
-int sunvox_preview_cell(int step, int column, float pitch, float volume);
+int sunvox_preview_cell(int step, int column, float pitch, float volume, float pan);
 void sunvox_preview_stop(void);
 
 // NOTE: Microphone Input module functions removed - mic recording now bypasses SunVox entirely

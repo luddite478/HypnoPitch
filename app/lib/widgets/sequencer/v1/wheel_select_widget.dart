@@ -99,7 +99,7 @@ class WheelSelectWidget extends StatelessWidget {
                   final intValue = minValue + index;
                   onValueChanged(intValue);
                   if (enableHaptic) {
-                    HapticFeedback.selectionClick();
+                    HapticFeedback.lightImpact();
                   }
                 },
                 availableHeight: availableHeight,
@@ -120,7 +120,7 @@ class WheelSelectWidget extends StatelessWidget {
               onValueChanged: (newValue) {
                 onValueChanged(newValue);
                 if (enableHaptic) {
-                  HapticFeedback.selectionClick();
+                  HapticFeedback.lightImpact();
                 }
               },
               maxValue: maxValue,
@@ -195,6 +195,43 @@ class SemitoneWheelWidget extends StatelessWidget {
   }
 }
 
+/// A specialized wheel selector for stereo pan.
+/// Displays values as Lxx / C / Rxx while exposing integer steps.
+class PanWheelWidget extends StatelessWidget {
+  final int panSteps;
+  final ValueChanged<int> onPanChanged;
+  final bool enableHaptic;
+  final VoidCallback? onChangeStart;
+  final VoidCallback? onChangeEnd;
+
+  const PanWheelWidget({
+    super.key,
+    required this.panSteps,
+    required this.onPanChanged,
+    this.enableHaptic = true,
+    this.onChangeStart,
+    this.onChangeEnd,
+  });
+
+  String _formatPan(int value) {
+    if (value == 0) return 'C';
+    final side = value < 0 ? 'L' : 'R';
+    return '$side${value.abs()}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _PanWheelWithPreview(
+      panSteps: panSteps,
+      onPanChanged: onPanChanged,
+      valueFormatter: _formatPan,
+      enableHaptic: enableHaptic,
+      onChangeStart: onChangeStart,
+      onChangeEnd: onChangeEnd,
+    );
+  }
+}
+
 /// Internal stateful widget to handle preview callbacks
 class _SemitoneWheelWithPreview extends StatefulWidget {
   final int semitones;
@@ -250,6 +287,68 @@ class _SemitoneWheelWithPreviewState extends State<_SemitoneWheelWithPreview> {
         value: widget.semitones,
         minValue: -12,
         maxValue: 12,
+        onValueChanged: _handleValueChanged,
+        valueFormatter: widget.valueFormatter,
+        enableHaptic: widget.enableHaptic,
+      ),
+    );
+  }
+}
+
+class _PanWheelWithPreview extends StatefulWidget {
+  final int panSteps;
+  final ValueChanged<int> onPanChanged;
+  final String Function(int) valueFormatter;
+  final bool enableHaptic;
+  final VoidCallback? onChangeStart;
+  final VoidCallback? onChangeEnd;
+
+  const _PanWheelWithPreview({
+    required this.panSteps,
+    required this.onPanChanged,
+    required this.valueFormatter,
+    required this.enableHaptic,
+    this.onChangeStart,
+    this.onChangeEnd,
+  });
+
+  @override
+  State<_PanWheelWithPreview> createState() => _PanWheelWithPreviewState();
+}
+
+class _PanWheelWithPreviewState extends State<_PanWheelWithPreview> {
+  bool _isChanging = false;
+
+  void _handleValueChanged(int value) {
+    if (!_isChanging) {
+      _isChanging = true;
+      widget.onChangeStart?.call();
+    }
+    widget.onPanChanged(value);
+  }
+
+  void _handleChangeEnd() {
+    if (_isChanging) {
+      _isChanging = false;
+      widget.onChangeEnd?.call();
+    }
+  }
+
+  @override
+  void dispose() {
+    _handleChangeEnd();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanEnd: (_) => _handleChangeEnd(),
+      onPanCancel: () => _handleChangeEnd(),
+      child: WheelSelectWidget(
+        value: widget.panSteps,
+        minValue: -100,
+        maxValue: 100,
         onValueChanged: _handleValueChanged,
         valueFormatter: widget.valueFormatter,
         enableHaptic: widget.enableHaptic,

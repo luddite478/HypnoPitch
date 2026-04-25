@@ -165,8 +165,12 @@ class PlaybackBindings {
     _previewSlotPtr = lib.lookup<ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Float, ffi.Float)>>('preview_slot');
     previewSlot = _previewSlotPtr.asFunction<int Function(int, double, double)>();
 
-    _previewCellPtr = lib.lookup<ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32, ffi.Float, ffi.Float)>>('preview_cell');
-    previewCell = _previewCellPtr.asFunction<int Function(int, int, double, double)>();
+    _previewCellPtr = lib.lookup<
+        ffi.NativeFunction<
+            ffi.Int32 Function(
+                ffi.Int32, ffi.Int32, ffi.Float, ffi.Float, ffi.Float)>>('preview_cell');
+    previewCell =
+        _previewCellPtr.asFunction<int Function(int, int, double, double, double)>();
 
     _previewStopSamplePtr = lib.lookup<ffi.NativeFunction<ffi.Void Function()>>('preview_stop_sample');
     previewStopSample = _previewStopSamplePtr.asFunction<void Function()>();
@@ -311,8 +315,12 @@ class PlaybackBindings {
   late final ffi.Pointer<ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Float, ffi.Float)>> _previewSlotPtr;
   late final int Function(int, double, double) previewSlot;
 
-  late final ffi.Pointer<ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32, ffi.Float, ffi.Float)>> _previewCellPtr;
-  late final int Function(int, int, double, double) previewCell;
+  late final ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Int32 Function(
+              ffi.Int32, ffi.Int32, ffi.Float, ffi.Float, ffi.Float)>>
+      _previewCellPtr;
+  late final int Function(int, int, double, double, double) previewCell;
 
   late final ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> _previewStopSamplePtr;
   late final void Function() previewStopSample;

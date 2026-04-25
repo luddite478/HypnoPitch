@@ -753,21 +753,23 @@ class SequencerBindings {
     int column,
     double pitch,
     double volume,
+    double pan,
   ) {
     return _preview_cell(
       step,
       column,
       pitch,
       volume,
+      pan,
     );
   }
 
   late final _preview_cellPtr = _lookup<
       ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Int, ffi.Int, ffi.Float, ffi.Float)>>('preview_cell');
+              ffi.Int, ffi.Int, ffi.Float, ffi.Float, ffi.Float)>>('preview_cell');
   late final _preview_cell =
-      _preview_cellPtr.asFunction<int Function(int, int, double, double)>();
+      _preview_cellPtr.asFunction<int Function(int, int, double, double, double)>();
 
   void stop_sample_preview() {
     return _stop_sample_preview();

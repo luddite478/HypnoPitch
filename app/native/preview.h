@@ -20,7 +20,7 @@ __attribute__((visibility("default"))) __attribute__((used))
 int preview_slot(int slot, float pitch, float volume);
 
 __attribute__((visibility("default"))) __attribute__((used))
-int preview_cell(int step, int column, float pitch, float volume);
+int preview_cell(int step, int column, float pitch, float volume, float pan);
 
 __attribute__((visibility("default"))) __attribute__((used))
 void preview_stop_sample(void);

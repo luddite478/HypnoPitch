@@ -21,14 +21,18 @@ extern "C" {
 // Special default values indicating "inherit from sample bank"
 #define DEFAULT_CELL_PITCH  -1.0f
 #define DEFAULT_CELL_VOLUME -1.0f
+#define DEFAULT_CELL_PAN    -1.0f
 // Supported pitch ratio range (C0..C10)
 #define PITCH_MIN_RATIO 0.03125f
 #define PITCH_MAX_RATIO 32.0f
+#define PAN_MIN_VALUE   0.0f
+#define PAN_MAX_VALUE   1.0f
 
 // Cell audio settings
 typedef struct {
     float volume;               // 0.0 to 1.0
     float pitch;                // PITCH_MIN_RATIO..PITCH_MAX_RATIO, or DEFAULT_CELL_PITCH to inherit sample bank
+    float pan;                  // PAN_MIN_VALUE..PAN_MAX_VALUE, or DEFAULT_CELL_PAN for centered/default playback
 } CellSettings;
 
 // Core cell data structure
@@ -103,11 +107,11 @@ __attribute__((visibility("default"))) __attribute__((used))
 Cell* table_get_cell(int step, int col);
 
 __attribute__((visibility("default"))) __attribute__((used))
-void table_set_cell(int step, int col, int sample_slot, float volume, float pitch, int undo_record);
+void table_set_cell(int step, int col, int sample_slot, float volume, float pitch, float pan, int undo_record);
 
-// New: set only cell settings (volume/pitch)
+// New: set only cell settings (volume/pitch/pan)
 __attribute__((visibility("default"))) __attribute__((used))
-void table_set_cell_settings(int step, int col, float volume, float pitch, int undo_record);
+void table_set_cell_settings(int step, int col, float volume, float pitch, float pan, int undo_record);
 
 // New: set only cell sample slot
 __attribute__((visibility("default"))) __attribute__((used))

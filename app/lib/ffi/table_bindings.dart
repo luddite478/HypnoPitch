@@ -9,6 +9,9 @@ final class CellSettings extends ffi.Struct {
 
   @ffi.Float()
   external double pitch;
+
+  @ffi.Float()
+  external double pan;
 }
 
 // Native Cell structure matching C definition
@@ -67,12 +70,14 @@ class CellData {
   final int sampleSlot;
   final double volume;
   final double pitch;
+  final double pan;
   final bool isProcessing;
 
   const CellData({
     required this.sampleSlot,
     required this.volume,
     required this.pitch,
+    required this.pan,
     required this.isProcessing,
   });
 
@@ -82,6 +87,7 @@ class CellData {
         sampleSlot: -1,
         volume: 1.0,
         pitch: 1.0,
+        pan: -1.0,
         isProcessing: false,
       );
     }
@@ -91,6 +97,7 @@ class CellData {
       sampleSlot: cell.sample_slot,
       volume: cell.settings.volume,
       pitch: cell.settings.pitch,
+      pan: cell.settings.pan,
       isProcessing: cell.is_processing != 0,
     );
   }
@@ -105,18 +112,19 @@ class CellData {
         other.sampleSlot == sampleSlot &&
         other.volume == volume &&
         other.pitch == pitch &&
+        other.pan == pan &&
         other.isProcessing == isProcessing;
   }
 
   @override
   int get hashCode {
-    return Object.hash(sampleSlot, volume, pitch, isProcessing);
+    return Object.hash(sampleSlot, volume, pitch, pan, isProcessing);
   }
 
   @override
   String toString() {
     if (isEmpty) return 'CellData(empty)';
-    return 'CellData(slot: $sampleSlot, vol: ${volume.toStringAsFixed(2)}, pitch: ${pitch.toStringAsFixed(2)})';
+    return 'CellData(slot: $sampleSlot, vol: ${volume.toStringAsFixed(2)}, pitch: ${pitch.toStringAsFixed(2)}, pan: ${pan.toStringAsFixed(2)})';
   }
 }
 
@@ -139,15 +147,15 @@ class TableBindings {
     _tableSetCellPtr = lib.lookup<
         ffi.NativeFunction<
             ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Int32, ffi.Float,
-                ffi.Float, ffi.Int32)>>('table_set_cell');
+                ffi.Float, ffi.Float, ffi.Int32)>>('table_set_cell');
     tableSetCell = _tableSetCellPtr
-        .asFunction<void Function(int, int, int, double, double, int)>();
+        .asFunction<void Function(int, int, int, double, double, double, int)>();
     _tableSetCellSettingsPtr = lib.lookup<
         ffi.NativeFunction<
-            ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Float, ffi.Float,
+            ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Float, ffi.Float, ffi.Float,
                 ffi.Int32)>>('table_set_cell_settings');
     tableSetCellSettings = _tableSetCellSettingsPtr
-        .asFunction<void Function(int, int, double, double, int)>();
+        .asFunction<void Function(int, int, double, double, double, int)>();
     _tableSetCellSampleSlotPtr = lib.lookup<
         ffi.NativeFunction<
             ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Int32,
@@ -360,14 +368,14 @@ class TableBindings {
   late final ffi.Pointer<
       ffi.NativeFunction<
           ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Int32, ffi.Float,
-              ffi.Float, ffi.Int32)>> _tableSetCellPtr;
-  late final void Function(int, int, int, double, double, int) tableSetCell;
+              ffi.Float, ffi.Float, ffi.Int32)>> _tableSetCellPtr;
+  late final void Function(int, int, int, double, double, double, int) tableSetCell;
   late final ffi.Pointer<
           ffi.NativeFunction<
-              ffi.Void Function(
-                  ffi.Int32, ffi.Int32, ffi.Float, ffi.Float, ffi.Int32)>>
+              ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Float, ffi.Float,
+                  ffi.Float, ffi.Int32)>>
       _tableSetCellSettingsPtr;
-  late final void Function(int, int, double, double, int) tableSetCellSettings;
+  late final void Function(int, int, double, double, double, int) tableSetCellSettings;
   late final ffi.Pointer<
           ffi.NativeFunction<
               ffi.Void Function(ffi.Int32, ffi.Int32, ffi.Int32, ffi.Int32)>>

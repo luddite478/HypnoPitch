@@ -68,6 +68,7 @@ static inline void table_set_cell_defaults(Cell* cell) {
     cell->sample_slot = -1;
     cell->settings.volume = DEFAULT_CELL_VOLUME;
     cell->settings.pitch = DEFAULT_CELL_PITCH;
+    cell->settings.pan = DEFAULT_CELL_PAN;
     cell->is_processing = 0;
 }
 
@@ -178,7 +179,7 @@ Cell* table_get_cell(int step, int col) {
 }
 
 // Set cell data and mark as changed
-void table_set_cell(int step, int col, int sample_slot, float volume, float pitch, int undo_record) {
+void table_set_cell(int step, int col, int sample_slot, float volume, float pitch, float pan, int undo_record) {
     Cell* cell = table_get_cell(step, col);
     if (!cell) return;
     
@@ -192,11 +193,12 @@ void table_set_cell(int step, int col, int sample_slot, float volume, float pitc
     cell->sample_slot = sample_slot;
     cell->settings.volume = volume;
     cell->settings.pitch = pitch;
+    cell->settings.pan = pan;
     cell->is_processing = 0;
     table_mark_content_changed();
     
-    prnt_debug("🎵 [TABLE] Set cell [%d, %d]: slot=%d, vol=%.2f, pitch=%.2f", 
-         step, col, sample_slot, volume, pitch);
+    prnt_debug("🎵 [TABLE] Set cell [%d, %d]: slot=%d, vol=%.2f, pitch=%.2f, pan=%.2f",
+         step, col, sample_slot, volume, pitch, pan);
 
     // Track touched section for batched edit reconciliation.
     table_txn_mark_step_touched_internal(step);
@@ -213,15 +215,16 @@ void table_set_cell(int step, int col, int sample_slot, float volume, float pitc
 }
 
 // Set only volume/pitch settings for a cell
-void table_set_cell_settings(int step, int col, float volume, float pitch, int undo_record) {
+void table_set_cell_settings(int step, int col, float volume, float pitch, float pan, int undo_record) {
     Cell* cell = table_get_cell(step, col);
     if (!cell) return;
 
 
     cell->settings.volume = volume;
     cell->settings.pitch = pitch;
+    cell->settings.pan = pan;
     table_mark_content_changed();
-    prnt_debug("🎚️ [TABLE] Set settings [%d, %d]: vol=%.2f, pitch=%.2f", step, col, volume, pitch);
+    prnt_debug("🎚️ [TABLE] Set settings [%d, %d]: vol=%.2f, pitch=%.2f, pan=%.2f", step, col, volume, pitch, pan);
 
     // Track touched section for batched edit reconciliation.
     table_txn_mark_step_touched_internal(step);

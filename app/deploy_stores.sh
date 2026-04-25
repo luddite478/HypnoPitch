@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Build and upload HypnoPitch to Google Play (internal track) and App Store Connect (TestFlight).
+# Build and upload HypnoPitch to Google Play (internal track) and/or App Store Connect (TestFlight).
+#
+#   ./deploy_stores.sh [store]
+#     store: all (default) | app-store | google-play
 #
 # Prerequisites:
 #   cd app/android && bundle install
@@ -59,9 +62,30 @@ unset APP_STORE_CONNECT_API_KEY_PATH
 unset APP_STORE_CONNECT_API_KEY
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  sed -n '2,36p' "$0"
+  sed -n '2,35p' "$0"
+  printf '\nUsage: %s [store]\n  store: all (default) | app-store | google-play\n  Aliases: app-store (ios, apple); google-play (android, play); all (both)\n' "$(basename "$0")"
   exit 0
 fi
+
+STORE="${1:-all}"
+case "$STORE" in
+  all|both)
+    RUN_GOOGLE=1
+    RUN_APPLE=1
+    ;;
+  app-store|appstore|ios|apple)
+    RUN_GOOGLE=0
+    RUN_APPLE=1
+    ;;
+  google-play|googleplay|android|play)
+    RUN_GOOGLE=1
+    RUN_APPLE=0
+    ;;
+  *)
+    echo "Unknown store '${STORE}'. Use: all, app-store, or google-play. Try --help." >&2
+    exit 1
+    ;;
+esac
 
 require_apple_env() {
   local missing=()
@@ -105,21 +129,29 @@ require_google_env() {
   fi
 }
 
-require_google_env
-require_apple_env
+if [[ "$RUN_GOOGLE" -eq 1 ]]; then
+  require_google_env
+fi
+if [[ "$RUN_APPLE" -eq 1 ]]; then
+  require_apple_env
+fi
 
 if [[ "${SKIP_VERSION_BUMP:-}" != "1" ]]; then
   MARKETING_VERSION_BUMP="${MARKETING_VERSION_BUMP:-patch}"
-  echo "==> Bump pubspec version for both stores (marketing: ${MARKETING_VERSION_BUMP}, build: +1)"
+  echo "==> Bump pubspec version (marketing: ${MARKETING_VERSION_BUMP}, build: +1) [target: ${STORE}]"
   ruby "$SCRIPT_DIR/scripts/bump_pubspec_build.rb" "$SCRIPT_DIR/pubspec.yaml" "$MARKETING_VERSION_BUMP"
 else
   echo "==> SKIP_VERSION_BUMP=1 — leaving pubspec version unchanged"
 fi
 
-echo "==> Google Play (Fastlane android build_prod)"
-( cd "$SCRIPT_DIR/android" && bundle exec fastlane build_prod )
+if [[ "$RUN_GOOGLE" -eq 1 ]]; then
+  echo "==> Google Play (Fastlane android build_prod)"
+  ( cd "$SCRIPT_DIR/android" && bundle exec fastlane build_prod )
+fi
 
-echo "==> App Store Connect / TestFlight (fastlane ios release)"
-( cd "$SCRIPT_DIR/ios" && bundle exec fastlane ios release )
+if [[ "$RUN_APPLE" -eq 1 ]]; then
+  echo "==> App Store Connect / TestFlight (fastlane ios release)"
+  ( cd "$SCRIPT_DIR/ios" && bundle exec fastlane ios release )
+fi
 
 echo "Done."

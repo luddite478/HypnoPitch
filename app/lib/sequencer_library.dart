@@ -651,8 +651,9 @@ class SequencerLibrary {
     return success;
   }
   
-  /// Preview a specific cell with pitch and volume (for immediate feedback when changing settings)
-  bool previewCell(int step, int column, double pitch, double volume) {
+  /// Preview a specific cell with pitch, volume, and pan.
+  bool previewCell(int step, int column, double pitch, double volume,
+      {double pan = -1.0}) {
     if (pitch < 0.03125 || pitch > 32.0) {
       print('❌ Invalid pitch: $pitch (must be 0.03125-32.0 for C0-C10)');
       return false;
@@ -663,11 +664,11 @@ class SequencerLibrary {
       return false;
     }
     
-    int result = _bindings.preview_cell(step, column, pitch, volume);
+    int result = _bindings.preview_cell(step, column, pitch, volume, pan);
     bool success = result == 0;
     
     if (success) {
-      print('🔍 Preview cell [$step,$column] (pitch: ${pitch.toStringAsFixed(2)}, volume: ${volume.toStringAsFixed(2)})');
+      print('🔍 Preview cell [$step,$column] (pitch: ${pitch.toStringAsFixed(2)}, volume: ${volume.toStringAsFixed(2)}, pan: ${pan.toStringAsFixed(2)})');
     } else {
       print('❌ Failed to preview cell [$step,$column]');
     }

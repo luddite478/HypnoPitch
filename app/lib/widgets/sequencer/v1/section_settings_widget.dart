@@ -319,7 +319,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                                     PlaybackState.minLoopsPerSection) {
                                   playbackState.setSectionLoopsNum(
                                       currentSection, loopCount - 1);
-                                  HapticFeedback.selectionClick();
+                                  HapticFeedback.lightImpact();
                                 }
                               },
                               enabled: loopCount >
@@ -359,7 +359,7 @@ class _SectionSettingsWidgetState extends State<SectionSettingsWidget> {
                                     PlaybackState.maxLoopsPerSection) {
                                   playbackState.setSectionLoopsNum(
                                       currentSection, loopCount + 1);
-                                  HapticFeedback.selectionClick();
+                                  HapticFeedback.lightImpact();
                                 }
                               },
                               enabled: loopCount <

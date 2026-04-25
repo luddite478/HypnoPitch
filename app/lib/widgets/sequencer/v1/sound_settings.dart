@@ -82,7 +82,7 @@ class SoundSettingsWidget extends StatefulWidget {
     return const SoundSettingsWidget(
       type: SettingsType.cell,
       title: 'Cell Settings',
-      headerButtons: ['VOL', 'KEY'],
+      headerButtons: ['VOL', 'KEY', 'PAN'],
       closeAction: _noop,
       noDataMessage: 'Tap a cell with a sample to configure',
       noDataIcon: Icons.grid_off,
@@ -147,6 +147,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
   // Debounce timers for volume
   Timer? _sampleVolumeDebounceTimer;
   Timer? _cellVolumeDebounceTimer;
+  Timer? _cellPanDebounceTimer;
   // Live preview debounce (single timer for both sliders)
   Timer? _previewDebounceTimer;
 
@@ -172,6 +173,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     _processingPollTimer?.cancel();
     _sampleVolumeDebounceTimer?.cancel();
     _cellVolumeDebounceTimer?.cancel();
+    _cellPanDebounceTimer?.cancel();
     _previewDebounceTimer?.cancel();
     super.dispose();
   }
@@ -333,7 +335,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     }
   }
 
-  /// Same effective pitch/volume semantics as the VOL slider live preview.
+  /// Same effective pitch/volume/pan semantics as the cell controls live preview.
   void _triggerCellLabelPreview({
     required CellData cell,
     required SampleBankState sampleBank,
@@ -360,6 +362,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
       defaultPitch = (sd.pitch > 0.0) ? sd.pitch : 1.0;
     }
     final effPitch = (cell.pitch < 0.0) ? defaultPitch : cell.pitch;
+    final effPan = (cell.pan < 0.0) ? 0.5 : cell.pan.clamp(0.0, 1.0);
 
     playback.stopPreview();
     playback.previewCell(
@@ -367,6 +370,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
       colAbs: colAbs,
       pitchRatio: effPitch,
       volume01: vol,
+      pan01: effPan,
     );
   }
 
@@ -683,7 +687,10 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
               SizedBox(
                 width: 60,
                 child: GestureDetector(
-                  onTap: widget.closeAction,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    widget.closeAction();
+                  },
                   child: Container(
                     height: headerHeight * 0.7,
                     decoration: BoxDecoration(
@@ -740,6 +747,9 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
         case 'KEY':
           return _buildPitchControl(tableState, sampleBankState, editState,
               index, height, padding, fontSize, allSimilarCells);
+        case 'PAN':
+          return _buildPanControl(tableState, sampleBankState, editState, index,
+              height, padding, fontSize, allSimilarCells);
         // case 'EQ':
         //   return _buildPlaceholderControl('EQ', 'Equalizer settings', height, padding, fontSize);
         // case 'RVB':
@@ -896,7 +906,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     setState(() {
       _masterEqBand = (_masterEqBand + delta + 3) % 3;
     });
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
   }
 
   /// Same visual pattern as section loop arrows.
@@ -1324,6 +1334,44 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     );
   }
 
+  Widget _buildPanControl(
+      TableState tableState,
+      SampleBankState sampleBankState,
+      EditState editState,
+      int index,
+      double height,
+      double padding,
+      double fontSize,
+      _AllSimilarCells? allSimilarCells) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: padding * 0.3, vertical: padding * 0.05),
+      decoration: BoxDecoration(
+        color: AppColors.sequencerSurfaceRaised,
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(
+          color: AppColors.sequencerBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.sequencerShadow,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+          BoxShadow(
+            color: AppColors.sequencerSurfaceRaised,
+            blurRadius: 1,
+            offset: const Offset(0, -0.5),
+          ),
+        ],
+      ),
+      child: Center(
+        child: _buildCellPanWheel(tableState, index, height, allSimilarCells),
+      ),
+    );
+  }
+
   Widget _buildNoDataMessage(double height, double fontSize) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1408,7 +1456,12 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              onTap();
+            },
       child: TutorialPulseWidget(
         enabled: pulseHighlight,
         borderRadius: BorderRadius.circular(2),
@@ -1466,6 +1519,7 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             TutorialInteractionTarget.selectSampleButton)) {
           return;
         }
+        HapticFeedback.lightImpact();
         final sampleBrowser = context.read<SampleBrowserState>();
         final sampleBank = context.read<SampleBankState>();
         final playback = context.read<PlaybackState>();
@@ -1696,11 +1750,14 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                   defaultPitch = (sd.pitch > 0.0) ? sd.pitch : 1.0;
                 }
                 final effPitch = (cell.pitch < 0.0) ? defaultPitch : cell.pitch;
+                final effPan =
+                    (cell.pan < 0.0) ? 0.5 : cell.pan.clamp(0.0, 1.0);
                 playback.previewCell(
                     step: step,
                     colAbs: colAbs,
                     pitchRatio: effPitch,
-                    volume01: value);
+                    volume01: value,
+                    pan01: effPan);
               });
             }
           },
@@ -1718,8 +1775,14 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
               defaultPitch = (sd.pitch > 0.0) ? sd.pitch : 1.0;
             }
             final effPitch = (cell.pitch < 0.0) ? defaultPitch : cell.pitch;
+            final effPan =
+                (cell.pan < 0.0) ? 0.5 : cell.pan.clamp(0.0, 1.0);
             playback.previewCell(
-                step: step, colAbs: colAbs, pitchRatio: effPitch, volume01: v);
+                step: step,
+                colAbs: colAbs,
+                pitchRatio: effPitch,
+                volume01: v,
+                pan01: effPan);
           },
           onChangeEnd: (value) {
             // GenericSlider clears its transient thumb position on end; the table
@@ -1790,6 +1853,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                       (sd.volume >= 0.0 && sd.volume <= 1.0) ? sd.volume : 1.0;
                 }
                 final effVol = (cell.volume < 0.0) ? defaultVol : cell.volume;
+                final effPan =
+                    (cell.pan < 0.0) ? 0.5 : cell.pan.clamp(0.0, 1.0);
                 _previewDebounceTimer?.cancel();
                 _previewDebounceTimer =
                     Timer(Duration(milliseconds: _previewDebounceMs), () {
@@ -1801,7 +1866,8 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
                       step: step,
                       colAbs: colAbs,
                       pitchRatio: ratio,
-                      volume01: effVol);
+                      volume01: effVol,
+                      pan01: effPan);
                 });
               }
             },
@@ -1822,6 +1888,83 @@ class _SoundSettingsWidgetState extends State<SoundSettingsWidget> {
             enableHaptic: false,
           );
         }
+      },
+    );
+  }
+
+  Widget _buildCellPanWheel(TableState tableState, int selectedCellIndex,
+      double height, _AllSimilarCells? allSimilarCells) {
+    final visibleCols = tableState.getVisibleCols().length;
+    final col = selectedCellIndex % visibleCols;
+    final step =
+        tableState.getSectionStartStep(tableState.uiSelectedSection) +
+            (selectedCellIndex ~/ visibleCols);
+    final colAbs =
+        tableState.getLayerStartCol(tableState.uiSelectedLayer) + col;
+    final cellNotifier = tableState.getCellNotifier(step, colAbs);
+    final cellsList = allSimilarCells?.cells ?? [(step: step, col: colAbs)];
+    final batchPanEditable = allSimilarCells != null &&
+        _anyCellHasSampleForVolume(tableState, cellsList);
+    return ValueListenableBuilder<CellData>(
+      valueListenable: cellNotifier,
+      builder: (context, cell, _) {
+        final playback = context.read<PlaybackState>();
+        final canEditPan =
+            batchPanEditable || (cell.isNotEmpty && cell.sampleSlot != -1);
+        final double pan01 =
+            (cell.pan < 0.0) ? 0.5 : cell.pan.clamp(0.0, 1.0);
+        final int panSteps = ((pan01 - 0.5) * 200).round().clamp(-100, 100);
+        return PanWheelWidget(
+          panSteps: panSteps,
+          onPanChanged: (newPanSteps) {
+            if (canEditPan) {
+              final value = ((newPanSteps + 100) / 200).clamp(0.0, 1.0);
+              _cellPanDebounceTimer?.cancel();
+              _cellPanDebounceTimer =
+                  Timer(const Duration(milliseconds: 150), () {
+                tableState.setCellSettingsForCells(cellsList, pan: value);
+              });
+
+              final sampleBank = context.read<SampleBankState>();
+              double defaultVol = 1.0;
+              if (cell.sampleSlot >= 0) {
+                final sd = sampleBank.getSampleData(cell.sampleSlot);
+                defaultVol =
+                    (sd.volume >= 0.0 && sd.volume <= 1.0) ? sd.volume : 1.0;
+              }
+              final effVol = (cell.volume < 0.0) ? defaultVol : cell.volume;
+
+              double defaultPitch = 1.0;
+              if (cell.sampleSlot >= 0) {
+                final sd = sampleBank.getSampleData(cell.sampleSlot);
+                defaultPitch = (sd.pitch > 0.0) ? sd.pitch : 1.0;
+              }
+              final effPitch = (cell.pitch < 0.0) ? defaultPitch : cell.pitch;
+
+              _previewDebounceTimer?.cancel();
+              _previewDebounceTimer =
+                  Timer(Duration(milliseconds: _previewDebounceMs), () {
+                if (effVol <= 0.0) {
+                  playback.stopPreview();
+                  return;
+                }
+                playback.previewCell(
+                  step: step,
+                  colAbs: colAbs,
+                  pitchRatio: effPitch,
+                  volume01: effVol,
+                  pan01: value,
+                );
+              });
+            }
+          },
+          onChangeStart: () {
+            // No preview on start - let onPanChanged handle it, same as KEY.
+          },
+          onChangeEnd: () {
+            playback.stopPreview();
+          },
+        );
       },
     );
   }

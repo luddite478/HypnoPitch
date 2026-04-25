@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../../../utils/log.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
@@ -75,6 +76,7 @@ class GridCellDragData {
   final int sampleSlot;
   final double volume;
   final double pitch;
+  final double pan;
 
   const GridCellDragData({
     required this.sourceAbsoluteStep,
@@ -82,6 +84,7 @@ class GridCellDragData {
     required this.sampleSlot,
     required this.volume,
     required this.pitch,
+    required this.pan,
   });
 }
 
@@ -830,7 +833,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               _hideMovedSourceCellTemporarily(
                   data.sourceAbsoluteStep, data.sourceAbsoluteCol);
               ts.setCell(targetStep, targetCol, data.sampleSlot, data.volume,
-                  data.pitch);
+                  data.pitch, pan: data.pan);
               ts.clearCell(data.sourceAbsoluteStep, data.sourceAbsoluteCol);
               Log.d(
                   ' [DRAG] Move cell [${data.sourceAbsoluteStep},${data.sourceAbsoluteCol}] → [$targetStep,$targetCol]');
@@ -1001,6 +1004,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                 sampleSlot: slot,
                 volume: cellData.volume,
                 pitch: cellData.pitch,
+                pan: cellData.pan,
               );
               final Color feedbackColor =
                   _getSampleColorForGrid(slot, context);
@@ -1032,6 +1036,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                             slot,
                             cellData.volume,
                             cellData.pitch,
+                            cellData.pan,
                           ),
                         ),
                       ),
@@ -1099,6 +1104,9 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
                             if (!appState.canInteractWithTutorialTarget(
                                 TutorialInteractionTarget.layerTab)) {
                               return;
+                            }
+                            if (i != selectedLayer) {
+                              HapticFeedback.lightImpact();
                             }
                             debugPrint(
                                 '🎨 [SOUND_GRID] Layer tab $layerLabel tapped, current layer: $selectedLayer');
@@ -1181,6 +1189,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     final cellData = tableState.getCellNotifier(step, col).value;
     final cellVolume = cellData.volume;
     final cellPitch = cellData.pitch;
+    final cellPan = cellData.pan;
 
     // Listen to sample bank defaults so UI updates when sample defaults change
     final sampleBankState = context.read<SampleBankState>();
@@ -1196,19 +1205,24 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
             // Treat sentinel values (-1.0) as "inherit from sample bank"
             final bool usesDefaultVolume = cellVolume < 0.0;
             final bool usesDefaultPitch = cellPitch < 0.0;
+            final bool usesDefaultPan = cellPan < 0.0;
 
             final effectiveVolume =
                 usesDefaultVolume ? sampleVolume : cellVolume;
             final effectivePitch = usesDefaultPitch ? samplePitch : cellPitch;
+            final effectivePan = usesDefaultPan ? 0.5 : cellPan.clamp(0.0, 1.0);
 
             // Check if values are non-default (cell overrides)
             final hasVolumeOverride =
                 !usesDefaultVolume && (cellVolume - sampleVolume).abs() > 0.001;
             final hasPitchOverride =
                 !usesDefaultPitch && (cellPitch - samplePitch).abs() > 0.001;
+            final hasPanOverride =
+                !usesDefaultPan && (effectivePan - 0.5).abs() > 0.001;
 
             // Only show table if there are non-default values
-            final showEffectsTable = hasVolumeOverride || hasPitchOverride;
+            final showEffectsTable =
+                hasVolumeOverride || hasPitchOverride || hasPanOverride;
 
             if (!showEffectsTable) {
               return const SizedBox.shrink();
@@ -1227,35 +1241,47 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               height: 1.0,
             );
 
-            Widget chip(String text, {required bool alignStart}) {
+            Widget chip(String text) {
               return Container(
-                padding: alignStart
-                    ? const EdgeInsets.only(left: 0, right: 4, top: 2, bottom: 2)
-                    : const EdgeInsets.only(left: 4, right: 0, top: 2, bottom: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.sequencerPageBackground.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(1),
                 ),
-                child: Text(text, style: effectsStyle),
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: effectsStyle,
+                ),
               );
             }
 
-            // Pitch (K…) on the left, volume (V…) on the right; vertically centered in cell.
             return SizedBox.expand(
               child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (hasPitchOverride)
-                      chip(_formatPitchDisplay(effectivePitch), alignStart: true),
-                    if (hasPitchOverride && hasVolumeOverride) const Spacer(),
-                    if (hasVolumeOverride) ...[
-                      if (!hasPitchOverride) const Spacer(),
-                      chip('V${(effectiveVolume * 100).round()}',
-                          alignStart: false),
-                    ],
-                  ],
+                child: ClipRect(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (hasPitchOverride)
+                          chip(_formatPitchDisplay(effectivePitch)),
+                        if (hasPitchOverride &&
+                            (hasPanOverride || hasVolumeOverride))
+                          const SizedBox(width: 4),
+                        if (hasPanOverride) chip(_formatPanDisplay(effectivePan)),
+                        if (hasPanOverride && hasVolumeOverride)
+                          const SizedBox(width: 4),
+                        if (hasVolumeOverride)
+                          chip('V${(effectiveVolume * 100).round()}'),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             );
@@ -1276,6 +1302,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     int sampleSlot,
     double cellVolume,
     double cellPitch,
+    double cellPan,
   ) {
     final sampleBankState = context.read<SampleBankState>();
     final volNotifier = sampleBankState.getSampleVolumeNotifier(sampleSlot);
@@ -1288,17 +1315,21 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
           builder: (context, samplePitch, __) {
             final usesDefaultVolume = cellVolume < 0.0;
             final usesDefaultPitch = cellPitch < 0.0;
+            final usesDefaultPan = cellPan < 0.0;
             final effectiveVolume =
                 usesDefaultVolume ? sampleVolume : cellVolume;
             final effectivePitch =
                 usesDefaultPitch ? samplePitch : cellPitch;
+            final effectivePan = usesDefaultPan ? 0.5 : cellPan.clamp(0.0, 1.0);
 
             // Match _buildSampleCellContent: only show non-default overrides.
             final hasVolumeOverride =
                 !usesDefaultVolume && (cellVolume - sampleVolume).abs() > 0.001;
             final hasPitchOverride =
                 !usesDefaultPitch && (cellPitch - samplePitch).abs() > 0.001;
-            if (!hasVolumeOverride && !hasPitchOverride) {
+            final hasPanOverride =
+                !usesDefaultPan && (effectivePan - 0.5).abs() > 0.001;
+            if (!hasVolumeOverride && !hasPitchOverride && !hasPanOverride) {
               return const SizedBox.shrink();
             }
 
@@ -1315,7 +1346,12 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
               children: [
                 if (hasPitchOverride)
                   Text(_formatPitchDisplay(effectivePitch), style: style),
-                if (hasPitchOverride && hasVolumeOverride) Text('  ', style: style),
+                if (hasPitchOverride && (hasPanOverride || hasVolumeOverride))
+                  Text('  ', style: style),
+                if (hasPanOverride) ...[
+                  Text(_formatPanDisplay(effectivePan), style: style),
+                  if (hasVolumeOverride) Text('  ', style: style),
+                ],
                 if (hasVolumeOverride)
                   Text('V${(effectiveVolume * 100).round()}', style: style),
               ],
@@ -1338,6 +1374,13 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
     } else {
       return 'K$semitonesRounded'; // Negative sign is included in the number
     }
+  }
+
+  String _formatPanDisplay(double pan01) {
+    final panSteps = ((pan01 - 0.5) * 200).round();
+    if (panSteps == 0) return 'P0';
+    if (panSteps > 0) return 'P+${panSteps.abs()}';
+    return 'P${panSteps.abs() * -1}';
   }
 
   Widget _buildGridCell(
@@ -1469,6 +1512,9 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
             if (!appState.canInteractWithTutorialTarget(
                 TutorialInteractionTarget.layerTab)) {
               return;
+            }
+            if (gridIndex != selectedLayer) {
+              HapticFeedback.lightImpact();
             }
             // Bring this grid to front and switch UI-visible layer
             tableState.uiBringGridToFront(gridIndex);
@@ -2203,6 +2249,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
       return;
     }
     tableState.uiAppendStep();
+    HapticFeedback.lightImpact();
 
     // Check if we just reached the limit and stop
     if (tableState.getSectionStepCount() >= tableState.maxSteps) {
@@ -2219,6 +2266,7 @@ class _SampleGridWidgetState extends State<SampleGridWidget> {
       return;
     }
     tableState.uiDeleteLastStep();
+    HapticFeedback.lightImpact();
 
     // Check if we just reached the limit and stop
     if (tableState.getSectionStepCount() <= 4) {

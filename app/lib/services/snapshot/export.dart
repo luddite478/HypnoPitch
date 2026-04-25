@@ -152,6 +152,7 @@ class SnapshotExporter {
           'settings': {
             'volume': cell.settings.volume,
             'pitch': cell.settings.pitch,
+            'pan': cell.settings.pan,
           },
         });
       }

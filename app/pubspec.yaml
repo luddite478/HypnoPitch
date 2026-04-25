@@ -1,30 +1,28 @@
 description: HypnoPitch — pattern sequencer and audio app.
 environment:
   sdk: '>=3.4.4 <4.0.0'
-version: 1.1.3+31
+version: 1.1.6+34
 flutter:
   assets:
     - samples/Acoustic/
     - samples/Acoustic/Orchestral/
     - samples/Drums/
     - samples/Drums/Acoustic/
+    - samples/Drums/Acoustic/Cymbals/
+    - samples/Drums/Acoustic/Cymbals/China/
+    - samples/Drums/Acoustic/Cymbals/Crash/
+    - samples/Drums/Acoustic/Cymbals/Hi Hat/
+    - samples/Drums/Acoustic/Cymbals/Ride Cymbal/
+    - samples/Drums/Acoustic/Cymbals/Splash/
     - samples/Drums/Acoustic/Kick/
-    - samples/Drums/Acoustic/Plates/
-    - samples/Drums/Acoustic/Plates/China/
-    - samples/Drums/Acoustic/Plates/Crash/
-    - samples/Drums/Acoustic/Plates/Hi Hat/
-    - samples/Drums/Acoustic/Plates/Ride Cymbal/
-    - samples/Drums/Acoustic/Plates/Splash/
     - samples/Drums/Acoustic/Snare/
     - samples/Drums/Acoustic/Toms/
     - samples/Drums/Electronic/
+    - samples/Drums/Electronic/Cymbals/
+    - samples/Drums/Electronic/Cymbals/Crash/
+    - samples/Drums/Electronic/Cymbals/Cymbal/
+    - samples/Drums/Electronic/Cymbals/Hi-Hat/
     - samples/Drums/Electronic/Kick/
-    - samples/Drums/Electronic/Plates/
-    - samples/Drums/Electronic/Plates/Crash/
-    - samples/Drums/Electronic/Plates/Cymbal/
-    - samples/Drums/Electronic/Plates/Hi-Hat/
-    - samples/Drums/Electronic/Plates/Kick/
-    - samples/Drums/Electronic/Plates/Snare/
     - samples/Drums/Electronic/Snare/
     - samples/Drums/Electronic/Toms/
     - samples/Noise/

@@ -59,6 +59,13 @@ static int g_enhanced_playback_logging = 0;
 static ma_device g_audio_device;
 static int g_audio_device_initialized = 0;
 
+// Stop fade configuration and runtime state.
+#define STOP_FADE_MS 80
+#define STOP_FADE_STEP_MS 8
+static pthread_mutex_t g_stop_fade_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int g_stop_fade_in_progress = 0;
+static uint32_t g_stop_fade_generation = 0;
+
 // Seqlock helpers
 static inline void state_write_begin() { g_playback_state.version++; }
 static inline void state_write_end()   { g_playback_state.version++; }
@@ -140,9 +147,97 @@ static void update_current_step_from_sunvox(void);
 static int sunvox_is_actually_playing(void);
 static void audio_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
 static void log_enhanced_playback_state(const char* event);
+static void* stop_fade_thread_func(void* arg);
+static void request_stop_with_fade(void);
+static void stop_fade_cancel_and_restore_unity(void);
+
+typedef struct {
+    uint32_t generation;
+} StopFadeThreadArgs;
 
 // Forward for master volume
 extern "C" int sv_volume(int slot, int vol);
+
+static void stop_fade_cancel_and_restore_unity(void) {
+    pthread_mutex_lock(&g_stop_fade_mutex);
+    g_stop_fade_generation++;
+    g_stop_fade_in_progress = 0;
+    pthread_mutex_unlock(&g_stop_fade_mutex);
+    sunvox_wrapper_set_final_output_gain(1.0f);
+}
+
+static void* stop_fade_thread_func(void* arg) {
+    StopFadeThreadArgs* args = (StopFadeThreadArgs*)arg;
+    const uint32_t generation = args ? args->generation : 0;
+    if (args) free(args);
+
+    const int steps = STOP_FADE_MS / STOP_FADE_STEP_MS;
+    for (int i = steps; i >= 0; i--) {
+        pthread_mutex_lock(&g_stop_fade_mutex);
+        const int should_continue =
+            g_stop_fade_in_progress &&
+            g_stop_fade_generation == generation &&
+            g_initialized;
+        pthread_mutex_unlock(&g_stop_fade_mutex);
+        if (!should_continue) {
+            return NULL;
+        }
+
+        const float gain = (float)i / (float)steps;
+        sunvox_wrapper_set_final_output_gain(gain);
+        usleep(STOP_FADE_STEP_MS * 1000);
+    }
+
+    pthread_mutex_lock(&g_stop_fade_mutex);
+    const int should_finalize =
+        g_stop_fade_in_progress &&
+        g_stop_fade_generation == generation;
+    if (should_finalize) {
+        g_stop_fade_in_progress = 0;
+    }
+    pthread_mutex_unlock(&g_stop_fade_mutex);
+
+    if (should_finalize) {
+        sunvox_wrapper_stop();
+    }
+    return NULL;
+}
+
+static void request_stop_with_fade(void) {
+    if (!g_initialized || !sunvox_wrapper_is_initialized()) return;
+
+    pthread_mutex_lock(&g_stop_fade_mutex);
+    if (g_stop_fade_in_progress) {
+        pthread_mutex_unlock(&g_stop_fade_mutex);
+        return;
+    }
+    g_stop_fade_in_progress = 1;
+    const uint32_t generation = ++g_stop_fade_generation;
+    pthread_mutex_unlock(&g_stop_fade_mutex);
+
+    StopFadeThreadArgs* args = (StopFadeThreadArgs*)malloc(sizeof(StopFadeThreadArgs));
+    if (!args) {
+        sunvox_wrapper_stop();
+        sunvox_wrapper_set_final_output_gain(1.0f);
+        pthread_mutex_lock(&g_stop_fade_mutex);
+        g_stop_fade_in_progress = 0;
+        pthread_mutex_unlock(&g_stop_fade_mutex);
+        return;
+    }
+    args->generation = generation;
+
+    pthread_t fade_thread;
+    if (pthread_create(&fade_thread, NULL, stop_fade_thread_func, args) != 0) {
+        free(args);
+        sunvox_wrapper_stop();
+        sunvox_wrapper_set_final_output_gain(1.0f);
+        pthread_mutex_lock(&g_stop_fade_mutex);
+        g_stop_fade_in_progress = 0;
+        pthread_mutex_unlock(&g_stop_fade_mutex);
+        return;
+    }
+    pthread_detach(fade_thread);
+}
 
 // Initialize playback system
 int playback_init(void) {
@@ -295,8 +390,10 @@ void playback_cleanup(void) {
     
     prnt("🧹 [PLAYBACK] Cleaning up playback system");
     
-    // Stop playback
+    // Stop playback (request fade for regular path), then force immediate stop for teardown.
     playback_stop();
+    stop_fade_cancel_and_restore_unity();
+    sunvox_wrapper_stop();
     
     // Stop recording if active (recording module handles its own cleanup)
     if (recording_is_active()) {
@@ -343,6 +440,9 @@ int playback_start(int bpm, int start_step) {
         prnt_err("❌ [PLAYBACK] Not initialized");
         return -1;
     }
+
+    // Ensure output chain is restored if a previous stop fade was in-flight.
+    stop_fade_cancel_and_restore_unity();
     
     if (bpm >= MIN_BPM && bpm <= MAX_BPM) {
         g_playback_state.bpm = bpm;
@@ -408,7 +508,7 @@ void playback_stop(void) {
     g_sequencer_playing = 0;
     g_current_step = -1;
     
-    sunvox_wrapper_stop();
+    request_stop_with_fade();
     
     prnt_debug("⏹️ [PLAYBACK] Stopped sequencer");
     

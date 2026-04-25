@@ -46,12 +46,16 @@ extern "C" {
 static int g_master_effect_modules[MAX_MASTER_EFFECT_MODULES];
 static int g_master_effect_module_count = 0;
 // Indices into g_master_effect_modules[] (creation order = signal order for the chain).
-enum { MASTER_FX_EQ = 0 };
+enum {
+    MASTER_FX_EQ = 0,
+    MASTER_FX_FINAL_AMP = 1,
+};
 
 // SunVox module controller indices used in this wrapper.
 // Reverb ctl order matches psynths_reverb.cpp psynth_register_ctl:
 // Dry=0, Wet=1, Feedback=2, Damp=3, ... , RoomSize=8.
 #define SV_AMP_CTL_VOL 0
+#define SV_PAN_CTL 1
 #define SV_REVERB_CTL_DRY 0
 #define SV_REVERB_CTL_WET 1
 #define SV_REVERB_CTL_DAMP 3
@@ -83,6 +87,7 @@ static int g_preview_dry_sampler_modules[MAX_SAMPLE_SLOTS]; // [slot]
 static int g_layer_send_amp[MAX_LAYERS_PER_SECTION];
 static int g_master_reverb_mod = -1;
 static int g_master_return_amp = -1;
+static int g_master_final_amp = -1;
 static int g_layer_eq_mod[MAX_LAYERS_PER_SECTION];
 static int g_layer_post_eq_amp[MAX_LAYERS_PER_SECTION];
 static int g_song_mode = 0; // 0 = loop mode, 1 = song mode
@@ -93,6 +98,33 @@ static int clamp_0_255(int v) {
     if (v < 0) return 0;
     if (v > 255) return 255;
     return v;
+}
+
+static int clamp_0_256(int v) {
+    if (v < 0) return 0;
+    if (v > 256) return 256;
+    return v;
+}
+
+// SunVox stores row panning as a local controller event on ctl #1 (panning).
+// The high byte of ctl is controller+1, and ctl_val is the scaled 0..32768 value.
+static int encode_cell_pan_controller(float pan01, uint16_t* out_ctl, uint16_t* out_ctl_val) {
+    if (!out_ctl || !out_ctl_val) return 0;
+    *out_ctl = 0;
+    *out_ctl_val = 0;
+
+    if (pan01 == DEFAULT_CELL_PAN) return 0;
+    if (pan01 < PAN_MIN_VALUE) pan01 = PAN_MIN_VALUE;
+    if (pan01 > PAN_MAX_VALUE) pan01 = PAN_MAX_VALUE;
+
+    // Center pan sounds the same as omitting the controller and keeps the
+    // single pattern-effect/controller slot free for sample offset rows.
+    if (fabsf(pan01 - 0.5f) < 0.001f) return 0;
+
+    const int pan_u8 = clamp_0_256((int)roundf(pan01 * 256.0f));
+    *out_ctl = (uint16_t)((SV_PAN_CTL + 1) << 8);
+    *out_ctl_val = (uint16_t)(pan_u8 << 7);
+    return 1;
 }
 
 // Small helpers that clamp the user-unit level and look up the correct
@@ -165,7 +197,7 @@ static int sunvox_wrapper_is_cell_audible(int section, int col) {
     return 1;
 }
 
-// Create master effect modules and wire: per-layer sums -> EQ -> output.
+// Create master effect modules and wire: per-layer sums -> EQ -> final amp -> output.
 // Call with slot locked. On failure returns -1 (caller should unlock and abort init).
 static int connect_master_effect_chain(void) {
     g_master_effect_module_count = 0;
@@ -181,9 +213,26 @@ static int connect_master_effect_chain(void) {
     }
     g_master_effect_modules[g_master_effect_module_count++] = eq_mod;
 
-    int result = sv_connect_module(SUNVOX_SLOT, eq_mod, SUNVOX_OUTPUT_MODULE);
+    int final_amp_mod = sv_new_module(SUNVOX_SLOT, "Amplifier", "MasterFinalOut", 120, 50, 0);
+    if (final_amp_mod < 0) {
+        prnt_err("❌ [SUNVOX] Failed to create master final amp: %d", final_amp_mod);
+        return -1;
+    }
+    if (g_master_effect_module_count >= MAX_MASTER_EFFECT_MODULES) {
+        prnt_err("❌ [SUNVOX] MAX_MASTER_EFFECT_MODULES too small");
+        return -1;
+    }
+    g_master_effect_modules[g_master_effect_module_count++] = final_amp_mod;
+    g_master_final_amp = final_amp_mod;
+
+    int result = sv_connect_module(SUNVOX_SLOT, eq_mod, final_amp_mod);
     if (result < 0) {
-        prnt_err("❌ [SUNVOX] Failed to connect master EQ %d to output: %d", eq_mod, result);
+        prnt_err("❌ [SUNVOX] Failed to connect master EQ %d to final amp %d: %d", eq_mod, final_amp_mod, result);
+        return -1;
+    }
+    result = sv_connect_module(SUNVOX_SLOT, final_amp_mod, SUNVOX_OUTPUT_MODULE);
+    if (result < 0) {
+        prnt_err("❌ [SUNVOX] Failed to connect final amp %d to output: %d", final_amp_mod, result);
         return -1;
     }
 
@@ -192,6 +241,7 @@ static int connect_master_effect_chain(void) {
     sv_set_module_ctl_value(SUNVOX_SLOT, eq, 0, 256, 0);
     sv_set_module_ctl_value(SUNVOX_SLOT, eq, 1, 256, 0);
     sv_set_module_ctl_value(SUNVOX_SLOT, eq, 2, 256, 0);
+    sv_set_module_ctl_value(SUNVOX_SLOT, final_amp_mod, SV_AMP_CTL_VOL, 255, 0);
     return 0;
 }
 
@@ -385,6 +435,7 @@ int sunvox_wrapper_init(void) {
     // Initialize arrays
     g_master_reverb_mod = -1;
     g_master_return_amp = -1;
+    g_master_final_amp = -1;
     for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
         g_layer_send_amp[l] = -1;
         g_layer_eq_mod[l] = -1;
@@ -501,6 +552,7 @@ void sunvox_wrapper_cleanup(void) {
     }
     g_master_reverb_mod = -1;
     g_master_return_amp = -1;
+    g_master_final_amp = -1;
     for (int l = 0; l < MAX_LAYERS_PER_SECTION; l++) {
         g_layer_eq_mod[l] = -1;
         g_layer_post_eq_amp[l] = -1;
@@ -526,6 +578,17 @@ extern "C" void sunvox_wrapper_set_master_eq_band(int band, int gain_0_512) {
     int eq_mod = g_master_effect_modules[MASTER_FX_EQ];
     sv_lock_slot(SUNVOX_SLOT);
     sv_set_module_ctl_value(SUNVOX_SLOT, eq_mod, band, gain_0_512, 0);
+    sv_unlock_slot(SUNVOX_SLOT);
+}
+
+extern "C" void sunvox_wrapper_set_final_output_gain(float gain01) {
+    if (!g_sunvox_initialized) return;
+    if (g_master_final_amp < 0) return;
+    if (gain01 < 0.0f) gain01 = 0.0f;
+    if (gain01 > 1.0f) gain01 = 1.0f;
+    int level = (int)(gain01 * 255.0f);
+    sv_lock_slot(SUNVOX_SLOT);
+    sv_set_module_ctl_value(SUNVOX_SLOT, g_master_final_amp, SV_AMP_CTL_VOL, clamp_0_255(level), 0);
     sv_unlock_slot(SUNVOX_SLOT);
 }
 
@@ -749,9 +812,17 @@ void sunvox_wrapper_sync_cell(int step, int col) {
             if (sample && sample->loaded) {
                 offset_frames = sample->offset_frames;
             }
+
+            uint16_t pan_ctl = 0;
+            uint16_t pan_ctl_val = 0;
+            const int has_pan = encode_cell_pan_controller(cell->settings.pan, &pan_ctl, &pan_ctl_val);
             
             // Use offset-aware event setter if offset is non-zero
             if (offset_frames > 0) {
+                if (has_pan) {
+                    prnt_debug("🎚️ [SUNVOX] Ignoring cell pan for offset row [section=%d, line=%d, col=%d]; sample offset keeps the single controller slot",
+                        section_index, local_line, col);
+                }
                 // Unlock before calling the offset function (it locks internally)
                 sv_unlock_slot(SUNVOX_SLOT);
                 sunvox_wrapper_set_pattern_event_with_offset(
@@ -771,8 +842,8 @@ void sunvox_wrapper_sync_cell(int step, int col) {
                     final_note,          // note
                     velocity,            // velocity
                     mod_id + 1,          // module (1-indexed)
-                    0,                   // no controller/effect
-                    0                    // no parameter
+                    pan_ctl,
+                    pan_ctl_val
                 );
                 
                 if (result == 0) {
@@ -1144,17 +1215,40 @@ void sunvox_wrapper_sync_section(int section_index) {
                     if (final_note < 0) final_note = 0;
                     if (final_note > 127) final_note = 127;
 
-                    sv_set_pattern_event(
-                        SUNVOX_SLOT, 
-                        pat_id, 
-                        col, 
-                        local_line, 
-                        final_note,        // note
-                        velocity,          // velocity
-                        mod_id + 1,        // module
-                        0,                 // no controller
-                        0                  // no controller value
-                    );
+                    int offset_frames = 0;
+                    Sample* sample = sample_bank_get_sample(cell->sample_slot);
+                    if (sample && sample->loaded) {
+                        offset_frames = sample->offset_frames;
+                    }
+
+                    uint16_t pan_ctl = 0;
+                    uint16_t pan_ctl_val = 0;
+                    const int has_pan = encode_cell_pan_controller(cell->settings.pan, &pan_ctl, &pan_ctl_val);
+
+                    if (offset_frames > 0) {
+                        if (has_pan) {
+                            prnt_debug("🎚️ [SUNVOX] Ignoring cell pan for offset row [section=%d, line=%d, col=%d]; sample offset keeps the single controller slot",
+                                section_index, local_line, col);
+                        }
+                        sv_unlock_slot(SUNVOX_SLOT);
+                        sunvox_wrapper_set_pattern_event_with_offset(
+                            pat_id, col, local_line, final_note, velocity,
+                            cell->sample_slot, offset_frames
+                        );
+                        sv_lock_slot(SUNVOX_SLOT);
+                    } else {
+                        sv_set_pattern_event(
+                            SUNVOX_SLOT, 
+                            pat_id, 
+                            col, 
+                            local_line, 
+                            final_note,        // note
+                            velocity,          // velocity
+                            mod_id + 1,        // module
+                            pan_ctl,
+                            pan_ctl_val
+                        );
+                    }
                 } else {
                     // Cell has data but module doesn't exist
                     prnt_err("⚠️ [SUNVOX] Cell [%d, %d] slot=%d but module doesn't exist (mod_id=%d)", 
@@ -1693,6 +1787,10 @@ void sunvox_wrapper_trigger_step(int step) {
         if (final_note < 0) final_note = 0;
         if (final_note > 127) final_note = 127;
 
+        uint16_t pan_ctl = 0;
+        uint16_t pan_ctl_val = 0;
+        encode_cell_pan_controller(cell->settings.pan, &pan_ctl, &pan_ctl_val);
+
         // Send note-on event
         // sv_send_event(slot, track, note, vel, module, ctl, ctl_val)
         sv_send_event(
@@ -1701,8 +1799,8 @@ void sunvox_wrapper_trigger_step(int step) {
             final_note,         // note
             velocity,           // velocity
             mod_id + 1,         // module (sampler ID + 1)
-            0,                  // no controller
-            0                   // no controller value
+            pan_ctl,
+            pan_ctl_val
         );
         
         prnt_debug("🎵 [SUNVOX] Triggered note [step=%d, col=%d]: mod=%d, vel=%d, note=%d", 
@@ -1875,7 +1973,7 @@ extern "C" int sunvox_preview_slot(int slot, float pitch, float volume) {
     return 0;
 }
 
-extern "C" int sunvox_preview_cell(int step, int column, float pitch, float volume) {
+extern "C" int sunvox_preview_cell(int step, int column, float pitch, float volume, float pan) {
     if (!g_sunvox_initialized) return -1;
     if (step < 0 || column < 0) return -1;
 
@@ -1912,8 +2010,11 @@ extern "C" int sunvox_preview_cell(int step, int column, float pitch, float volu
     int track = preview_compute_track();
     int note = preview_note_from_pitch(resolved_pitch);
     int vel = preview_velocity_from_volume(resolved_volume);
+    uint16_t pan_ctl = 0;
+    uint16_t pan_ctl_val = 0;
+    encode_cell_pan_controller(pan, &pan_ctl, &pan_ctl_val);
 
-    int res = sv_send_event(SUNVOX_SLOT, track, note, vel, mod_id + 1, 0, 0);
+    int res = sv_send_event(SUNVOX_SLOT, track, note, vel, mod_id + 1, pan_ctl, pan_ctl_val);
     if (res < 0) return res;
 
     g_preview_active = 1;

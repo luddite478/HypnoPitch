@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 // duplicate import removed
 import 'package:provider/provider.dart';
 import '../../../state/app_state.dart';
@@ -104,6 +105,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
                                     )) {
                                       return;
                                     }
+                                    HapticFeedback.lightImpact();
                                     onOpenNavMenu?.call();
                                   },
                           ),
@@ -122,6 +124,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
                                 TutorialInteractionTarget.sectionSettingsButton)) {
                               return;
                             }
+                            HapticFeedback.lightImpact();
                             if (multitaskPanel.currentMode == MultitaskPanelMode.sectionSettings) {
                               multitaskPanel.showPlaceholder();
                             } else {
@@ -142,8 +145,11 @@ class SoundGridSideControlWidget extends StatelessWidget {
                           onPressed: appState.canInteractWithTutorialTarget(
                             TutorialInteractionTarget.songModeButton,
                           )
-                              ? () => playbackState
-                                  .setSongMode(!playbackState.songModeNotifier.value)
+                              ? () {
+                                  HapticFeedback.lightImpact();
+                                  playbackState
+                                      .setSongMode(!playbackState.songModeNotifier.value);
+                                }
                               : null,
                         )),
                         const SizedBox(height: 3),
@@ -161,6 +167,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
                                       TutorialInteractionTarget.redoButton)) {
                                     return;
                                   }
+                                  HapticFeedback.lightImpact();
                                   undoRedo.redo();
                                   appState.markRedoAction();
                                 }
@@ -181,6 +188,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
                                       TutorialInteractionTarget.undoButton)) {
                                     return;
                                   }
+                                  HapticFeedback.lightImpact();
                                   undoRedo.undo();
                                   appState.markUndoAction();
                                 }
@@ -204,7 +212,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                     onPressed: tableState.sectionsCount > 1 
                         ? (appState.isTutorialRunning
                             ? null
-                            : () => tableState.setUiSelectedSection((tableState.uiSelectedSection - 1).clamp(0, tableState.sectionsCount - 1)))
+                            : () {
+                                HapticFeedback.lightImpact();
+                                tableState.setUiSelectedSection((tableState.uiSelectedSection - 1).clamp(0, tableState.sectionsCount - 1));
+                              })
                         : null,
                     tooltip: tableState.sectionsCount > 1 
                         ? 'Previous Section (${tableState.uiSelectedSection + 1}/${tableState.sectionsCount})'
@@ -220,6 +231,7 @@ class SoundGridSideControlWidget extends StatelessWidget {
                     onPressed: appState.isTutorialRunning
                         ? null
                         : () {
+                            HapticFeedback.lightImpact();
                             if (tableState.uiSelectedSection == tableState.sectionsCount - 1) {
                               sectionSettings.openSectionCreationOverlay();
                             } else {
@@ -241,7 +253,10 @@ class SoundGridSideControlWidget extends StatelessWidget {
                             appState.canInteractWithTutorialTarget(
                               TutorialInteractionTarget.redoButton,
                             )
-                        ? () => undoRedo.redo()
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            undoRedo.redo();
+                          }
                         : null,
                     tooltip: undoRedo.canRedo ? 'Redo' : 'Nothing to Redo',
                   ),

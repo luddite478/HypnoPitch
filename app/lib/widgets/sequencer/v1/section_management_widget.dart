@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../state/sequencer/playback.dart';
 import '../../../state/sequencer/table.dart';
@@ -305,6 +306,7 @@ class SectionManagementWidget extends StatelessWidget {
     PlaybackState playbackState,
     UiSelectionState uiSelection,
   ) {
+    HapticFeedback.lightImpact();
     uiSelection.selectSection(index);
     tableState.setUiSelectedSection(index);
     playbackState.switchToSection(index);
@@ -316,6 +318,7 @@ class SectionManagementWidget extends StatelessWidget {
     UiSelectionState uiSelection,
     PlaybackState playbackState,
   ) {
+    HapticFeedback.lightImpact();
     tableState.addSectionAfter(gapIndex);
     final newIndex = gapIndex + 1;
     uiSelection.selectSection(newIndex);

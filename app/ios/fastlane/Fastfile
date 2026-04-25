@@ -3,6 +3,10 @@ platform :ios do
   api_key = nil
 
   before_all do
+    ios_dir = File.expand_path("..", __dir__)
+    # Flutter runs `pod` from PATH; ios/bin/pod is a bundle-exec shim (must stay before Homebrew `pod`).
+    ENV["PATH"] = "#{File.join(ios_dir, "bin")}:#{ENV.fetch("PATH", "")}"
+
     key_path = ENV["APP_STORE_CONNECT_P8_PATH"]
     key_content = ENV["APP_STORE_CONNECT_P8_CONTENT"]
     key_id = ENV["APP_STORE_CONNECT_KEY_ID"]
@@ -31,8 +35,10 @@ platform :ios do
 
   lane :release do
     # Fastlane runs from app/ios, so paths here are relative to that directory.
+    ios_dir = File.expand_path("..", __dir__)
     v = flutter_version(pubspec_location: "../pubspec.yaml")
 
+    sh("cd \"#{ios_dir}\" && bundle exec pod install")
     sh("cd .. && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 flutter build ipa --release --build-name=#{v['version_name']} --build-number=#{v['version_code']}")
     ipa_path = File.expand_path("../../build/ios/ipa/*.ipa", __dir__)
     ipa_files = Dir.glob(ipa_path)

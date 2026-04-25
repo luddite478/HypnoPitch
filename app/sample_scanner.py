@@ -314,6 +314,7 @@ def _choose_canonical_id(
     legacy_hash_12: str,
     previous_samples: Dict[str, Dict[str, Any]],
     previous_indexes: Dict[str, Dict[str, List[str]]],
+    allow_revised_builtin: bool = False,
 ) -> str:
     exact_sha_match = _resolve_index_lookup(
         previous_indexes["by_sha256"],
@@ -345,10 +346,13 @@ def _choose_canonical_id(
             (previous_sha and previous_sha != file_hash)
             or (previous_legacy_hash and previous_legacy_hash != legacy_hash_12)
         ):
-            raise ValueError(
-                f"Built-in sample '{path_derived_id}' changed content at "
-                f"'{relative_file_path}'. Keep the old audio or mint a new identity."
-            )
+            if not allow_revised_builtin:
+                raise ValueError(
+                    f"Built-in sample '{path_derived_id}' changed content at "
+                    f"'{relative_file_path}'. Keep the old audio, mint a new identity, or "
+                    f"re-run the scanner with --allow-revised-builtin-audio (after intentional "
+                    f"re-encode) so prior hash aliases are preserved."
+                )
         return path_derived_id
 
     previous_same_path = _single_candidate(
@@ -364,11 +368,13 @@ def _choose_canonical_id(
             (previous_sha and previous_sha != file_hash)
             or (previous_legacy_hash and previous_legacy_hash != legacy_hash_12)
         ):
-            raise ValueError(
-                f"Built-in sample path '{relative_file_path}' now points to different "
-                f"audio than shipped id '{previous_same_path}'. Keep the old file or "
-                "allow the old id to be removed explicitly."
-            )
+            if not allow_revised_builtin:
+                raise ValueError(
+                    f"Built-in sample path '{relative_file_path}' now points to different "
+                    f"audio than shipped id '{previous_same_path}'. Keep the old file, "
+                    "allow the old id to be removed explicitly, or use "
+                    "--allow-revised-builtin-audio for intentional re-encodes."
+                )
         return previous_same_path
 
     return path_derived_id
@@ -438,6 +444,7 @@ def scan_samples_directory(
     *,
     previous_manifest_path: Optional[str] = None,
     allowed_removed_ids: Optional[Set[str]] = None,
+    allow_revised_builtin: bool = False,
 ) -> Dict[str, Any]:
     """Scan the samples directory and generate stable ids + compatibility aliases."""
     samples_dir_path = Path(samples_dir)
@@ -495,13 +502,15 @@ def scan_samples_directory(
                 legacy_hash_12=legacy_hash_12,
                 previous_samples=previous_samples,
                 previous_indexes=previous_indexes,
+                allow_revised_builtin=allow_revised_builtin,
             )
             previous_entry = previous_samples.get(canonical_id, {})
-
+            _prev_leg = _entry_legacy_hash(previous_entry)
             aliases = _sorted_unique_strings(
                 [
                     legacy_hash_12,
                     path_derived_id if path_derived_id != canonical_id else "",
+                    *([_prev_leg] if _prev_leg else []),
                     *_entry_id_list(previous_entry, "aliases"),
                 ]
             )
@@ -576,6 +585,15 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=[],
         help="Previously shipped canonical id allowed to disappear in this run.",
     )
+    parser.add_argument(
+        "--allow-revised-builtin-audio",
+        action="store_true",
+        help=(
+            "Allow built-in files at the same path to have new content (new sha256) while "
+            "keeping stable builtin ids; prior legacy hash aliases are carried forward. "
+            "Use after intentional re-encodes (e.g. stereo→mono), then commit the new manifest."
+        ),
+    )
     return parser
 
 
@@ -590,6 +608,7 @@ if __name__ == "__main__":
             arguments.samples_dir,
             previous_manifest_path=previous_manifest_path,
             allowed_removed_ids=set(arguments.allow_removed_id),
+            allow_revised_builtin=bool(arguments.allow_revised_builtin_audio),
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc

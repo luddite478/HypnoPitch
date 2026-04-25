@@ -542,9 +542,11 @@ class SnapshotImporter {
           final settings = cellData['settings'] as Map<String, dynamic>?;
           final volume = ((settings?['volume'] ?? 1.0) as num).toDouble();
           final pitch = ((settings?['pitch'] ?? 1.0) as num).toDouble();
+          final pan = ((settings?['pan'] ?? -1.0) as num).toDouble();
 
           // Set slot and settings
           _tableState.setCell(step, col, sampleSlot, volume, pitch,
+              pan: pan,
               undoRecord: false);
           cellsImported++;
         }

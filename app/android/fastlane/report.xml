@@ -5,22 +5,22 @@
     
     
       
-      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000289">
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000402">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="1: cd /Users/romansmirnov/projects/HypnoPitch/app &amp;&amp; /Users/romansmirnov/projects/HypnoPitch/app/build-android-pad-release.sh" time="125.147053">
+      <testcase classname="fastlane.lanes" name="1: cd /Users/romansmirnov/projects/HypnoPitch/app &amp;&amp; /Users/romansmirnov/projects/HypnoPitch/app/build-android-pad-release.sh" time="168.677128">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="2: flutter_version" time="0.011887">
+      <testcase classname="fastlane.lanes" name="2: flutter_version" time="0.061837">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="3: upload_to_play_store" time="446.218024">
+      <testcase classname="fastlane.lanes" name="3: upload_to_play_store" time="91.587627">
         
       </testcase>
     

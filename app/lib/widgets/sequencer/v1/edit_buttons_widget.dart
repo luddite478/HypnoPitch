@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
 import '../../../state/sequencer/edit.dart';
@@ -100,11 +101,15 @@ class EditButtonsWidget extends StatelessWidget {
                         enabled: appState.canInteractWithTutorialTarget(
                           TutorialInteractionTarget.selectModeButton,
                         ),
+                        // Long press is handled outside [InkWell] so the platform
+                        // long-press click sound is not played (haptics in callback).
+                        suppressLongPressPlatformSound: true,
                         onPressed: () {
                           if (!appState.canInteractWithTutorialTarget(
                               TutorialInteractionTarget.selectModeButton)) {
                             return;
                           }
+                          HapticFeedback.lightImpact();
                           final wasInSelectionMode = editState.isInSelectionMode;
                           final multitaskPanel =
                               Provider.of<MultitaskPanelState>(context,
@@ -128,6 +133,7 @@ class EditButtonsWidget extends StatelessWidget {
                               TutorialInteractionTarget.selectModeButton)) {
                             return;
                           }
+                          HapticFeedback.lightImpact();
                           final multitaskPanel =
                               Provider.of<MultitaskPanelState>(context,
                                   listen: false);
@@ -164,6 +170,7 @@ class EditButtonsWidget extends StatelessWidget {
                                 TutorialInteractionTarget.jumpButton)) {
                               return;
                             }
+                            HapticFeedback.lightImpact();
                             final multitaskPanel =
                                 Provider.of<MultitaskPanelState>(context,
                                     listen: false);
@@ -203,6 +210,7 @@ class EditButtonsWidget extends StatelessWidget {
                                     TutorialInteractionTarget.deleteButton)) {
                                   return;
                                 }
+                                HapticFeedback.lightImpact();
                                 if (uiSelection.isSampleBank) {
                                   final slot = uiSelection.selectedSampleSlot ??
                                       sampleBankState.activeSlot;
@@ -255,6 +263,7 @@ class EditButtonsWidget extends StatelessWidget {
                                           TutorialInteractionTarget.copyButton)) {
                                         return;
                                       }
+                                      HapticFeedback.lightImpact();
                                       if (uiSelection.isSection) {
                                         tableState.copySectionToClipboard(
                                             uiSelection.selectedSection!);
@@ -296,6 +305,7 @@ class EditButtonsWidget extends StatelessWidget {
                                       TutorialInteractionTarget.pasteButton)) {
                                     return;
                                   }
+                                  HapticFeedback.lightImpact();
                                   if (uiSelection.isSection &&
                                       tableState.hasCopiedSection) {
                                     // Paste section contents INTO selected section (replace)
@@ -356,7 +366,10 @@ class EditButtonsWidget extends StatelessWidget {
                         : AppColors.sequencerLightText,
                     onPressed: appState.canInteractWithTutorialTarget(
                             TutorialInteractionTarget.selectModeButton)
-                        ? () => editState.toggleSelectionMode()
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            editState.toggleSelectionMode();
+                          }
                         : null,
                     tooltip: editState.isInSelectionMode
                         ? 'Exit Selection Mode'
@@ -383,6 +396,7 @@ class EditButtonsWidget extends StatelessWidget {
                                 TutorialInteractionTarget.deleteButton)) {
                               return;
                             }
+                            HapticFeedback.lightImpact();
                             final uiSel = context.read<UiSelectionState>();
                             final sb = context.read<SampleBankState>();
                             if (uiSel.isSampleBank) {
@@ -410,6 +424,7 @@ class EditButtonsWidget extends StatelessWidget {
                                 TutorialInteractionTarget.copyButton)) {
                               return;
                             }
+                            HapticFeedback.lightImpact();
                             editState.copyCells();
                           }
                         : null,
@@ -429,6 +444,7 @@ class EditButtonsWidget extends StatelessWidget {
                                     TutorialInteractionTarget.pasteButton)) {
                                   return;
                                 }
+                                HapticFeedback.lightImpact();
                                 editState.pasteCells();
                               }
                             : null,
@@ -547,6 +563,7 @@ class EditButtonsWidget extends StatelessWidget {
                 TutorialInteractionTarget.jumpButton)) {
               return;
             }
+            HapticFeedback.lightImpact();
             editState.toggleStepInsertMode();
             // Open jump insert settings when toggled
             Provider.of<MultitaskPanelState>(context, listen: false)
@@ -602,6 +619,9 @@ class EditButtonsWidget extends StatelessWidget {
     required bool enabled,
     required VoidCallback? onPressed,
     VoidCallback? onLongPressed,
+    /// When true and [onLongPressed] is set, long press is detected by an outer
+    /// [GestureDetector] so [InkWell] does not emit the system long-press sound.
+    bool suppressLongPressPlatformSound = false,
     required bool isActive,
     required double horizontalPadding,
   }) {
@@ -615,6 +635,39 @@ class EditButtonsWidget extends StatelessWidget {
         : isActive
             ? AppColors.sequencerPageBackground
             : AppColors.sequencerText;
+    final paddedLabel = Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+      ),
+    );
+    final inkWell = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onPressed : null,
+        onLongPress: enabled &&
+                onLongPressed != null &&
+                !suppressLongPressPlatformSound
+            ? onLongPressed
+            : null,
+        borderRadius: BorderRadius.circular(3),
+        child: paddedLabel,
+      ),
+    );
     return Container(
       key: key,
       height: height,
@@ -646,34 +699,14 @@ class EditButtonsWidget extends StatelessWidget {
                 ),
               ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: enabled ? onPressed : null,
-          onLongPress: enabled && onLongPressed != null ? onLongPressed : null,
-          borderRadius: BorderRadius.circular(3),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      child: suppressLongPressPlatformSound && onLongPressed != null
+          ? GestureDetector(
+              onLongPress:
+                  enabled ? onLongPressed : null,
+              behavior: HitTestBehavior.opaque,
+              child: inkWell,
+            )
+          : inkWell,
     );
   }
 }

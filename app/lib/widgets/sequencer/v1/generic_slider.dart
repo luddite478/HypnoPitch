@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../state/sequencer/slider_overlay.dart';
 // musical note formatting handled externally if needed
 class MusicalNotes {
@@ -22,6 +21,7 @@ class MusicalNotes {
 
 enum SliderType {
   volume,
+  pan,
   pitch,
   bpm,
   steps,
@@ -138,6 +138,8 @@ class _GenericSliderState extends State<GenericSlider> {
     switch (widget.type) {
       case SliderType.volume:
         return 'VOLUME';
+      case SliderType.pan:
+        return 'PAN';
       case SliderType.reverb:
         return 'REVERB';
       case SliderType.pitch:
@@ -155,6 +157,11 @@ class _GenericSliderState extends State<GenericSlider> {
       case SliderType.reverb:
         final volumePercent = (value * 100).round();
         return '$volumePercent';
+      case SliderType.pan:
+        final panPercent = ((value - 0.5) * 200).round();
+        if (panPercent == 0) return 'C';
+        final side = panPercent < 0 ? 'L' : 'R';
+        return '$side${panPercent.abs()}';
       case SliderType.pitch:
         final semitones = (value * 24 - 12).round();
         final noteInfo = MusicalNotes.getNoteInfo(semitones);

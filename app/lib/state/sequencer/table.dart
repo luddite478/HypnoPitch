@@ -469,9 +469,9 @@ class TableState extends ChangeNotifier {
 
   /// CRUD operations (delegate to native and update UI)
   void setCell(int step, int col, int sampleSlot, double volume, double pitch,
-      {bool undoRecord = true}) {
+      {double pan = -1.0, bool undoRecord = true}) {
     _table_ffi.tableSetCell(
-        step, col, sampleSlot, volume, pitch, undoRecord ? 1 : 0);
+        step, col, sampleSlot, volume, pitch, pan, undoRecord ? 1 : 0);
     // debugPrint('✏️ [TABLE_STATE] Set cell [$step, $col]: slot=$sampleSlot, vol=${volume.toStringAsFixed(2)}');
   }
 
@@ -548,9 +548,9 @@ class TableState extends ChangeNotifier {
     }
   }
 
-  /// Update cell audio settings (volume, pitch) while preserving sample slot
+  /// Update cell audio settings (volume, pitch, pan) while preserving sample slot
   void setCellSettings(int step, int col,
-      {double? volume, double? pitch, bool undoRecord = true}) {
+      {double? volume, double? pitch, double? pan, bool undoRecord = true}) {
     final cellPtr = getCellPointer(step, col);
     if (cellPtr.address == 0) return;
     final current = cellPtr.ref;
@@ -562,21 +562,25 @@ class TableState extends ChangeNotifier {
     double nextPitch = pitch ?? current.settings.pitch;
     if (nextPitch >= 0.0) nextPitch = nextPitch.clamp(0.03125, 32.0);
 
+    double nextPan = pan ?? current.settings.pan;
+    if (nextPan >= 0.0) nextPan = nextPan.clamp(0.0, 1.0);
+
     _table_ffi.tableSetCell(step, col, current.sample_slot, nextVolume,
-        nextPitch, undoRecord ? 1 : 0);
+        nextPitch, nextPan, undoRecord ? 1 : 0);
     debugPrint(
-        '🎚️ [TABLE_STATE] Set cell settings [$step, $col]: vol=${nextVolume.toStringAsFixed(2)}, pitch=${nextPitch.toStringAsFixed(2)}');
+        '🎚️ [TABLE_STATE] Set cell settings [$step, $col]: vol=${nextVolume.toStringAsFixed(2)}, pitch=${nextPitch.toStringAsFixed(2)}, pan=${nextPan.toStringAsFixed(2)}');
   }
 
-  /// Apply same volume/pitch to multiple cells. Records a single undo step for the batch.
+  /// Apply same volume/pitch/pan to multiple cells. Records a single undo step for the batch.
   void setCellSettingsForCells(List<({int step, int col})> cells,
-      {double? volume, double? pitch, bool undoRecord = true}) {
+      {double? volume, double? pitch, double? pan, bool undoRecord = true}) {
     if (cells.isEmpty) return;
     for (var i = 0; i < cells.length; i++) {
       final c = cells[i];
       setCellSettings(c.step, c.col,
           volume: volume,
           pitch: pitch,
+          pan: pan,
           undoRecord: undoRecord && i == cells.length - 1);
     }
   }
@@ -609,7 +613,8 @@ class TableState extends ChangeNotifier {
         final cell = cellsFlat[idx++];
         final isLast = (r == numRows - 1) && (c == _maxCols - 1);
         _table_ffi.tableSetCell(
-            step, c, cell.sampleSlot, cell.volume, cell.pitch, isLast ? 1 : 0);
+            step, c, cell.sampleSlot, cell.volume, cell.pitch, cell.pan,
+            isLast ? 1 : 0);
       }
     }
     debugPrint(
@@ -845,6 +850,7 @@ class TableState extends ChangeNotifier {
         final sameAsCurrent = current.sampleSlot == cell.sample_slot &&
             current.volume == cell.settings.volume &&
             current.pitch == cell.settings.pitch &&
+            current.pan == cell.settings.pan &&
             current.isProcessing == (cell.is_processing != 0);
         if (!sameAsCurrent) {
           notifier.value = CellData.fromPointer(cellPtr);
@@ -963,6 +969,7 @@ class TableState extends ChangeNotifier {
         if (sourceCell.sample_slot >= 0) {
           setCell(targetStep, col, sourceCell.sample_slot,
               sourceCell.settings.volume, sourceCell.settings.pitch,
+              pan: sourceCell.settings.pan,
               undoRecord: false);
         } else {
           clearCell(targetStep, col, undoRecord: false);

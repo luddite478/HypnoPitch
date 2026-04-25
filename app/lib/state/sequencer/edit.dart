@@ -438,6 +438,7 @@ class EditState extends ChangeNotifier {
           sampleSlot: cellData.isNotEmpty ? cellData.sampleSlot : null,
           volume: cellData.volume,
           pitch: cellData.pitch,
+          pan: cellData.pan,
         ));
       }
     }
@@ -492,9 +493,14 @@ class EditState extends ChangeNotifier {
                 sampleSlot: clipData.sampleSlot!,
                 volume: clipData.volume,
                 pitch: clipData.pitch,
+                pan: clipData.pan,
                 isProcessing: false)
             : const CellData(
-                sampleSlot: -1, volume: 1.0, pitch: 1.0, isProcessing: false);
+                sampleSlot: -1,
+                volume: 1.0,
+                pitch: 1.0,
+                pan: -1.0,
+                isProcessing: false);
         rowColToCell.putIfAbsent(rowAbs, () => <int, CellData>{})[colAbs] =
             cell;
       }
@@ -523,7 +529,8 @@ class EditState extends ChangeNotifier {
         if (step < _tableState.maxSteps && col < _tableState.maxCols) {
           if (clipData.sampleSlot != null) {
             _tableState.setCell(step, col, clipData.sampleSlot!,
-                clipData.volume, clipData.pitch);
+                clipData.volume, clipData.pitch,
+                pan: clipData.pan);
           } else {
             _tableState.clearCell(step, col);
           }
@@ -628,6 +635,7 @@ class CellClipboardData {
   final int? sampleSlot;
   final double volume;
   final double pitch;
+  final double pan;
 
   const CellClipboardData({
     required this.relativeRow,
@@ -635,5 +643,6 @@ class CellClipboardData {
     required this.sampleSlot,
     required this.volume,
     required this.pitch,
+    required this.pan,
   });
 }

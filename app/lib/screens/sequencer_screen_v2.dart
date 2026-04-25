@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
@@ -1724,6 +1725,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 onTap: () {
+                                  HapticFeedback.lightImpact();
                                   Navigator.of(drawerContext).pop();
                                   WidgetsBinding.instance
                                       .addPostFrameCallback((_) {
@@ -1744,8 +1746,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                onTap: () =>
-                                    _exportSnapshotFromNavMenu(drawerContext),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _exportSnapshotFromNavMenu(drawerContext);
+                                },
                               ),
                               ListTile(
                                 leading: Icon(
@@ -1758,8 +1762,10 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                onTap: () =>
-                                    _importSnapshotFromNavMenu(drawerContext),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _importSnapshotFromNavMenu(drawerContext);
+                                },
                               ),
                             ],
                           ),
@@ -1796,6 +1802,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                     color: Colors.transparent,
                                     child: InkWell(
                                       onTap: () {
+                                        HapticFeedback.lightImpact();
                                         Navigator.of(drawerContext).pop();
                                         WidgetsBinding.instance
                                             .addPostFrameCallback((_) {
@@ -1855,9 +1862,11 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                   Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: () =>
-                                          _openLibraryFromNavMenu(
-                                              drawerContext),
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        _openLibraryFromNavMenu(
+                                            drawerContext);
+                                      },
                                       borderRadius: BorderRadius.circular(8),
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -2337,6 +2346,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                               )) {
                                                                 return;
                                                               }
+                                                              HapticFeedback.lightImpact();
                                                               if (isRecording ||
                                                                   isArmed) {
                                                                 appState
@@ -2431,6 +2441,7 @@ class _SequencerScreenV2State extends State<SequencerScreenV2>
                                                               )) {
                                                                 return;
                                                               }
+                                                              HapticFeedback.lightImpact();
                                                               if (isPlaying) {
                                                                 playbackState
                                                                     .stop();
@@ -3810,6 +3821,7 @@ class _SequencerTapBlinkChildState extends State<_SequencerTapBlinkChild>
         onTap: widget.onTap == null
             ? null
             : () {
+                HapticFeedback.lightImpact();
                 widget.onTap!();
                 _tapBlinkController.forward(from: 0);
               },

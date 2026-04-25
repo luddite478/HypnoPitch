@@ -40,8 +40,8 @@ int preview_slot(int slot, float pitch, float volume) {
     return sunvox_preview_slot(slot, pitch, volume);
 }
 
-int preview_cell(int step, int column, float pitch, float volume) {
-    return sunvox_preview_cell(step, column, pitch, volume);
+int preview_cell(int step, int column, float pitch, float volume, float pan) {
+    return sunvox_preview_cell(step, column, pitch, volume, pan);
 }
 
 void preview_stop_sample(void) { sunvox_preview_stop(); }
